@@ -33,7 +33,7 @@ body.is-loading {
     place-items: center;
     overflow: hidden;
     background:
-        radial-gradient(circle at 50% 40%, rgba(201, 163, 92, .09), transparent 30%),
+        radial-gradient(circle at 50% 50%, rgba(201, 163, 92, .09), transparent 30%),
         linear-gradient(145deg, #050505, #000 65%);
     transition: opacity .45s cubic-bezier(.65, 0, .35, 1),
         filter .45s cubic-bezier(.65, 0, .35, 1),
@@ -76,13 +76,14 @@ body.is-loading {
     position: relative;
     z-index: 2;
     display: grid;
-    justify-items: center;
+    place-items: center;
 }
 
 .watch {
     position: relative;
     width: clamp(210px, 31vh, 310px);
     aspect-ratio: 1;
+    transform-origin: center center;
     filter: drop-shadow(0 0 24px rgba(201, 163, 92, .16));
     animation: watchEnter 1s cubic-bezier(.16, 1, .3, 1) both;
 }
@@ -98,6 +99,7 @@ body.is-loading {
     border-radius: 2px 5px 5px 2px;
     background: repeating-linear-gradient(90deg, #7b6339 0 2px, #d1ad68 2px 3px);
     transform: translateY(-50%);
+    pointer-events: none;
 }
 
 .watch__bezel {
@@ -121,16 +123,25 @@ body.is-loading {
     box-shadow: inset 0 0 18px #000, inset 0 0 40px rgba(201, 163, 92, .05);
 }
 
+.watch__markers {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
 .marker {
     position: absolute;
-    inset: 7px 50%;
-    width: 1px;
-    transform-origin: 50% calc(50% - 7px);
+    inset: 0;
+    transform-origin: 50% 50%;
 }
 
 .marker::before {
     content: "";
-    display: block;
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 1px;
     height: 5px;
     background: #a88a52;
@@ -236,6 +247,7 @@ body.is-loading {
     background: radial-gradient(circle at 35% 30%, #ffe7a5, #9b7331 70%);
     box-shadow: 0 0 8px rgba(201, 163, 92, .5);
     transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
 .watch__glass {
@@ -249,9 +261,13 @@ body.is-loading {
 }
 
 .loader__brand {
-    position: relative;
-    margin-top: 25px;
+    position: absolute;
+    top: calc(100% + 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
     text-align: center;
+    pointer-events: none;
 }
 
 .logo {
@@ -337,13 +353,13 @@ body.is-loading {
 @keyframes watchEnter {
     from {
         opacity: 0;
-        transform: scale(.72) rotate(-8deg);
-        filter: blur(10px);
+        transform: scale(.88);
+        filter: blur(8px);
     }
 
     to {
         opacity: 1;
-        transform: none;
+        transform: scale(1);
         filter: blur(0);
     }
 }
@@ -423,7 +439,7 @@ body.is-loading {
     }
 
     .loader__brand {
-        margin-top: 24px;
+        top: calc(100% + 20px);
     }
 }
 
@@ -433,7 +449,7 @@ body.is-loading {
     }
 
     .loader__brand {
-        margin-top: 18px;
+        top: calc(100% + 14px);
     }
 
     .logo {
