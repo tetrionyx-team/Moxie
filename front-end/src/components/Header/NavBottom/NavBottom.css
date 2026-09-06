@@ -1,6 +1,6 @@
 .bottom-items {
     width: 100%;
-    background-color: #000;
+    background-color: #050505;
     padding: 10px 0;
 }
 
@@ -8,7 +8,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 40px;
+    gap: 36px;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -16,16 +16,18 @@
 
 .bottom-menu li {
     position: relative;
-    color: #fff;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     padding-bottom: 5px;
+    letter-spacing: 0.2px;
 }
 
 .bottom-menu li a {
     color: inherit;
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 /* Underline */
@@ -37,15 +39,17 @@
     width: 0;
     height: 2px;
     background-color: #FDB101;
-    transition: width 0.3s ease;
+    transition: width 0.25s ease;
 }
 
-/* Hover Effect */
-.bottom-menu li:hover {
+/* Hover Effect & Active State */
+.bottom-menu li:hover,
+.bottom-menu li.active {
     color: #FDB101;
 }
 
-.bottom-menu li:hover::after {
+.bottom-menu li:hover::after,
+.bottom-menu li.active::after {
     width: 100%;
 }
 

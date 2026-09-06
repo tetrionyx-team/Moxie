@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useData } from "../../context/DataContext";
+import { FaFacebookF, FaInstagram, FaXTwitter } from "react-icons/fa6";
+import { FiMapPin, FiPhone, FiMail, FiClock, FiArrowUp } from "react-icons/fi";
+import MoxieLogo from "../../assets/logo/moxie.png";
+import ContactModal from "../contact/ContactModal";
 import "./Footer.css";
 
-// Import Moxie logo SVG
-import Moxie from "../../assets/logo/moxie.png"
+export default function Footer() {
+  const [contactOpen, setContactOpen] = useState(false);
 
-function Footer() {
-  const { categories } = useData();
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -15,116 +16,214 @@ function Footer() {
     });
   };
 
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    const input = e.target.querySelector(".newsletter-input");
-    if (input && input.value) {
-      alert(`Thank you for subscribing with ${input.value}!`);
-      input.value = "";
-    }
-  };
-
   return (
-    <footer className="footer-section">
-      <div className="container footer-container">
+    <footer className="moxie-footer" role="contentinfo">
+      {/* Subtle Background Watermark */}
+      <div className="footer-watermark" aria-hidden="true">
+        M
+      </div>
 
-        {/* Footer Top: Main Columns */}
+      <div className="footer-container">
+        {/* Main 4-Column Grid */}
         <div className="footer-grid">
-
-          {/* Column 1: Brand Info */}
-          <div className="footer-col brand-col">
-            <div className="footer-logo mb-3">
-              <img src={Moxie} alt="Moxie Logo" width="108" height="88" className="footer-logo-img" />
-            </div>
-            <p className="brand-description">
-              Elevate your daily style with Moxie's premium collection of watches, shoes, caps, and comfort-focused gear.
-            </p>
-            <div className="social-links d-flex gap-3">
-              <a href="https://facebook.com" className="social-icon" aria-label="Facebook">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                  <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1V12h3v3h-3v6.8c4.56-.93 8-4.96 8-9.8z" />
-                </svg>
-              </a>
-              <a href="https://instagram.com" className="social-icon" aria-label="Instagram">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
-                </svg>
-              </a>
-              <a href="https://x.com" className="social-icon" aria-label="Twitter">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Column 2: Quick Links */}
-          <div className="footer-col links-col">
-            <h4 className="footer-title">Shop Collection</h4>
-            <ul className="footer-links-list">
-              {categories.map((cat, index) => (
-                <li key={index}>
-                  <Link to={`/products/${cat.slug}`}>{cat.name}</Link>
-                </li>
-              ))}
-              <li><Link to="/products/deals">Deals</Link></li>
-            </ul>
-          </div>
-
-          {/* Column 3: Support */}
-          <div className="footer-col links-col">
-            <h4 className="footer-title">Support</h4>
-            <ul className="footer-links-list">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/">Contact Us</Link></li>
-              <li><Link to="/">FAQs</Link></li>
-              <li><Link to="/">Shipping Details</Link></li>
-              <li><Link to="/">Returns & Refunds</Link></li>
-              <li><Link to="/">Order Tracking</Link></li>
-            </ul>
-          </div>
-
-          {/* Column 4: Newsletter */}
-          <div className="footer-col newsletter-col">
-            <h4 className="footer-title">Join the Club</h4>
-            <p className="newsletter-text">
-              Subscribe to get notified about special product drops, discounts, and style blogs.
-            </p>
-            <form className="newsletter-form d-flex gap-2" onSubmit={handleSubscribe}>
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="newsletter-input"
-                required
+          {/* COLUMN 1 — MOXIE BRAND */}
+          <div className="footer-column brand-column">
+            <Link to="/" className="footer-logo-link" aria-label="Moxie Home">
+              <img
+                src={MoxieLogo}
+                alt="Moxie Logo"
+                className="footer-logo-img"
+                width="160"
+                height="50"
               />
-              <button type="submit" className="newsletter-btn" aria-label="Subscribe">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
-            </form>
+            </Link>
+
+            <div className="footer-tagline-wrap">
+              <span className="footer-tagline">SMARTER CHOICES, BETTER LIFE</span>
+              <div className="tagline-accent-line" aria-hidden="true" />
+            </div>
+
+            <p className="brand-description">
+              Elevate your daily style with Moxie’s premium collection of watches, shoes, caps, and comfort-focused gear.
+            </p>
+
+            <div className="social-links-row" aria-label="Social Media Links">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-btn"
+                aria-label="Facebook"
+              >
+                <FaFacebookF />
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-btn"
+                aria-label="Instagram"
+              >
+                <FaInstagram />
+              </a>
+              <a
+                href="https://x.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-btn"
+                aria-label="X / Twitter"
+              >
+                <FaXTwitter />
+              </a>
+            </div>
           </div>
 
+          {/* COLUMN 2 — CATEGORIES */}
+          <div className="footer-column nav-column">
+            <div className="column-heading-wrap">
+              <h3 className="column-heading">Categories</h3>
+              <div className="heading-gold-line" aria-hidden="true" />
+            </div>
+            <nav aria-label="Categories navigation">
+              <ul className="footer-nav-list">
+                <li><Link to="/">Home</Link></li>
+                <li><Link to="/products/watches">Watches</Link></li>
+                <li><Link to="/products/shoes">Shoes</Link></li>
+                <li><Link to="/products/air-buds">Air Buds</Link></li>
+                <li><Link to="/products/sliders">Sliders</Link></li>
+                <li><Link to="/products/caps">Caps</Link></li>
+                <li><Link to="/products/accessories">Accessories</Link></li>
+                <li><Link to="/deals">Deals</Link></li>
+              </ul>
+            </nav>
+          </div>
+
+          {/* COLUMN 3 — SERVICE */}
+          <div className="footer-column nav-column">
+            <div className="column-heading-wrap">
+              <h3 className="column-heading">Service</h3>
+              <div className="heading-gold-line" aria-hidden="true" />
+            </div>
+            <nav aria-label="Customer service navigation">
+              <ul className="footer-nav-list">
+                <li><Link to="/">Refund / Collection</Link></li>
+                <li><Link to="/">Privacy Policy</Link></li>
+                <li><Link to="/">Terms and Conditions</Link></li>
+                <li>
+                  <button
+                    type="button"
+                    className="footer-nav-btn"
+                    onClick={() => setContactOpen(true)}
+                    aria-label="Open Contact Us modal"
+                  >
+                    Contact
+                  </button>
+                </li>
+                <li><Link to="/profile">Tracking</Link></li>
+              </ul>
+            </nav>
+          </div>
+
+          {/* COLUMN 4 — CONTACT US */}
+          <div className="footer-column contact-column">
+            <div className="column-heading-wrap">
+              <h3 className="column-heading">Contact Us</h3>
+              <div className="heading-gold-line" aria-hidden="true" />
+            </div>
+
+            <div className="contact-items-list">
+              {/* 1. Address */}
+              <div className="contact-item">
+                <div className="contact-icon-circle" aria-hidden="true">
+                  <FiMapPin />
+                </div>
+                <div className="contact-text">
+                  <address className="contact-value not-italic">
+                    3/185, Savariyar Temple South Street,<br />
+                    Kulasekaranpattinam,<br />
+                    Thoothukudi (DT) - 628206
+                  </address>
+                </div>
+              </div>
+
+              {/* 2. Mobile */}
+              <div className="contact-item">
+                <div className="contact-icon-circle" aria-hidden="true">
+                  <FiPhone />
+                </div>
+                <div className="contact-text">
+                  <span className="contact-label">Mobile</span>
+                  <div className="contact-value contact-links">
+                    <a href="tel:7871327802" className="contact-link">7871327802</a>
+                    <span className="contact-separator">-</span>
+                    <a href="tel:7448327802" className="contact-link">7448327802</a>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Email */}
+              <div className="contact-item">
+                <div className="contact-icon-circle" aria-hidden="true">
+                  <FiMail />
+                </div>
+                <div className="contact-text">
+                  <span className="contact-label">Email</span>
+                  <div className="contact-value contact-links">
+                    <a href="mailto:moxiegadgets.ss@gmail.com" className="contact-link">
+                      moxiegadgets.ss@gmail.com
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Opening Hours */}
+              <div className="contact-item">
+                <div className="contact-icon-circle" aria-hidden="true">
+                  <FiClock />
+                </div>
+                <div className="contact-text">
+                  <span className="contact-label">Open Daily</span>
+                  <p className="contact-value highlight-hours">
+                    9:00 AM - 9:00 PM
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Divider */}
         <hr className="footer-divider" />
 
-        {/* Footer Bottom */}
-        <div className="footer-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-          <p className="copyright-text mb-0">
-            © {new Date().getFullYear()} Moxie. All rights reserved.
+        {/* Bottom Row */}
+        <div className="footer-bottom-row">
+          <p className="copyright-text">
+            © 2026 Moxie. All rights reserved.
           </p>
-          <button onClick={scrollToTop} className="scroll-to-top-btn" aria-label="Scroll to top">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
+
+          <span className="bottom-tagline">
+            SMARTER CHOICES, BETTER LIFE
+          </span>
+
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className="back-to-top-btn"
+            aria-label="Back to Top"
+            title="Back to Top"
+          >
+            <FiArrowUp />
           </button>
         </div>
-
       </div>
+
+      {/* Contact Us Modal */}
+      {contactOpen && (
+        <ContactModal
+          isOpen={contactOpen}
+          onClose={() => setContactOpen(false)}
+        />
+      )}
     </footer>
   );
 }
-
-export default Footer;

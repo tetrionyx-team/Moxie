@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { profileService } from "../../services/profileService";
 import { orderService } from "../../services/orderService";
@@ -13,16 +13,26 @@ import OrderDetails from "../../components/Profile/OrderDetails";
 import TrackOrder from "../../components/Profile/TrackOrder";
 import Addresses from "../../components/Profile/Addresses";
 import AccountSecurity from "../../components/Profile/AccountSecurity";
+import Wishlist from "../Wishlist/Wishlist";
+import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
 
 import "../../components/Profile/Profile.css";
 
 export default function ProfilePage() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location.state]);
 
   // Data States
   const [profile, setProfile] = useState(null);
@@ -130,7 +140,12 @@ export default function ProfilePage() {
     navigate("/");
   };
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
     logout();
     navigate("/");
   };
@@ -175,6 +190,8 @@ export default function ProfilePage() {
             onSetDefault={handleSetDefaultAddress}
           />
         );
+      case "wishlist":
+        return <Wishlist embedded={true} />;
       case "security":
         return <AccountSecurity profile={profile} onDeleteAccount={handleDeleteAccount} />;
       default:
@@ -189,12 +206,19 @@ export default function ProfilePage() {
         <select
           className="profile-mobile-select"
           value={activeTab === "order-details" || activeTab === "track-order" ? "orders" : activeTab}
-          onChange={(e) => setActiveTab(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value === "wishlist") {
+              navigate("/wishlist");
+            } else {
+              setActiveTab(e.target.value);
+            }
+          }}
         >
-          <option value="profile">👤 My Profile</option>
-          <option value="orders">📦 My Orders</option>
-          <option value="addresses">📍 My Addresses</option>
-          <option value="security">🔒 Account & Security</option>
+          <option value="profile">My Profile</option>
+          <option value="orders">My Orders</option>
+          <option value="wishlist">My Wishlist</option>
+          <option value="addresses">My Addresses</option>
+          <option value="security">Account & Security</option>
         </select>
       </div>
 
@@ -203,12 +227,18 @@ export default function ProfilePage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           profile={profile}
-          onLogout={handleLogout}
+          onLogout={handleLogoutClick}
         />
         <div className="profile-content-card">
           {renderActiveSection()}
         </div>
       </div>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </main>
   );
 }

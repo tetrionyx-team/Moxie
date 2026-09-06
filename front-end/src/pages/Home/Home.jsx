@@ -1,13 +1,17 @@
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Banner from "../../components/Banner/Hero";
-import Feature from "../../components/Features/Feature";
-import Category from "../../components/category/Category";
+import RecommendedForYou from "../../components/RecommendedForYou/RecommendedForYou";
+import EditorialWatches from "../../components/EditorialWatches/EditorialWatches";
+import MostLovedVideos from "../../components/MostLovedVideos/MostLovedVideos";
 import SpecialOffer from "../../components/SpecialOffer/SpecialOffer";
-import Reviews from "../../components/Reviews/Reviews";
 import ProductShelf from "../../components/Product/ProductShelf";
+import StyleEssentials from "../../components/StyleEssentials/StyleEssentials";
+import PromotionalBanner from "../../components/PromotionalBanner/PromotionalBanner";
+import CustomerTestimonials from "../../components/CustomerTestimonials/CustomerTestimonials";
 import { useData } from "../../context/DataContext";
 import { useModal } from "../../context/ModalContext";
+
 
 function Home() {
   const location = useLocation();
@@ -70,15 +74,19 @@ function Home() {
   return (
     <>
       <Banner />
-      <Feature />
-      <Category />
+      <RecommendedForYou />
+      <EditorialWatches />
+      <SpecialOffer />
+      <MostLovedVideos />
+      <StyleEssentials />
+      <PromotionalBanner />
+      <CustomerTestimonials />
       <ProductShelf eyebrow="Just dropped" title="New Arrivals" products={newArrivals} />
       <ProductShelf eyebrow="Explore Collection" title="Our Collection" products={ourCollection1} centerHeading={true} />
       <ProductShelf products={ourCollection2} hideHeading={true} />
-      <SpecialOffer />
-      <Reviews />
     </>
   );
 }
+
 
 export default Home;

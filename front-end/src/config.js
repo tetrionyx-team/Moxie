@@ -17,3 +17,5 @@ export const BACKEND_URL = isLocalhost
   : (process.env.REACT_APP_BACKEND_URL || "https://moxie-backend-9bar.onrender.com");
 
 export const API_URL = `${BACKEND_URL}/api`;
+
+export const WHATSAPP_NUMBER = process.env.REACT_APP_WHATSAPP_NUMBER || "";

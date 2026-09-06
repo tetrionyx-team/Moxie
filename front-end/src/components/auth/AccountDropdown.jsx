@@ -1,12 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { LuUserRound, LuPackage, LuHeart, LuLogOut } from "react-icons/lu";
 import "./AccountDropdown.css";
 
 /**
  * AccountDropdown
- * Small dropdown menu shown below the Profile icon when logged in.
+ * Premium cleaned-up dropdown menu shown below the Profile icon when logged in.
  */
 function AccountDropdown({ user, onLogout, onClose }) {
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   const handleLogoutClick = (e) => {
     e.stopPropagation();
@@ -20,52 +33,89 @@ function AccountDropdown({ user, onLogout, onClose }) {
 
   const userName = user?.name || "User";
 
+  // Calculate initials from user name (e.g., "Harish Raja" -> "HR")
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "U";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
   return (
-    <div className="account-dropdown-menu" onClick={(e) => e.stopPropagation()}>
-      <div className="account-dropdown-header">
-        <span className="account-greeting">Hello, {userName}</span>
-        {user?.email && <span className="account-email">{user.email}</span>}
+    <div
+      className="profile-dropdown-menu"
+      role="menu"
+      aria-label="User account menu"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 1. Profile Header: User Name ONLY (No Email) */}
+      <div className="profile-dropdown-user">
+        <div className="profile-avatar" aria-hidden="true">
+          {user?.avatar || user?.image ? (
+            <img
+              src={user.avatar || user.image}
+              alt={userName}
+              className="profile-avatar-img"
+            />
+          ) : (
+            <span className="profile-avatar-initials">{getInitials(userName)}</span>
+          )}
+        </div>
+        <div className="profile-user-name" title={userName}>
+          {userName}
+        </div>
       </div>
 
-      <hr className="account-dropdown-divider" />
+      {/* Subtle Divider */}
+      <div className="profile-dropdown-divider" role="separator" />
 
-      <div className="account-dropdown-links">
+      {/* 2. Menu Links */}
+      <div className="profile-dropdown-links">
         <Link
           to="/profile"
-          className="account-dropdown-item"
+          state={{ tab: "profile" }}
+          className="profile-dropdown-item"
+          role="menuitem"
           onClick={handleLinkClick}
         >
-          <span className="account-item-icon">👤</span>
+          <LuUserRound className="profile-item-icon" aria-hidden="true" />
           <span>My Account</span>
         </Link>
 
         <Link
           to="/profile"
-          className="account-dropdown-item"
+          state={{ tab: "orders" }}
+          className="profile-dropdown-item"
+          role="menuitem"
           onClick={handleLinkClick}
         >
-          <span className="account-item-icon">📦</span>
+          <LuPackage className="profile-item-icon" aria-hidden="true" />
           <span>My Orders</span>
         </Link>
 
         <Link
           to="/wishlist"
-          className="account-dropdown-item"
+          className="profile-dropdown-item"
+          role="menuitem"
           onClick={handleLinkClick}
         >
-          <span className="account-item-icon">❤️</span>
-          <span>Wishlist</span>
+          <LuHeart className="profile-item-icon" aria-hidden="true" />
+          <span>My Wishlist</span>
         </Link>
       </div>
 
-      <hr className="account-dropdown-divider" />
+      {/* Divider before Logout */}
+      <div className="profile-dropdown-divider" role="separator" />
 
+      {/* 3. Logout */}
       <button
         type="button"
-        className="account-dropdown-logout-btn"
+        className="profile-dropdown-logout-btn"
+        role="menuitem"
         onClick={handleLogoutClick}
       >
-        <span className="account-item-icon">🚪</span>
+        <LuLogOut className="profile-item-icon profile-logout-icon" aria-hidden="true" />
         <span>Logout</span>
       </button>
     </div>

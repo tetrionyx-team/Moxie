@@ -1,29 +1,38 @@
+/* ===================================================
+   SPECIAL OFFERS SECTION — MOXIE FRONTEND
+   =================================================== */
+
 .offers-section {
-  padding: 0 15px 40px 15px;
-  max-width: 1400px;
+  padding: 76px 24px;
+  max-width: 1320px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offers-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+  justify-content: space-between;
 }
 
 .offer-card {
   background: #000000;
   border-radius: 16px;
-  height: 236px;
-  padding: 30px;
+  min-height: 224px;
+  padding: 28px 24px;
   display: flex;
+  align-items: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
 }
 
 .offer-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
 }
 
 .offer-info {
@@ -32,7 +41,7 @@
   align-items: flex-start;
   justify-content: center;
   z-index: 2;
-  width: 60%;
+  width: 58%;
   height: 100%;
 }
 
@@ -42,21 +51,21 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .offer-title {
   color: #ffffff;
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 800;
   margin: 0 0 4px 0;
   line-height: 1.2;
 }
 
 .offer-subtitle {
-  color: #888888;
-  font-size: 14px;
-  margin: 0 0 20px 0;
+  color: #9ca3af;
+  font-size: 13.5px;
+  margin: 0 0 18px 0;
   font-weight: 500;
 }
 
@@ -65,27 +74,28 @@
   color: #000000;
   font-weight: 700;
   font-size: 13px;
-  padding: 8px 20px;
+  padding: 9px 22px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.22s ease;
   text-decoration: none;
   display: inline-block;
 }
 
 .offer-btn:hover {
   background: #ffffff;
-  transform: scale(1.05);
+  color: #000000;
+  transform: scale(1.04);
 }
 
 .offer-img-container {
   position: absolute;
-  right: 0px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 52%;
-  height: 100%;
+  width: 44%;
+  height: 85%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,35 +106,37 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.4s ease;
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), filter 0.35s ease;
 }
 
 .shoe-offer-img {
-  /* Shoe SVG can rotate slightly for active running look */
   transform: rotate(-10deg);
 }
 
 .offer-card:hover .offer-img {
-  transform: scale(1.22) rotate(4deg) translateY(-5px);
-  filter: drop-shadow(0 10px 25px rgba(255, 255, 255, 0.25));
+  transform: scale(1.12) rotate(3deg) translateY(-3px);
+  filter: drop-shadow(0 8px 20px rgba(255, 255, 255, 0.2));
 }
 
 .offer-card:hover .shoe-offer-img {
-  transform: scale(1.22) rotate(-2deg) translateY(-5px);
-  filter: drop-shadow(0 10px 25px rgba(253, 177, 1, 0.35));
-  /* gold glow matching shoe */
+  transform: scale(1.12) rotate(-2deg) translateY(-3px);
+  filter: drop-shadow(0 8px 20px rgba(253, 177, 1, 0.35));
 }
 
-/* Responsive Styles */
+/* Responsive Breakpoints */
 @media (max-width: 991px) {
+  .offers-section {
+    padding: 36px 16px 44px 16px;
+  }
+
   .offers-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 18px;
   }
 
   .offer-card {
-    height: 200px;
-    padding: 24px;
+    min-height: 200px;
+    padding: 22px;
   }
 
   .offer-title {

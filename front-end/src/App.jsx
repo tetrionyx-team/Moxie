@@ -10,9 +10,9 @@ import Footer from "./components/Footer/Footer";
 import Register from "./pages/Register/Register";
 import Checkout from "./pages/Checkout/Checkout";
 import Deals from "./pages/Deals/Deals";
-import BrandIntro from "./components/BrandIntro/BrandIntro";
 import ProfilePage from "./pages/Profile/ProfilePage";
 import SignInModal from "./components/auth/SignInModal";
+import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 import { useModal } from "./context/ModalContext";
 import { BACKEND_URL } from "./config";
 
@@ -60,9 +60,11 @@ function App() {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  const isAdminRoute = pathname.startsWith("/admin");
 
-  return (
-    <BrandIntro>
+
+  const appContent = (
+    <>
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -88,8 +90,18 @@ function App() {
 
       {/* Sign In Modal */}
       {isLoginOpen && <SignInModal onClose={closeLogin} />}
-    </BrandIntro>
+    </>
+  );
+
+  return (
+    <>
+      {appContent}
+
+      {/* Global Fixed WhatsApp Button rendered at top level outside any transformed container */}
+      {!isAdminRoute && <WhatsAppButton />}
+    </>
   );
 }
+
 
 export default App;

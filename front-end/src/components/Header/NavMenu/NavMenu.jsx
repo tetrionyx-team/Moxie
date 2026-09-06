@@ -6,6 +6,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import { useData } from "../../../context/DataContext";
 import { useModal } from "../../../context/ModalContext";
 import AccountDropdown from "../../auth/AccountDropdown";
+import LogoutConfirmModal from "../../account/LogoutConfirmModal";
 import CategoryIcon from "../../../assets/icons/categories.svg";
 import WishlistIcon from "../../../assets/icons/wishlist.svg";
 import CartIcon from "../../../assets/icons/cart.svg";
@@ -22,11 +23,12 @@ function NavMenu() {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const categoryRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target)) {
@@ -36,9 +38,19 @@ function NavMenu() {
         setShowUserMenu(false);
       }
     };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowDropdown(false);
+        setShowUserMenu(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -53,10 +65,15 @@ function NavMenu() {
     }
   };
 
-  // Handle Logout
-  const handleLogout = () => {
-    logout();
+  // Handle Logout Trigger
+  const handleLogoutClick = () => {
     setShowUserMenu(false);
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
     navigate("/", { replace: true });
   };
 
@@ -148,6 +165,8 @@ function NavMenu() {
           type="button"
           className="profile-button nav-item nav-item--btn"
           onClick={handleProfileClick}
+          aria-haspopup="menu"
+          aria-expanded={showUserMenu}
           aria-label={user || isLoggedIn ? "User account menu" : "Sign in to your account"}
         >
           <img src={ProfileIcon} alt="Profile" />
@@ -158,12 +177,17 @@ function NavMenu() {
         {(user || isLoggedIn) && showUserMenu && (
           <AccountDropdown
             user={user}
-            onLogout={handleLogout}
+            onLogout={handleLogoutClick}
             onClose={() => setShowUserMenu(false)}
           />
         )}
       </div>
 
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </div>
   );
 }

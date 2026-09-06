@@ -1,33 +1,74 @@
-.offer-bar{
-    color:#000;
-    text-align:center;
-    padding:12px 0;
-    font-size:16px;
-    font-weight:600;
-    overflow:hidden;
-    width:100%;
-    display:flex;
-    align-items:center;
-    position:relative;
+/* ===================================================
+   TOP RUNNING BENEFITS MARQUEE STRIP
+   =================================================== */
+
+.benefits-marquee {
+  width: 100%;
+  overflow: hidden;
+  background: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 101;
 }
 
-.offer-track {
-    display:flex;
-    white-space:nowrap;
-    animation:marquee 25s linear infinite;
-    width:max-content;
+.benefits-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  gap: 56px;
+  animation: benefitsScroll 22s linear infinite;
+  will-change: transform;
 }
 
-.offer-item {
-    padding:0 50px;
-    display:inline-block;
+.benefits-marquee:hover .benefits-track {
+  animation-play-state: paused;
 }
 
-@keyframes marquee {
-    0% {
-        transform:translateX(0);
-    }
-    100% {
-        transform:translateX(-50%);
-    }
+.benefit-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+  letter-spacing: 0.1px;
 }
+
+@keyframes benefitsScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .benefits-marquee {
+    padding: 8px 0;
+  }
+
+  .benefits-track {
+    gap: 32px;
+  }
+
+  .benefit-item {
+    font-size: 13px;
+  }
+}
+
+/* Accessibility: respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .benefits-track {
+    animation: none;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+}

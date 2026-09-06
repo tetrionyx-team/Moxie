@@ -1,261 +1,391 @@
-/* Footer Section Styling */
-.footer-section {
-  background-color: #0c0c0c;
-  color: #a0a0a0;
-  padding: 80px 0 40px 0;
-  border-top: 1px solid #1a1a1a;
+/* ===================================================
+   MOXIE — LUXURY DARK FOOTER REDESIGN
+   =================================================== */
+
+.moxie-footer {
+  position: relative;
+  background: linear-gradient(135deg, #0a0a0a 0%, #111111 100%);
+  color: #b8b8b8;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-family: inherit;
+  overflow: hidden;
+  z-index: 10;
 }
 
+/* Subtle Watermark "M" on the far right */
+.footer-watermark {
+  position: absolute;
+  right: -20px;
+  bottom: -40px;
+  font-size: 380px;
+  font-weight: 900;
+  color: #ffffff;
+  opacity: 0.03;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Footer Container */
 .footer-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 70px 24px 34px;
+  position: relative;
+  z-index: 2;
 }
 
-/* Footer Grid */
+/* Main 4-Column Grid */
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 2fr;
-  gap: 40px;
-  margin-bottom: 50px;
+  grid-template-columns: 1.5fr 0.8fr 1fr 1.5fr;
+  gap: 56px;
+  align-items: start;
 }
 
-.footer-col {
+.footer-column {
   display: flex;
   flex-direction: column;
 }
 
-/* Brand Column */
+/* ---------------------------------------------------
+   Column 1: Moxie Brand
+   --------------------------------------------------- */
+.footer-logo-link {
+  display: inline-block;
+  margin-bottom: 12px;
+  text-decoration: none;
+}
+
 .footer-logo-img {
+  width: 160px;
+  height: auto;
+  max-height: 52px;
   object-fit: contain;
   display: block;
 }
 
+.footer-tagline-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.footer-tagline {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FDB101;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tagline-accent-line {
+  width: 48px;
+  height: 2px;
+  background: #FDB101;
+  border-radius: 1px;
+}
+
 .brand-description {
-  font-size: 15px;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  color: #8c8c8c;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #9e9e9e;
+  margin: 0 0 24px 0;
+  max-width: 360px;
 }
 
-/* Social links */
-.social-links {
-  margin-top: auto;
+/* Social Media Buttons */
+.social-links-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.social-icon {
-  width: 40px;
-  height: 40px;
-  background-color: #1a1a1a;
-  color: #ffffff;
+.social-btn {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
+  background: #1a1a1a;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  border: 1px solid transparent;
+  font-size: 16px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.social-icon:hover {
-  background-color: #FDB101;
-  color: #0c0c0c;
+.social-btn:hover {
+  background: #FDB101;
+  color: #000000;
+  border-color: #FDB101;
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(253, 177, 1, 0.3);
+  box-shadow: 0 6px 16px rgba(253, 177, 1, 0.35);
 }
 
-/* Title Header */
-.footer-title {
+/* ---------------------------------------------------
+   Headings & Underlines
+   --------------------------------------------------- */
+.column-heading-wrap {
+  margin-bottom: 22px;
+}
+
+.column-heading {
   font-size: 18px;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 24px;
-  position: relative;
+  margin: 0;
   letter-spacing: -0.2px;
 }
 
-/* Links List */
-.footer-links-list {
+.heading-gold-line {
+  width: 56px;
+  height: 3px;
+  background: #FDB101;
+  margin-top: 10px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------
+   Nav Lists (Categories & Services)
+   --------------------------------------------------- */
+.footer-nav-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.footer-links-list li {
-  margin-bottom: 12px;
+.footer-nav-list li {
+  margin: 0;
 }
 
-.footer-links-list a {
-  color: #8c8c8c;
+.footer-nav-list a,
+.footer-nav-btn {
+  color: #b8b8b8;
   text-decoration: none;
   font-size: 15px;
-  transition: all 0.3s ease;
+  line-height: 1.5;
   display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
 }
 
-.footer-links-list a:hover {
+.footer-nav-list a:hover,
+.footer-nav-btn:hover {
   color: #FDB101;
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
-/* Newsletter Column */
-.newsletter-text {
-  font-size: 15px;
-  line-height: 1.6;
-  margin-bottom: 20px;
-  color: #8c8c8c;
-}
-
-.newsletter-form {
-  position: relative;
+/* ---------------------------------------------------
+   Column 4: Contact Us
+   --------------------------------------------------- */
+.contact-items-list {
   display: flex;
-  background-color: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  padding: 4px;
-  transition: border-color 0.3s ease;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.newsletter-form:focus-within {
-  border-color: #FDB101;
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
 }
 
-.newsletter-input {
-  flex-grow: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #ffffff;
-  padding: 10px 14px;
-  font-size: 14px;
-  width: 100%;
-}
-
-.newsletter-input::placeholder {
-  color: #5c5c5c;
-}
-
-.newsletter-btn {
-  background-color: #FDB101;
-  color: #0c0c0c;
-  border: none;
-  border-radius: 6px;
-  width: 40px;
-  height: 40px;
+.contact-icon-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid #FDB101;
+  color: #FDB101;
+  background: rgba(253, 177, 1, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 18px;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.newsletter-btn:hover {
-  background-color: #ffffff;
-  color: #0c0c0c;
-  transform: scale(1.03);
+.contact-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-/* Divider */
+.contact-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #FDB101;
+}
+
+.contact-value {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #d1d1d1;
+  margin: 0;
+}
+
+.contact-value.not-italic {
+  font-style: normal;
+}
+
+.contact-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.contact-link {
+  color: #d1d1d1;
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+
+.contact-link:hover {
+  color: #FDB101;
+  text-decoration: underline;
+}
+
+.contact-separator {
+  color: #717171;
+  user-select: none;
+}
+
+.highlight-hours {
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------
+   Divider & Bottom Row
+   --------------------------------------------------- */
 .footer-divider {
   border: 0;
   height: 1px;
-  background: #1a1a1a;
-  margin: 40px 0 30px 0;
+  background: rgba(255, 255, 255, 0.10);
+  margin: 50px 0 28px 0;
 }
 
-/* Footer Bottom copyright */
+.footer-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .copyright-text {
   font-size: 14px;
-  color: #5c5c5c;
+  color: #8c8c8c;
+  margin: 0;
 }
 
-.scroll-to-top-btn {
-  width: 46px;
-  height: 46px;
+.bottom-tagline {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: rgba(253, 177, 1, 0.7);
+  text-transform: uppercase;
+}
+
+.back-to-top-btn {
+  width: 42px;
+  height: 42px;
   background-color: #1a1a1a;
   color: #ffffff;
-  border: 1px solid #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.scroll-to-top-btn:hover {
+.back-to-top-btn:hover {
   background-color: #FDB101;
-  color: #0c0c0c;
+  color: #000000;
   border-color: #FDB101;
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(253, 177, 1, 0.35);
+  box-shadow: 0 6px 16px rgba(253, 177, 1, 0.35);
 }
 
-.scroll-to-top-btn:active {
-  transform: translateY(-1px) scale(0.95);
+.back-to-top-btn:active {
+  transform: translateY(-1px) scale(0.96);
 }
 
-/* Responsive Media Queries */
-@media (max-width: 991px) {
+/* ---------------------------------------------------
+   Responsive Breakpoints
+   --------------------------------------------------- */
+
+/* Tablet (<= 992px) */
+@media (max-width: 992px) {
   .footer-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: 44px 36px;
   }
-  
-  .footer-section {
-    padding: 60px 0 30px 0;
+
+  .footer-container {
+    padding: 60px 24px 30px;
+  }
+
+  .footer-watermark {
+    font-size: 280px;
   }
 }
 
-@media (max-width: 576px) {
+/* Mobile (<= 600px) */
+@media (max-width: 600px) {
+  .footer-container {
+    padding: 48px 16px 24px;
+  }
+
   .footer-grid {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 36px;
   }
 
-  .brand-col {
-    align-items: flex-start;
+  .brand-description {
+    max-width: 100%;
   }
 
-  .social-links {
-    margin-top: 16px;
+  .contact-value {
+    word-break: normal;
+    overflow-wrap: anywhere;
   }
 
   .footer-divider {
-    margin: 30px 0 20px 0;
+    margin: 36px 0 22px 0;
   }
 
-  .footer-bottom {
+  .footer-bottom-row {
     flex-direction: column;
-    align-items: flex-start !important;
-    gap: 15px;
+    align-items: flex-start;
+    gap: 16px;
   }
-}
 
-@media (max-width: 480px) {
-  .newsletter-form {
-    flex-direction: column;
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    gap: 12px;
+  .bottom-tagline {
+    order: -1;
   }
-  
-  .newsletter-input {
-    background-color: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-sizing: border-box;
-  }
-  
-  .newsletter-input:focus {
-    border-color: #FDB101;
-  }
-  
-  .newsletter-btn {
-    width: 100%;
-    border-radius: 8px;
-    height: 44px;
+
+  .back-to-top-btn {
+    align-self: flex-end;
+    margin-top: -36px;
   }
 }

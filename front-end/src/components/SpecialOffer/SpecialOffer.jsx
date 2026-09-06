@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import "./SpecialOffer.css";
-import watchImg from "../../assets/images/offer.png";
+import watchImg from "../../assets/images/offer_watch.png";
 import shoeImg from "../../assets/images/shoe.svg";
 import budsImg from "../../assets/images/Buds.png";
 

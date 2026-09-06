@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import "./Hero.css";
 import Banner from "../../assets/images/banner2.png";
 import BannerVideo from "../../assets/Video/banner_video.mp4";
-import Offer from "./Offer";
 
 import { BACKEND_URL } from "../../config";
 
@@ -20,32 +19,32 @@ const getBannerImageUrl = (image) => {
 };
 const slides = [
   {
-    type: "video",
-    video: BannerVideo,
-    link: "/products/watches",
-    background: "#0c0c0c",
-  },
-  {
     type: "image",
-    tag: "TRENDING TECH",
+    tag: "NEW ARRIVALS",
     title: (
       <>
-        UPGRADE YOUR STYLE
+        SMARTER CHOICES,
         <br />
-        <span>SHOP THE LATEST</span>
+        <span>BETTER LIFE</span>
       </>
     ),
-    description: "Discover premium watches, smart accessories and everyday essentials designed for your lifestyle.",
+    description: "Top quality gadgets and lifestyle products curated just for you.",
     buttonText: "Shop Now →",
     image: Banner,
     link: "/products/watches",
     background: "#f5f5f7",
     duration: 5000,
-    textColor: "#000000",
+    textColor: "#050505",
     spanColor: "#FDB101",
     descColor: "#555555",
-    btnBackground: "#000000",
+    btnBackground: "#050505",
     btnTextColor: "#ffffff",
+  },
+  {
+    type: "video",
+    video: BannerVideo,
+    link: "/products/watches",
+    background: "#0c0c0c",
   },
   {
     type: "image",
@@ -63,10 +62,10 @@ const slides = [
     link: "/products/deals",
     background: "#FDB101",
     duration: 5000,
-    textColor: "#000000",
+    textColor: "#050505",
     spanColor: "#ffffff",
     descColor: "#1a1a1a",
-    btnBackground: "#000000",
+    btnBackground: "#050505",
     btnTextColor: "#ffffff",
   },
   {
@@ -194,24 +193,19 @@ function Hero() {
 
   if (loading) {
     return (
-      <>
-        <Offer />
-        <section className="hero">
-          <div className="hero-container d-flex align-items-center justify-content-center" style={{ minHeight: "50vh" }}>
-            <div className="spinner-border text-warning" role="status">
-              <span className="visually-hidden">Loading banners...</span>
-            </div>
+      <section className="hero">
+        <div className="hero-container d-flex align-items-center justify-content-center" style={{ minHeight: "50vh" }}>
+          <div className="spinner-border text-warning" role="status">
+            <span className="visually-hidden">Loading banners...</span>
           </div>
-        </section>
-      </>
+        </div>
+      </section>
     );
   }
 
   return (
-    <>
-      <Offer />
-      <section className="hero">
-        <div className="hero-container">
+    <section className="home-hero-section hero">
+      <div className="hero-container hero-carousel">
 
           {/* Navigation Arrows */}
           <button className="slider-nav-btn prev" onClick={prevSlide} aria-label="Previous Slide">
@@ -294,7 +288,6 @@ function Hero() {
 
         </div>
       </section>
-    </>
   );
 }
 
