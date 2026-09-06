@@ -2,7 +2,7 @@
  * Global Configuration for Moxie Frontend
  * Dynamically resolves Backend URL and API base endpoint based on execution environment.
  * - When running on localhost (127.0.0.1 / localhost), points to local Django server (http://127.0.0.1:8000).
- * - When running on Netlify (moxie-dev.netlify.app), points to Render backend (https://moxie-backend-9bar.onrender.com).
+ * - When running on Netlify (moxie-dev.netlify.app), points to Render backend (https://moxie-0avp.onrender.com).
  */
 
 const isLocalhost = Boolean(
@@ -14,7 +14,7 @@ const isLocalhost = Boolean(
 
 export const BACKEND_URL = isLocalhost
   ? (process.env.REACT_APP_LOCAL_BACKEND_URL || "http://127.0.0.1:8000")
-  : (process.env.REACT_APP_BACKEND_URL || "https://moxie-backend-9bar.onrender.com");
+  : (process.env.REACT_APP_BACKEND_URL || "https://moxie-0avp.onrender.com");
 
 export const API_URL = `${BACKEND_URL}/api`;
 
