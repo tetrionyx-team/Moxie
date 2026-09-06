@@ -3,6 +3,8 @@ from django.db import migrations
 def cleanup_demo_products_and_reviews(apps, schema_editor):
     Product = apps.get_model('products', 'Product')
     ProductImage = apps.get_model('products', 'ProductImage')
+    ProductVariant = apps.get_model('products', 'ProductVariant')
+    VariantImage = apps.get_model('products', 'VariantImage')
     Review = apps.get_model('products', 'Review')
 
     demo_product_names = [
@@ -20,20 +22,26 @@ def cleanup_demo_products_and_reviews(apps, schema_editor):
 
     demo_review_names = ["Kavin", "Vishnu", "Ganesh", "Ananya Sharma", "Harish"]
 
-    # Delete only demo reviews with specific seeded text or demo names
+    # 1. Delete seeded demo reviews
     Review.objects.filter(
         name__in=demo_review_names,
         image__in=["reviews/profile1.png", "reviews/profile2.png", "reviews/profile3.png"]
     ).delete()
 
-    # Find demo products matching the exact names and containing demo image references
+    # 2. Delete demo products and all associated images and variants
     demo_products = Product.objects.filter(name__in=demo_product_names)
     for p in demo_products:
-        # Check if it has demo image references
-        has_demo_img = ProductImage.objects.filter(product=p, image__startswith="products/watch").exists()
-        if has_demo_img:
-            ProductImage.objects.filter(product=p).delete()
-            p.delete()
+        # Delete variant images and variants
+        variants = ProductVariant.objects.filter(product=p)
+        for v in variants:
+            VariantImage.objects.filter(variant=v).delete()
+        variants.delete()
+
+        # Delete product images
+        ProductImage.objects.filter(product=p).delete()
+
+        # Delete product
+        p.delete()
 
 def noop(apps, schema_editor):
     pass
