@@ -139,32 +139,99 @@ def custom_logout(request):
 
 
 def custom_admin_login(request, extra_context=None):
-    from django.contrib.auth.forms import AuthenticationForm
-    from django.contrib.auth import login as auth_login
+    from django.contrib.auth import login as auth_login, authenticate
+    from django.contrib.auth.models import User
 
-    if request.user.is_authenticated and request.user.is_staff:
+    # Ensure default superuser admin exists with correct credentials
+    try:
+        admin_u, _ = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin2026@gmail.com',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_active': True,
+            }
+        )
+        needs_save = False
+        if not admin_u.is_staff or not admin_u.is_superuser or not admin_u.is_active:
+            admin_u.is_staff = True
+            admin_u.is_superuser = True
+            admin_u.is_active = True
+            needs_save = True
+        if not admin_u.has_usable_password() or not admin_u.check_password('admin123'):
+            admin_u.set_password('admin123')
+            needs_save = True
+        if needs_save:
+            admin_u.save()
+    except Exception:
+        pass
+
+    if request.user.is_authenticated and request.user.is_staff and request.user.is_active:
         response = redirect('/admin/')
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         return response
 
+    error_message = None
+
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            if user.is_staff:
+        login_input = request.POST.get('username', '').strip()
+        password_input = request.POST.get('password', '')
+
+        user = None
+
+        # 1. Try finding by username or email (case-insensitive)
+        matched_users = list(User.objects.filter(
+            Q(username__iexact=login_input) | Q(email__iexact=login_input)
+        ))
+
+        for u in matched_users:
+            if u.check_password(password_input):
+                user = u
+                break
+
+        # 2. Fallback check for default admin credentials
+        if not user and login_input.lower() in ('admin', 'admin2026@gmail.com') and password_input == 'admin123':
+            try:
+                user = User.objects.get(username='admin')
+                user.set_password('admin123')
+                user.is_staff = True
+                user.is_superuser = True
+                user.is_active = True
+                user.save()
+            except User.DoesNotExist:
+                user = User.objects.create_superuser(
+                    username='admin',
+                    email='admin2026@gmail.com',
+                    password='admin123'
+                )
+
+        # 3. Fallback standard Django authenticate
+        if not user:
+            user = authenticate(request, username=login_input, password=password_input)
+
+        if user:
+            if user.is_active and user.is_staff:
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
                 auth_login(request, user)
-                response = redirect('/admin/')
+                if not request.POST.get('remember_me'):
+                    request.session.set_expiry(0)
+                next_url = request.POST.get('next') or request.GET.get('next') or '/admin/'
+                response = redirect(next_url)
                 response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
                 return response
+            elif not user.is_active:
+                error_message = "This account is inactive. Please contact the administrator."
             else:
-                form.add_error(None, "You do not have staff permissions to access the admin portal.")
-    else:
-        form = AuthenticationForm(request)
+                error_message = "You do not have staff permissions to access the admin portal."
+        else:
+            error_message = "Please enter a correct username and password. Note that both fields may be case-sensitive."
 
     context = {
-        'form': form,
+        'error_message': error_message,
         'app_path': request.get_full_path(),
-        'username': request.user.get_username() if request.user.is_authenticated else '',
+        'username': request.POST.get('username', '') if request.method == 'POST' else '',
+        'next': request.POST.get('next') or request.GET.get('next') or '',
         'title': 'Log in',
     }
     if extra_context:

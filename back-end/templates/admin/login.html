@@ -173,6 +173,10 @@
         <h2 class="card-heading">Welcome Back! 👋</h2>
         <p class="card-sub">Sign in to your admin account</p>
 
+        {% if error_message %}
+            <p class="errornote">{{ error_message }}</p>
+        {% endif %}
+
         {% if form.errors and not form.non_field_errors %}
             <p class="errornote">
                 {% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
