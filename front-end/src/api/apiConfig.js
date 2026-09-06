@@ -1,13 +1,15 @@
-// Central API configuration for Moxie Frontend
+import { BACKEND_URL as GLOBAL_BACKEND_URL, API_URL as GLOBAL_API_URL } from "../config";
 
-// Base API URL (e.g., https://moxie-backend.onrender.com/api or http://127.0.0.1:8000/api)
+// Base API URL (e.g., https://moxie-backend-9bar.onrender.com/api or http://127.0.0.1:8000/api)
 export const API_BASE_URL = (
+  GLOBAL_API_URL ||
   process.env.REACT_APP_API_URL ||
   "http://127.0.0.1:8000/api"
 ).replace(/\/+$/, "");
 
-// Backend root origin (e.g., https://moxie-backend.onrender.com or http://127.0.0.1:8000)
+// Backend root origin (e.g., https://moxie-backend-9bar.onrender.com or http://127.0.0.1:8000)
 export const API_ORIGIN = (
+  GLOBAL_BACKEND_URL ||
   process.env.REACT_APP_BACKEND_URL ||
   API_BASE_URL.replace(/\/api\/?$/, "") ||
   "http://127.0.0.1:8000"

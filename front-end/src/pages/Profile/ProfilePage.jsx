@@ -1,6 +1,9 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+
 import { AuthContext } from "../../context/AuthContext";
+import { useData } from "../../context/DataContext";
+
 import { profileService } from "../../services/profileService";
 import { orderService } from "../../services/orderService";
 import { addressService } from "../../services/addressService";
@@ -18,21 +21,29 @@ import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
 
 import "../../components/Profile/Profile.css";
 
-export default function ProfilePage() {
+export default function ProfilePage({ defaultTab = "profile" }) {
   const { user, logout } = useContext(AuthContext);
+  const { storeSettings } = useData();
+
   const navigate = useNavigate();
   const location = useLocation();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
+  const [activeTab, setActiveTab] = useState(
+    location.state?.tab || defaultTab
+  );
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Support both navigation state and direct routes like /my-orders
   useEffect(() => {
     if (location.state?.tab) {
       setActiveTab(location.state.tab);
+    } else {
+      setActiveTab(defaultTab);
     }
-  }, [location.state]);
+  }, [location.state, defaultTab]);
 
   // Data States
   const [profile, setProfile] = useState(null);
@@ -40,7 +51,8 @@ export default function ProfilePage() {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect to home if user session is not found
+  // Keep existing Main behavior:
+  // redirect home if no logged-in user exists.
   useEffect(() => {
     if (!user) {
       navigate("/");
@@ -53,16 +65,20 @@ export default function ProfilePage() {
 
     const loadData = async () => {
       setLoading(true);
+
       try {
         const prof = await profileService.fetchProfile(user.email);
         const ords = await orderService.fetchOrders(user.email);
         const addrs = await addressService.fetchAddresses(user.email);
-        
+
         setProfile(prof);
         setOrders(ords);
         setAddresses(addrs);
       } catch (err) {
-        console.error("Failed to load profile account data:", err);
+        console.error(
+          "Failed to load profile account data:",
+          err
+        );
       } finally {
         setLoading(false);
       }
@@ -74,7 +90,12 @@ export default function ProfilePage() {
   // Profile update handler
   const handleUpdateProfile = async (updatedData) => {
     if (!user?.email) return;
-    const updated = await profileService.updateProfile(user.email, updatedData);
+
+    const updated = await profileService.updateProfile(
+      user.email,
+      updatedData
+    );
+
     setProfile(updated);
   };
 
@@ -91,12 +112,21 @@ export default function ProfilePage() {
 
   const handleCancelOrder = async (orderId) => {
     if (!user?.email) return;
-    const success = await orderService.cancelOrder(user.email, orderId);
+
+    const success = await orderService.cancelOrder(
+      user.email,
+      orderId
+    );
+
     if (success) {
       const ords = await orderService.fetchOrders(user.email);
+
       setOrders(ords);
+
       if (selectedOrder?.id === orderId) {
-        setSelectedOrder(ords.find((o) => o.id === orderId));
+        setSelectedOrder(
+          ords.find((o) => o.id === orderId)
+        );
       }
     }
   };
@@ -104,42 +134,81 @@ export default function ProfilePage() {
   // Address actions
   const handleAddAddress = async (addrData) => {
     if (!user?.email) return;
+
     await addressService.addAddress(user.email, addrData);
-    const addrs = await addressService.fetchAddresses(user.email);
+
+    const addrs = await addressService.fetchAddresses(
+      user.email
+    );
+
     setAddresses(addrs);
   };
 
   const handleUpdateAddress = async (addrId, addrData) => {
     if (!user?.email) return;
-    await addressService.updateAddress(user.email, addrId, addrData);
-    const addrs = await addressService.fetchAddresses(user.email);
+
+    await addressService.updateAddress(
+      user.email,
+      addrId,
+      addrData
+    );
+
+    const addrs = await addressService.fetchAddresses(
+      user.email
+    );
+
     setAddresses(addrs);
   };
 
   const handleDeleteAddress = async (addrId) => {
     if (!user?.email) return;
-    await addressService.deleteAddress(user.email, addrId);
-    const addrs = await addressService.fetchAddresses(user.email);
+
+    await addressService.deleteAddress(
+      user.email,
+      addrId
+    );
+
+    const addrs = await addressService.fetchAddresses(
+      user.email
+    );
+
     setAddresses(addrs);
   };
 
   const handleSetDefaultAddress = async (addrId) => {
     if (!user?.email) return;
-    await addressService.setDefaultAddress(user.email, addrId);
-    const addrs = await addressService.fetchAddresses(user.email);
+
+    await addressService.setDefaultAddress(
+      user.email,
+      addrId
+    );
+
+    const addrs = await addressService.fetchAddresses(
+      user.email
+    );
+
     setAddresses(addrs);
   };
 
   // Security actions
   const handleDeleteAccount = () => {
-    // Delete profile and orders mock cache
-    localStorage.removeItem(`moxie_profile_${user.email}`);
-    localStorage.removeItem(`moxie_orders_${user.email}`);
-    localStorage.removeItem(`moxie_addresses_${user.email}`);
+    localStorage.removeItem(
+      `moxie_profile_${user.email}`
+    );
+
+    localStorage.removeItem(
+      `moxie_orders_${user.email}`
+    );
+
+    localStorage.removeItem(
+      `moxie_addresses_${user.email}`
+    );
+
     logout();
     navigate("/");
   };
 
+  // Keep Main/Harish logout confirmation modal
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -156,30 +225,61 @@ export default function ProfilePage() {
     if (loading) {
       return (
         <div className="text-center py-5">
-          <div className="spinner-border text-warning" role="status">
-            <span className="visually-hidden">Loading account...</span>
+          <div
+            className="spinner-border text-warning"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Loading account...
+            </span>
           </div>
-          <p className="mt-3 text-muted" style={{ fontSize: "14px" }}>Loading your account details...</p>
+
+          <p
+            className="mt-3 text-muted"
+            style={{ fontSize: "14px" }}
+          >
+            Loading your account details...
+          </p>
         </div>
       );
     }
 
     switch (activeTab) {
       case "profile":
-        return <ProfileDetails profile={profile} onUpdate={handleUpdateProfile} />;
+        return (
+          <ProfileDetails
+            profile={profile}
+            onUpdate={handleUpdateProfile}
+          />
+        );
+
       case "orders":
         return (
           <MyOrders
             orders={orders}
+            storeSettings={storeSettings}
             onViewDetails={handleViewOrderDetails}
             onTrackOrder={handleTrackOrder}
             onCancelOrder={handleCancelOrder}
           />
         );
+
       case "order-details":
-        return <OrderDetails order={selectedOrder} onBack={() => setActiveTab("orders")} />;
+        return (
+          <OrderDetails
+            order={selectedOrder}
+            onBack={() => setActiveTab("orders")}
+          />
+        );
+
       case "track-order":
-        return <TrackOrder order={selectedOrder} onBack={() => setActiveTab("orders")} />;
+        return (
+          <TrackOrder
+            order={selectedOrder}
+            onBack={() => setActiveTab("orders")}
+          />
+        );
+
       case "addresses":
         return (
           <Addresses
@@ -190,12 +290,25 @@ export default function ProfilePage() {
             onSetDefault={handleSetDefaultAddress}
           />
         );
+
       case "wishlist":
         return <Wishlist embedded={true} />;
+
       case "security":
-        return <AccountSecurity profile={profile} onDeleteAccount={handleDeleteAccount} />;
+        return (
+          <AccountSecurity
+            profile={profile}
+            onDeleteAccount={handleDeleteAccount}
+          />
+        );
+
       default:
-        return <ProfileDetails profile={profile} onUpdate={handleUpdateProfile} />;
+        return (
+          <ProfileDetails
+            profile={profile}
+            onUpdate={handleUpdateProfile}
+          />
+        );
     }
   };
 
@@ -205,7 +318,12 @@ export default function ProfilePage() {
       <div className="profile-mobile-nav">
         <select
           className="profile-mobile-select"
-          value={activeTab === "order-details" || activeTab === "track-order" ? "orders" : activeTab}
+          value={
+            activeTab === "order-details" ||
+            activeTab === "track-order"
+              ? "orders"
+              : activeTab
+          }
           onChange={(e) => {
             if (e.target.value === "wishlist") {
               navigate("/wishlist");
@@ -214,11 +332,25 @@ export default function ProfilePage() {
             }
           }}
         >
-          <option value="profile">My Profile</option>
-          <option value="orders">My Orders</option>
-          <option value="wishlist">My Wishlist</option>
-          <option value="addresses">My Addresses</option>
-          <option value="security">Account & Security</option>
+          <option value="profile">
+            My Profile
+          </option>
+
+          <option value="orders">
+            My Orders
+          </option>
+
+          <option value="wishlist">
+            My Wishlist
+          </option>
+
+          <option value="addresses">
+            My Addresses
+          </option>
+
+          <option value="security">
+            Account & Security
+          </option>
         </select>
       </div>
 
@@ -229,6 +361,7 @@ export default function ProfilePage() {
           profile={profile}
           onLogout={handleLogoutClick}
         />
+
         <div className="profile-content-card">
           {renderActiveSection()}
         </div>
@@ -236,9 +369,12 @@ export default function ProfilePage() {
 
       <LogoutConfirmModal
         isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
+        onClose={() =>
+          setShowLogoutModal(false)
+        }
         onConfirm={handleConfirmLogout}
       />
     </main>
   );
+
 }

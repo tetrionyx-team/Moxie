@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useLocation, Link, useParams } from "react-router-dom";
+import { Routes, Route, useLocation, useParams } from "react-router-dom";
 
 import Header from "./components/Header/Header";
 import Home from "./pages/Home/Home";
@@ -16,7 +16,11 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import SignInModal from "./components/auth/SignInModal";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 
+import MaintenancePage from "./pages/Maintenance/MaintenancePage";
+import NotFoundPage from "./pages/NotFound/NotFoundPage";
+
 import { useModal } from "./context/ModalContext";
+import { useData } from "./context/DataContext";
 import { BACKEND_URL } from "./config";
 
 const ProductsSelector = () => {
@@ -70,17 +74,43 @@ const AdminRedirect = ({ target }) => {
   );
 };
 
+const LoginRoute = () => {
+  const { openLogin } = useModal();
+
+  useEffect(() => {
+    openLogin();
+  }, [openLogin]);
+
+  return <Home />;
+};
+
 function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const { pathname } = useLocation();
   const { isLoginOpen, closeLogin } = useModal();
+  const { storeSettings } = useData();
 
-  // Scroll to top on route change
+  // Scroll to top whenever route changes
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // Leaving the Admin route ends the current Admin visit marker.
+    if (!pathname.startsWith("/admin")) {
+      try {
+        sessionStorage.removeItem("adminVisitActive");
+      } catch (error) {
+        // Ignore storage access errors.
+      }
+    }
   }, [pathname]);
 
   const isAdminRoute = pathname.startsWith("/admin");
+
+  // Maintenance Mode affects only the public storefront.
+  // Admin routes must remain directly accessible.
+  if (storeSettings?.maintenance_mode && !isAdminRoute) {
+    return <MaintenancePage settings={storeSettings} />;
+  }
 
   const appContent = (
     <>
@@ -104,11 +134,31 @@ function App() {
           element={<Products />}
         />
 
+        {/* Additional product-detail routes from Siva functionality */}
+        <Route
+          path="/product/:productId"
+          element={<ProductDetails />}
+        />
+
+        <Route
+          path="/product/:category/:productId"
+          element={<ProductDetails />}
+        />
+
+        <Route
+          path="/products/product/:productId"
+          element={<ProductDetails />}
+        />
+
         <Route path="/wishlist" element={<Wishlist />} />
 
         <Route path="/cart" element={<Cart />} />
 
         <Route path="/register" element={<Register />} />
+
+        {/* Existing sign-in modal opened through URL */}
+        <Route path="/login" element={<LoginRoute />} />
+        <Route path="/signin" element={<LoginRoute />} />
 
         <Route path="/checkout" element={<Checkout />} />
 
@@ -116,6 +166,18 @@ function App() {
 
         <Route path="/profile" element={<ProfilePage />} />
 
+        {/* Direct order-history routes */}
+        <Route
+          path="/orders"
+          element={<ProfilePage defaultTab="orders" />}
+        />
+
+        <Route
+          path="/my-orders"
+          element={<ProfilePage defaultTab="orders" />}
+        />
+
+        {/* Admin redirect routes */}
         <Route
           path="/admin"
           element={<AdminRedirect target="dashboard" />}
@@ -131,20 +193,8 @@ function App() {
           element={<AdminRedirect target="login" />}
         />
 
-        <Route
-          path="*"
-          element={
-            <div className="empty-state">
-              <div className="empty-icon">404</div>
-
-              <h1>Page not found</h1>
-
-              <Link to="/" className="primary-btn">
-                Back to home
-              </Link>
-            </div>
-          }
-        />
+        {/* Final custom 404 */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
       <Footer />
@@ -156,12 +206,12 @@ function App() {
 
   return (
     <>
-      {/* Starting Animation */}
+      {/* Keep Mari/Main Starting Animation */}
       <BrandIntro>
         {appContent}
       </BrandIntro>
 
-      {/* Keep outside BrandIntro so fixed positioning is not affected */}
+      {/* Keep Harish global WhatsApp button outside BrandIntro */}
       {!isAdminRoute && <WhatsAppButton />}
     </>
   );

@@ -1,0 +1,25 @@
+Set-Content .gitignore @"
+# Python generated files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django local database
+back-end/db.sqlite3
+back-end/db.sqlite3-journal
+
+# Python virtual environments
+back-end/venv/
+.venv/
+venv/
+
+# Frontend generated files
+front-end/node_modules/
+front-end/build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+"@
