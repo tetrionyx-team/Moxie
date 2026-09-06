@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-customers-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/customers.css' %}?v=1">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Customers</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-customers-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        totalCustomersCount: parseInt("{{ total_customers_count|default:0 }}"),
+        activeCustomersCount: parseInt("{{ active_customers_count|default:0 }}"),
+        inactiveCustomersCount: parseInt("{{ inactive_customers_count|default:0 }}"),
+        totalSpentAll: parseFloat("{{ total_spent_all|default:0 }}"),
+        customersList: [
+            {% for c in customers_list %}
+            {
+                id: "{{ c.id }}",
+                customerId: "{{ c.customerId|escapejs }}",
+                name: "{{ c.name|escapejs }}",
+                username: "{{ c.username|escapejs }}",
+                email: "{{ c.email|escapejs }}",
+                mobile: "{{ c.mobile|escapejs }}",
+                isActive: {% if c.isActive or c.is_active %}true{% else %}false{% endif %},
+                lastLogin: "{{ c.lastLogin|default:c.last_login|escapejs }}",
+                createdAt: "{{ c.createdAt|default:c.created_at|escapejs }}",
+                ordersCount: parseInt("{{ c.orders_count|default:0 }}"),
+                completedOrdersCount: parseInt("{{ c.completed_orders_count|default:0 }}"),
+                totalSpent: parseFloat("{{ c.total_spent|default:0 }}"),
+                reviewsCount: parseInt("{{ c.reviews_count|default:0 }}")
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        csrfToken: '{{ csrf_token }}'
+    };
+</script>
+
+<script type="module" src="{% static 'admin/react/customers.js' %}?v=3"></script>
+{% endblock %}

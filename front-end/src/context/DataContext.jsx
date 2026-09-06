@@ -32,6 +32,17 @@ const getFallbackImage = (categorySlug) => {
 export const DataProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [currentOffer, setCurrentOffer] = useState(null);
+  const [activeOffers, setActiveOffers] = useState([]);
+  const [offerLines, setOfferLines] = useState([]);
+  const [storeSettings, setStoreSettings] = useState({
+    maintenance_mode: false,
+    store_name: "Moxie",
+    allow_order_cancellation: true,
+    enable_order_tracking: true,
+    allow_registration: true,
+    allow_guest_browsing: true,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,6 +50,30 @@ export const DataProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
+      // Fetch public store settings (including maintenance mode)
+      try {
+        const settingsRes = await fetch(`${API_URL}/public-settings/`);
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          setStoreSettings(settingsData);
+        }
+      } catch (settingsErr) {
+        console.warn("Could not fetch store settings:", settingsErr);
+      }
+
+      // Fetch active offers
+      try {
+        const offersRes = await fetch(`${API_URL}/offers/current/`);
+        if (offersRes.ok) {
+          const offersData = await offersRes.json();
+          setCurrentOffer(offersData.offer || null);
+          setActiveOffers(offersData.active_offers || []);
+          setOfferLines(offersData.offers || []);
+        }
+      } catch (offersErr) {
+        console.warn("Could not fetch active offers:", offersErr);
+      }
+
       // Fetch categories from backend API
       const catData = await getCategories();
       setCategories(catData || []);
@@ -105,10 +140,11 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   return (
-    <DataContext.Provider value={{ products, categories, loading, error, refreshData: loadData }}>
+    <DataContext.Provider value={{ products, categories, currentOffer, activeOffers, offerLines, storeSettings, setStoreSettings, loading, error, refreshData: loadData }}>
       {children}
     </DataContext.Provider>
   );
 };
 
 export const useData = () => useContext(DataContext);
+

@@ -1,9 +1,13 @@
-{% extends "admin/base_site.html" %}
+﻿{% extends "admin/base_site.html" %}
 {% load i18n static humanize log %}
 
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
 
-{% block breadcrumbs %}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <span class="current-page">Dashboard</span>
+</div>
+{% endblock %}
 
 {% block content_title %}{% endblock %}
 
@@ -19,16 +23,31 @@
 <!-- Convert Django Context to JS Object -->
 <script>
     window.DJANGO_CONTEXT = {
+        totalOrders: parseInt("{{ total_orders|default:0 }}"),
+        totalSales: parseFloat("{{ total_sales|default:0 }}"),
         totalProducts: parseInt("{{ total_products|default:0 }}"),
+        inventoryValue: parseFloat("{{ inventory_value|default:0 }}"),
         totalUsers: parseInt("{{ total_users|default:0 }}"),
         totalBanners: parseInt("{{ total_banners|default:0 }}"),
         totalReviews: parseInt("{{ total_reviews|default:0 }}"),
         inStock: parseInt("{{ in_stock|default:0 }}"),
         lowStock: parseInt("{{ low_stock|default:0 }}"),
         outOfStock: parseInt("{{ out_of_stock|default:0 }}"),
+        unavailableProducts: parseInt("{{ unavailable_products|default:0 }}"),
         inStockPercent: parseInt("{{ in_stock_percent|default:0 }}"),
         lowStockPercent: parseInt("{{ low_stock_percent|default:0 }}"),
         outOfStockPercent: parseInt("{{ out_of_stock_percent|default:0 }}"),
+        unavailablePercent: parseInt("{{ unavailable_percent|default:0 }}"),
+        salesSeries: [
+            {% for item in sales_series %}
+            {
+                date: "{{ item.date|default:''|escapejs }}",
+                label: "{{ item.label|default:''|escapejs }}",
+                orders: parseInt("{{ item.orders|default:0 }}"),
+                revenue: parseFloat("{{ item.revenue|default:0 }}")
+            },
+            {% endfor %}
+        ],
         categoryStats: [
             {% for item in category_stats %}
             {
@@ -45,7 +64,7 @@
                 name: "{{ item.name|escapejs }}",
                 category: "{{ item.category.name|escapejs }}",
                 stock: parseInt("{{ item.stock|default:0 }}"),
-                price: parseFloat("{{ item.price }}").toLocaleString('en-IN'),
+                price: parseFloat("{{ item.price|default:0 }}").toLocaleString('en-IN'),
                 imageUrl: "{% if item.images.all.0 %}{{ item.images.all.0.image.url }}{% endif %}"
             },
             {% endfor %}
@@ -65,425 +84,5 @@
     };
 </script>
 
-<!-- Babel React script -->
-{% verbatim %}
-<script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-
-    function SummaryCard({ title, value, sub, icon, iconColor }) {
-        return (
-            <div className="metric-card">
-                <div className={`metric-icon ${iconColor}`} dangerouslySetInnerHTML={{ __html: icon }} />
-                <div>
-                    <p>{title}</p>
-                    <strong>{value}</strong>
-                    <small dangerouslySetInnerHTML={{ __html: sub }} />
-                </div>
-            </div>
-        );
-    }
-
-    function Dashboard() {
-        const context = window.DJANGO_CONTEXT;
-        const chartRef = useRef(null);
-        const chartInstance = useRef(null);
-
-        useEffect(() => {
-            if (chartRef.current) {
-                const ctx = chartRef.current.getContext('2d');
-                if (chartInstance.current) {
-                    chartInstance.current.destroy();
-                }
-                chartInstance.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                        datasets: [{
-                            label: 'Sales Revenue',
-                            data: [3500, 4800, 7200, 5100, 6400, 4200, 6100],
-                            borderColor: '#6657ec',
-                            backgroundColor: 'rgba(102, 87, 236, 0.05)',
-                            borderWidth: 3.5,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: '#6657ec',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointHoverBackgroundColor: '#6657ec',
-                            pointHoverBorderColor: '#ffffff',
-                            pointHoverBorderWidth: 2.5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: '#1e293b',
-                                titleColor: '#ffffff',
-                                bodyColor: '#ffffff',
-                                titleFont: { size: 12, weight: 'bold' },
-                                bodyFont: { size: 12 },
-                                padding: 10,
-                                cornerRadius: 8,
-                                displayColors: false,
-                                callbacks: {
-                                    label: function(context) {
-                                        return '₹' + context.parsed.y.toLocaleString('en-IN');
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                grid: { color: '#f1f5f9', drawBorder: false },
-                                ticks: {
-                                    color: '#94a3b8',
-                                    font: { size: 10 },
-                                    callback: function(value) {
-                                        return '₹' + (value/1000) + 'k';
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: '#94a3b8', font: { size: 10 } }
-                            }
-                        }
-                    }
-                });
-            }
-            return () => {
-                if (chartInstance.current) {
-                    chartInstance.current.destroy();
-                }
-            };
-        }, []);
-
-        const shoppingBagIcon = `<svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
-        const rupeeIcon = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
-        const packageIcon = `<svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
-        const usersIcon = `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`;
-        const bannerIcon = `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
-        const reviewsIcon = `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-
-        const donutStyle = {
-            background: `conic-gradient(var(--green) 0% ${context.inStockPercent}%, var(--purple) ${context.inStockPercent}% ${context.inStockPercent + context.lowStockPercent}%, var(--red) ${context.inStockPercent + context.lowStockPercent}% 100%)`
-        };
-
-        const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-        return (
-            <div className="dashboard-shell">
-                {/* Header block */}
-                <div className="dashboard-heading">
-                    <div>
-                        <h1>Welcome back, Admin!</h1>
-                        <p>Here's what's happening with your Moxie store today.</p>
-                    </div>
-                    <div className="date-chip">
-                        <svg fill="none" viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <span>{todayDate}</span>
-                    </div>
-                </div>
-
-                {/* Summary Cards */}
-                <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-                    <SummaryCard title="Total Orders" value="1,248" sub="<b>↑ 18.5%</b> from last week" icon={shoppingBagIcon} iconColor="purple" />
-                    <SummaryCard title="Total Sales" value="₹24,850" sub="<b>↑ 22.7%</b> from last week" icon={rupeeIcon} iconColor="green" />
-                    <SummaryCard title="Total Products" value={context.totalProducts} sub="<b>↑ 8.3%</b> from last week" icon={packageIcon} iconColor="amber" />
-                    <SummaryCard title="Total Customers" value={context.totalUsers} sub="<b>↑ 16.2%</b> from last week" icon={usersIcon} iconColor="blue" />
-                    <SummaryCard title="Banners" value={context.totalBanners} sub="Banners on display" icon={bannerIcon} iconColor="purple" />
-                    <SummaryCard title="Total Reviews" value={context.totalReviews} sub="Reviews collected" icon={reviewsIcon} iconColor="amber" />
-                </div>
-
-                {/* Grid Main */}
-                <div className="dashboard-grid dashboard-grid-main">
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Sales Overview</h2>
-                                <p>Calculated daily sales revenue for this week</p>
-                            </div>
-                            <div className="select-chip">This Week</div>
-                        </div>
-                        <div style={{ height: '250px', position: 'relative' }}>
-                            <canvas ref={chartRef}></canvas>
-                        </div>
-                    </div>
-
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Top Selling Products</h2>
-                                <p>Current catalog items sorted by popularity</p>
-                            </div>
-                            <a href="/admin/products/product/">View All</a>
-                        </div>
-                        <div className="product-list">
-                            {context.topProducts.length > 0 ? (
-                                context.topProducts.map(item => (
-                                    <a key={item.id} href={`/admin/products/product/${item.id}/change/`} className="product-row">
-                                        {item.imageUrl ? (
-                                            <img src={item.imageUrl} alt={item.name} />
-                                        ) : (
-                                            <div className="product-placeholder">📦</div>
-                                        )}
-                                        <div className="product-copy">
-                                            <strong>{item.name}</strong>
-                                            <small>{item.category} &middot; Stock: {item.stock}</small>
-                                        </div>
-                                        <b>₹{item.price}</b>
-                                    </a>
-                                ))
-                            ) : (
-                                <div className="empty-state">No products registered.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Grid Bottom */}
-                <div className="dashboard-grid dashboard-grid-bottom" style={{ marginBottom: '13px' }}>
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Stock Overview</h2>
-                                <p>Inventory level percentages</p>
-                            </div>
-                        </div>
-                        <div className="donut-layout">
-                            <div className="donut" style={donutStyle}>
-                                <div>
-                                    <strong>{context.totalProducts}</strong>
-                                    <span>Total Items</span>
-                                </div>
-                            </div>
-                            <div className="legend-list">
-                                <div>
-                                    <i className="green-dot"></i>
-                                    <span>
-                                        <strong>In Stock</strong>
-                                        <small>{context.inStock} items ({context.inStockPercent}%)</small>
-                                    </span>
-                                </div>
-                                <div>
-                                    <i className="blue-dot"></i>
-                                    <span>
-                                        <strong>Low Stock</strong>
-                                        <small>{context.lowStock} items ({context.lowStockPercent}%)</small>
-                                    </span>
-                                </div>
-                                <div>
-                                    <i className="red-dot"></i>
-                                    <span>
-                                        <strong>Out of Stock</strong>
-                                        <small>{context.outOfStock} items ({context.outOfStockPercent}%)</small>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Recent Orders</h2>
-                                <p>Latest customer transactions</p>
-                            </div>
-                        </div>
-                        <div className="dashboard-table-container">
-                            <table className="dashboard-table">
-                                <thead>
-                                    <tr>
-                                        <th>Order ID</th>
-                                        <th>Customer</th>
-                                        <th>Status</th>
-                                        <th style={{ textAlign: 'right' }}>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>#MOX12345</td>
-                                        <td>John Doe</td>
-                                        <td><span className="status-badge completed">Delivered</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹1,299</td>
-                                    </tr>
-                                    <tr>
-                                        <td>#MOX12344</td>
-                                        <td>Jane Smith</td>
-                                        <td><span className="status-badge processing">Processing</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹2,499</td>
-                                    </tr>
-                                    <tr>
-                                        <td>#MOX12343</td>
-                                        <td>Robert Brown</td>
-                                        <td><span className="status-badge pending">Shipped</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹899</td>
-                                    </tr>
-                                    <tr>
-                                        <td>#MOX12342</td>
-                                        <td>Emily Davis</td>
-                                        <td><span className="status-badge cancelled">Cancelled</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹1,499</td>
-                                    </tr>
-                                    <tr>
-                                        <td>#MOX12341</td>
-                                        <td>Michael Wilson</td>
-                                        <td><span className="status-badge completed">Delivered</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹2,199</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Category Share</h2>
-                                <p>Total items per catalog category</p>
-                            </div>
-                            <a href="/admin/categories/category/">View All</a>
-                        </div>
-                        <div className="category-list">
-                            {context.categoryStats.length > 0 ? (
-                                context.categoryStats.map((item, idx) => (
-                                    <div key={idx}>
-                                        <span>
-                                            <i style={{ background: ['#6657ec', '#37c46b', '#3798eb', '#f7b13b'][idx % 4] }}></i>
-                                            {item.name}
-                                        </span>
-                                        <strong>{item.productCount} <small>items</small></strong>
-                                        <em style={{ gridColumn: '1/-1', height: '3px', borderRadius: '2px', background: '#edf0f4', overflow: 'hidden', display: 'block', marginTop: '4px' }}>
-                                            <i style={{ height: '100%', width: `${item.share}%`, display: 'block', borderRadius: '2px', background: 'linear-gradient(90deg, #6657ec, #37c46b)' }}></i>
-                                        </em>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="empty-state">No categories defined.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Grid Lower */}
-                <div className="dashboard-grid dashboard-grid-main" style={{ marginBottom: '24px' }}>
-                    <div className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Banner Management</h2>
-                                <p>Active carousel banners on website</p>
-                            </div>
-                            <a href="/admin/banners/banner/">Manage Banners</a>
-                        </div>
-                        <div className="banner-grid">
-                            {context.totalBanners > 0 ? (
-                                <>
-                                    <div className="banner-card">
-                                        <div className="banner-thumb">
-                                            <div className="banner-badge">Order 1</div>
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eaefff', color: 'var(--purple)', fontSize: '28px' }}>🖼️</div>
-                                        </div>
-                                        <div className="banner-body">
-                                            <h3>Main Hero Banner</h3>
-                                            <p>Promotion carousel displayed at storefront home top.</p>
-                                            <div className="banner-footer">
-                                                <span>Display Order: 1</span>
-                                                <div className="banner-actions-btns">
-                                                    <a href="/admin/banners/banner/" className="btn-edit">Edit</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="banner-card">
-                                        <div className="banner-thumb">
-                                            <div className="banner-badge">Order 2</div>
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8fbee', color: '#37c46b', fontSize: '28px' }}>🖼️</div>
-                                        </div>
-                                        <div className="banner-body">
-                                            <h3>Premium Watch Drop</h3>
-                                            <p>Secondary watch collection highlight banner.</p>
-                                            <div className="banner-footer">
-                                                <span>Display Order: 2</span>
-                                                <div className="banner-actions-btns">
-                                                    <a href="/admin/banners/banner/" className="btn-edit">Edit</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="empty-state" style={{ gridColumn: '1/-1' }}>No banners currently set up.</div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div>
-                            <div className="panel-header" style={{ marginBottom: '8px' }}>
-                                <div>
-                                    <h2>Quick Admin Actions</h2>
-                                    <p>Perform catalog administration tasks</p>
-                                </div>
-                            </div>
-                            <div className="quick-actions-grid">
-                                <a href="/admin/products/product/add/" className="quick-action-btn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    Add Product
-                                </a>
-                                <a href="/admin/categories/category/add/" className="quick-action-btn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                                    Add Category
-                                </a>
-                                <a href="/admin/banners/banner/add/" className="quick-action-btn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                    Add Banner
-                                </a>
-                                <a href="/admin/auth/user/add/" className="quick-action-btn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                                    Add User
-                                </a>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="panel-header" style={{ marginBottom: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                                <div>
-                                    <h2>Recent Activity Log</h2>
-                                    <p>Timeline of recent administrator actions</p>
-                                </div>
-                            </div>
-                            <div className="activity-timeline">
-                                {context.adminLog.length > 0 ? (
-                                    context.adminLog.map((entry, idx) => (
-                                        <div key={idx} className={`activity-item ${entry.isAddition ? 'add' : entry.isChange ? 'change' : 'delete'}`}>
-                                            <span className="activity-node"></span>
-                                            <p>
-                                                <strong>{entry.user}</strong> 
-                                                {entry.isAddition ? ' added ' : entry.isChange ? ' updated ' : ' deleted '} 
-                                                <strong>{entry.objectRepr}</strong> 
-                                                in {entry.contentType}
-                                            </p>
-                                            <small>{entry.actionTime}</small>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="empty-state">No recent admin logs found.</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('react-dashboard-root'));
-    root.render(<Dashboard />);
-</script>
-{% endverbatim %}
+<script type="module" src="{% static 'admin/react/dashboard.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

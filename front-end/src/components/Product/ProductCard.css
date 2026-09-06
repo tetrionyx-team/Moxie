@@ -33,7 +33,9 @@
   border-radius: 12px 12px 0 0;
   margin: 0;
   padding: 0;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .product-card-media > img,

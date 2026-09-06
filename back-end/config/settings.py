@@ -134,6 +134,10 @@ TEMPLATES = [
 
                 'django.contrib.messages.context_processors.messages',
 
+                'api.context_processors.admin_permissions_context',
+
+                'api.context_processors.store_settings_context',
+
             ],
         },
     },
@@ -194,7 +198,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -310,23 +314,4 @@ RAZORPAY_KEY_SECRET = os.environ.get(
 RAZORPAY_WEBHOOK_SECRET = os.environ.get(
     'RAZORPAY_WEBHOOK_SECRET',
     'placeholder_webhook_secret'
-)
-
-
-# ============================================================
-# TEMPORARY RAZORPAY CONFIGURATION CHECK
-# ============================================================
-#
-# This does NOT print your secret.
-#
-# After confirming everything works, you can remove these
-# print statements.
-#
-
-print('========================================')
-print('RAZORPAY KEY ID:', RAZORPAY_KEY_ID)
-print(
-    'RAZORPAY SECRET LOADED:',
-    bool(RAZORPAY_KEY_SECRET)
-)
-print('========================================')
+)

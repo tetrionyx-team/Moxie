@@ -125,7 +125,10 @@ export default function Checkout() {
       try {
         const orderItems = checkoutList.map(item => ({
           product_id: item.id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          variant_id: item.variant_id || item.variantId || null,
+          color_name: item.selectedColor || item.color || null,
+          size: item.selectedSize || item.size || null,
         }));
 
         const createOrderRes = await fetch(`${API_URL}/payment/order/create/`, {
@@ -135,13 +138,21 @@ export default function Checkout() {
           },
           body: JSON.stringify({
             ...shippingData,
+            customer_email: user?.email,
+            customer_name: user?.name,
             items: orderItems
           })
         });
 
         if (!createOrderRes.ok) {
-          const errData = await createOrderRes.json();
-          throw new Error(errData.error || "Failed to create order on server.");
+          const errData = await createOrderRes.json().catch(() => ({}));
+          let errMsg = errData.error || errData.detail;
+          if (!errMsg && typeof errData === "object" && Object.keys(errData).length > 0) {
+            const firstKey = Object.keys(errData)[0];
+            const firstVal = errData[firstKey];
+            errMsg = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === "object" ? JSON.stringify(firstVal) : String(firstVal));
+          }
+          throw new Error(errMsg || "Failed to create order on server.");
         }
 
         const orderInfo = await createOrderRes.json();
@@ -169,11 +180,35 @@ export default function Checkout() {
               });
 
               if (!verifyRes.ok) {
-                const errVal = await verifyRes.json();
+                const errVal = await verifyRes.json().catch(() => ({}));
                 throw new Error(errVal.error || "Payment verification failed.");
               }
 
-              // Success! Clear cart and show placed order success page
+              // Success! Clear cart and record in customer profile if logged in
+              if (user?.email) {
+                const firstItem = checkoutList[0] || {};
+                orderService.placeOrder(user.email, {
+                  name: checkoutList.length > 1 ? `${firstItem.name} + ${checkoutList.length - 1} more items` : firstItem.name,
+                  image: firstItem.image,
+                  variant: firstItem.selectedSize ? `Size: ${firstItem.selectedSize}` : (firstItem.selectedColor || ""),
+                  quantity: checkoutList.reduce((acc, i) => acc + i.quantity, 0),
+                  price: firstItem.price || 0,
+                  subtotal: subtotal,
+                  discount: mrp - subtotal,
+                  shippingCharge: delivery,
+                  total: grandTotal,
+                  paymentStatus: "Paid",
+                  paymentMethod: "Razorpay (Online)",
+                  shippingAddress: {
+                    name: shippingData.shipping_name,
+                    phone: shippingData.shipping_phone,
+                    flat: shippingData.shipping_address,
+                    city: shippingData.shipping_city,
+                    pincode: shippingData.shipping_pincode,
+                  }
+                });
+              }
+
               if (!checkoutItem) {
                 clearCart();
               }

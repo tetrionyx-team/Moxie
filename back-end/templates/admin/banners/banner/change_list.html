@@ -1,0 +1,117 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static humanize %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/bannerList.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Banners</span>
+</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<!-- Root container for React Banner List -->
+<div id="react-bannerlist-root"></div>
+
+<!-- JS Context Serialization -->
+<script>
+    window.DJANGO_CONTEXT = {
+        totalBannersCount: parseInt("{{ total_banners_count|default:0 }}"),
+        activeBannersCount: parseInt("{{ active_banners_count|default:0 }}"),
+        inactiveBannersCount: parseInt("{{ inactive_banners_count|default:0 }}"),
+        totalClicksCount: parseInt("{{ total_clicks_count|default:0 }}"),
+        csrfToken: '{{ csrf_token }}',
+        resultCount: parseInt("{{ cl.result_count|default:0 }}"),
+        resultList: [
+            {% for item in cl.result_list %}
+            {
+                id: "{{ item.id }}",
+                title: "{{ item.title|escapejs }}",
+                subtitle: "{{ item.subtitle|escapejs }}",
+                imageUrl: "{% if item.image %}{{ item.image.url }}{% endif %}",
+                buttonText: "{{ item.button_text|escapejs }}",
+                buttonLink: "{{ item.button_link|escapejs }}",
+                displayOrder: parseInt("{{ item.display_order|default:0 }}"),
+                clickCount: parseInt("{{ item.click_count|default:0 }}"),
+                isActive: {% if item.is_active %} true{% else %} false{% endif %}
+            },
+            {% endfor %}
+        ],
+    djangoMessages: [
+        {% for message in messages %}
+    { level: "{{ message.tags }}", text: "{{ message|escapejs }}" },
+    {% endfor %}
+        ]
+    };
+</script>
+
+<!-- Toast Notification -->
+<div id="moxie-toast" style="
+    position: fixed; top: 24px; right: 24px; z-index: 9999;
+    background: #fff; border-radius: 12px; padding: 16px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15); display: none;
+    align-items: center; gap: 12px; min-width: 280px; max-width: 380px;
+    border-left: 4px solid #22c55e; font-family: inherit;
+    animation: slideInToast 0.3s ease;
+">
+    <span id="moxie-toast-icon" style="font-size: 22px; flex-shrink: 0;">✅</span>
+    <div style="flex: 1;">
+        <div id="moxie-toast-title" style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 2px;">
+        </div>
+        <div id="moxie-toast-msg" style="font-size: 12px; color: #64748b;"></div>
+    </div>
+    <button onclick="document.getElementById('moxie-toast').style.display='none'"
+        style="background: none; border: 0; font-size: 18px; color: #94a3b8; cursor: pointer; flex-shrink: 0; line-height: 1;">×</button>
+</div>
+
+<style>
+    @keyframes slideInToast {
+        from {
+            opacity: 0;
+            transform: translateX(40px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const msgs = (window.DJANGO_CONTEXT && window.DJANGO_CONTEXT.djangoMessages) || [];
+        if (msgs.length === 0) return;
+
+        const toast = document.getElementById('moxie-toast');
+        const title = document.getElementById('moxie-toast-title');
+        const msgEl = document.getElementById('moxie-toast-msg');
+        const icon = document.getElementById('moxie-toast-icon');
+
+        const m = msgs[0];
+        const isError = m.level && (m.level.includes('error') || m.level.includes('warning'));
+        const isDelete = m.text && m.text.toLowerCase().includes('delet');
+
+        const cleanMsg = (m.text || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+        toast.style.borderLeftColor = isError ? '#ef4444' : (isDelete ? '#f97316' : '#22c55e');
+        icon.textContent = isError ? '⚠️' : (isDelete ? '🗑️' : '✅');
+        title.textContent = isError ? 'Error' : (isDelete ? 'Banner Deleted' : 'Success');
+        msgEl.textContent = cleanMsg;
+
+        toast.style.display = 'flex';
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    })();
+</script>
+
+<script type="module" src="{% static 'admin/react/bannerList.js' %}?v=2"></script>
+{% endblock %}

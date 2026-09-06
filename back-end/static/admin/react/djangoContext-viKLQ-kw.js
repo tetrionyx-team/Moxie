@@ -1,0 +1,1 @@
+function e(){return window.DJANGO_CONTEXT||{}}export{e as t};

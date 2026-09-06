@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-settings-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/settings.css' %}?v=3">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Settings</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-settings-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        adminInfo: {
+            id: parseInt("{{ admin_info.id|default:0 }}"),
+            firstName: "{{ admin_info.firstName|escapejs }}",
+            lastName: "{{ admin_info.lastName|escapejs }}",
+            fullName: "{{ admin_info.fullName|escapejs }}",
+            email: "{{ admin_info.email|escapejs }}",
+            username: "{{ admin_info.username|escapejs }}",
+            mobile: "{{ admin_info.mobile|escapejs }}",
+            profileImage: "{{ admin_info.profileImage|escapejs }}",
+            dateJoined: "{{ admin_info.dateJoined|escapejs }}",
+            lastLogin: "{{ admin_info.lastLogin|escapejs }}",
+            isSuperuser: {% if admin_info.isSuperuser %}true{% else %}false{% endif %}
+        },
+        csrfToken: '{{ csrf_token }}'
+    };
+</script>
+
+<script type="module" src="{% static 'admin/react/settings.js' %}?v=4"></script>
+{% endblock %}

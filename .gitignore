@@ -1,25 +1,38 @@
-Set-Content .gitignore @"
 # Python generated files
 __pycache__/
+*.py[cod]
+*$py.class
 *.pyc
 *.pyo
 *.pyd
 
-# Django local database
+# Django local database & backups
 back-end/db.sqlite3
-back-end/db.sqlite3-journal
+back-end/db.sqlite3*
+*.backup
+*.bak
 
 # Python virtual environments
 back-end/venv/
 .venv/
 venv/
+env/
 
 # Frontend generated files
 front-end/node_modules/
 front-end/build/
+node_modules/
+build/
 
 # Environment files
 .env
 .env.*
 !.env.example
-"@
+back-end/.env
+back-end/.env.*
+!back-end/.env.example
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db

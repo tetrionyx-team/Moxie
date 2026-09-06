@@ -63,7 +63,7 @@ describe("RecommendedForYou Component", () => {
     expect(screen.getByText("MOXIE GADGETS & STYLE")).toBeInTheDocument();
     const viewAllLink = screen.getByRole("link", { name: /view all/i });
     expect(viewAllLink).toBeInTheDocument();
-    expect(viewAllLink).toHaveAttribute("href", "/products/watches");
+    expect(viewAllLink).toHaveAttribute("href", "/products");
   });
 
   it("renders exactly 8 watch cards with prices, ratings and brands", () => {

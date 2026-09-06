@@ -22,7 +22,7 @@ function Countdown() {
 }
 
 export default function Deals() {
-  const { products, loading } = useData();
+  const { products, loading, currentOffer } = useData();
 
   if (loading) {
     return (
@@ -43,19 +43,19 @@ export default function Deals() {
       <section className="deals-hero">
         <div className="page-shell">
           <div>
-            <span className="eyebrow">Moxie mega sale</span>
+            <span className="eyebrow">{currentOffer ? "Active Promotion" : "Moxie mega sale"}</span>
             <h1>
               Big style.
               <br />
               <em>Smaller prices.</em>
             </h1>
-            <p>Limited-time savings on everyday essentials.</p>
-            <Link to="/products/deals">Shop every deal →</Link>
+            <p>{currentOffer?.offer_text || "Limited-time savings on everyday essentials."}</p>
+            <Link to="/products">Shop every deal →</Link>
           </div>
           <div className="flash-card">
             <span>FLASH DEAL ENDS IN</span>
             <Countdown />
-            <strong>Up to 37% off</strong>
+            <strong>{currentOffer ? (currentOffer.discount_type === 'Percentage' ? 'Special % Savings' : 'Special Discounts') : 'Up to 37% off'}</strong>
           </div>
         </div>
       </section>

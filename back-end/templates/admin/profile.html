@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-profile-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/profile.css' %}?v=7">
+<style>
+    body.admin-profile-page #content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Admin Profile</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-profile-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        adminInfo: {
+            id: parseInt("{{ admin_info.id|default:0 }}"),
+            firstName: "{{ admin_info.firstName|escapejs }}",
+            lastName: "{{ admin_info.lastName|escapejs }}",
+            fullName: "{{ admin_info.fullName|escapejs }}",
+            email: "{{ admin_info.email|escapejs }}",
+            username: "{{ admin_info.username|escapejs }}",
+            mobile: "{{ admin_info.mobile|escapejs }}",
+            role: "{{ admin_info.role|escapejs }}",
+            profileImage: "{{ admin_info.profileImage|escapejs }}",
+            dateJoined: "{{ admin_info.dateJoined|escapejs }}",
+            lastLogin: "{{ admin_info.lastLogin|escapejs }}",
+            isActive: {% if admin_info.isActive %}true{% else %}false{% endif %},
+            isSuperuser: {% if admin_info.isSuperuser %}true{% else %}false{% endif %}
+        },
+        csrfToken: '{{ csrf_token }}'
+    };
+</script>
+
+<script type="module" src="{% static 'admin/react/profile.js' %}?v=7"></script>
+{% endblock %}

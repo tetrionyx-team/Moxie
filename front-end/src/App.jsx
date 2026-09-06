@@ -193,6 +193,9 @@ function App() {
           element={<AdminRedirect target="login" />}
         />
 
+        {/* Standalone maintenance route */}
+        <Route path="/maintenance" element={<MaintenancePage settings={storeSettings} />} />
+
         {/* Final custom 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

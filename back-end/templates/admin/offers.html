@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-offers-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/offers.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Offers & Discounts</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-offers-root"></div>
+
+<script id="offers-data" type="application/json">{{ offers_list|safe }}</script>
+<script id="products-data" type="application/json">{{ products_list|safe }}</script>
+<script id="categories-data" type="application/json">{{ categories_list|safe }}</script>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        totalOffersCount: parseInt("{{ total_offers_count|default:0 }}"),
+        csrfToken: '{{ csrf_token }}',
+        offersList: [],
+        productsList: [],
+        categoriesList: []
+    };
+
+    try {
+        window.DJANGO_CONTEXT.offersList = JSON.parse(document.getElementById('offers-data').textContent || '[]');
+    } catch(e) { window.DJANGO_CONTEXT.offersList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.productsList = JSON.parse(document.getElementById('products-data').textContent || '[]');
+    } catch(e) { window.DJANGO_CONTEXT.productsList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.categoriesList = JSON.parse(document.getElementById('categories-data').textContent || '[]');
+    } catch(e) { window.DJANGO_CONTEXT.categoriesList = []; }
+</script>
+
+<script type="module" src="{% static 'admin/react/offers.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

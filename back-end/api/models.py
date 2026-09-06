@@ -99,7 +99,7 @@ class StoreSettings(models.Model):
     store_status = models.CharField(max_length=20, default='Open', choices=[('Open', 'Open'), ('Maintenance', 'Maintenance')])
     allow_registration = models.BooleanField(default=True)
     allow_guest_browsing = models.BooleanField(default=True)
-    require_login_before_checkout = models.BooleanField(default=True)
+    require_login_before_checkout = models.BooleanField(default=False)
     allow_reviews = models.BooleanField(default=True)
     allow_wishlist = models.BooleanField(default=True)
     enable_product_search = models.BooleanField(default=True)

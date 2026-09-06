@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-users-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/adminUsers.css' %}?v=1">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Admin Users</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-adminusers-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        totalAdminsCount: parseInt("{{ total_admins_count|default:0 }}"),
+        activeAdminsCount: parseInt("{{ active_admins_count|default:0 }}"),
+        inactiveAdminsCount: parseInt("{{ inactive_admins_count|default:0 }}"),
+        superAdminsCount: parseInt("{{ super_admins_count|default:0 }}"),
+        adminUsersList: [
+            {% for u in admin_users_list %}
+            {
+                id: "{{ u.id }}",
+                name: "{{ u.name|escapejs }}",
+                username: "{{ u.username|escapejs }}",
+                email: "{{ u.email|escapejs }}",
+                role: "{{ u.role|escapejs }}",
+                isActive: {% if u.is_active %}true{% else %}false{% endif %},
+                isSuperuser: {% if u.is_superuser %}true{% else %}false{% endif %},
+                lastLogin: "{{ u.last_login|escapejs }}",
+                createdAt: "{{ u.created_at|escapejs }}",
+                permissions: [{% for p in u.permissions %}"{{ p|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        currentUserId: parseInt("{{ current_user_id|default:0 }}"),
+        csrfToken: '{{ csrf_token }}'
+    };
+</script>
+
+<script type="module" src="{% static 'admin/react/adminUsers.js' %}?v=3"></script>
+{% endblock %}

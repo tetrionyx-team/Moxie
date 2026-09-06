@@ -1,90 +1,28 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_modify static %}
+{% load i18n static %}
 
 {% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-form{% endblock %}
 
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/addProduct.css' %}?v={% now 'U' %}">
+{% endblock %}
+
 {% block breadcrumbs %}
-<div class="breadcrumbs" style="padding: 14px 28px !important; border-bottom: 1px solid var(--line); font-size: 12px; background: #fff;">
-    <a href="{% url 'admin:index' %}">Dashboard</a>
-    <span>&rsaquo;</span>
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
     <a href="{% url 'admin:products_product_changelist' %}">Products</a>
-    <span>&rsaquo;</span>
-    {% if add %}Add Product{% else %}{{ original|truncatewords:"10" }}{% endif %}
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">{% if add %}Add Product{% else %}Edit Product{% endif %}</span>
 </div>
 {% endblock %}
 
 {% block content_title %}{% endblock %}
 
 {% block content %}
-<!-- Hidden inputs source for Django-rendered fields -->
-<div id="django-form-inputs-source" style="display: none;">
-    <!-- Fieldsets -->
-    {% block field_sets %}
-        {% for fieldset in adminform %}
-            {% for line in fieldset %}
-                {% for field in line %}
-                    <div id="source-field-{{ field.field.name }}">
-                        {{ field.field }}
-                        {% if field.field.errors %}
-                            <div style="color: #ef4444; font-size: 11px; font-weight: 600; margin-top: 4px;">{{ field.field.errors.as_text }}</div>
-                        {% endif %}
-                        {% if field.field.help_text %}
-                            <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">{{ field.field.help_text|safe }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            {% endfor %}
-        {% endfor %}
-    {% endblock %}
-
-    <!-- Inlines -->
-    <div id="source-inlines">
-        {% block inline_field_sets %}
-            {% for inline_admin_formset in inline_admin_formsets %}
-                {{ inline_admin_formset.formset.management_form }}
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    {% for inline_form in inline_admin_formset.formset %}
-                        <div class="inline-image-row" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
-                            {{ inline_form.id }}
-                            {% if inline_form.instance.image %}
-                                <img src="{{ inline_form.instance.image.url }}" onerror="this.onerror=null; this.src='/media/products/watch1.png';" style="width: 50px; height: 50px; border-radius: 6px; object-fit: contain; background: #fff; border: 1px solid #e2e8f0;">
-                            {% else %}
-                                <div style="width: 50px; height: 50px; border-radius: 6px; background: #eaefff; color: var(--purple); display: grid; place-items: center; font-size: 20px;">🖼️</div>
-                            {% endif %}
-                            <div style="flex: 1; min-width: 0; font-size: 11px;">
-                                {{ inline_form.image }}
-                                <div style="margin-top: 4px; display: flex; gap: 10px; align-items: center;">
-                                    <label style="font-weight: 600; display: inline-flex; align-items: center; gap: 4px; color: #475569;">
-                                        {{ inline_form.is_primary }} Primary
-                                    </label>
-                                    {% if inline_form.instance.pk %}
-                                        <label style="color: #ef4444; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                                            {{ inline_form.DELETE }} Delete
-                                        </label>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-        {% endblock %}
-    </div>
-
-    <!-- Actions -->
-    <div id="source-submit-row">
-        {% block submit_row %}
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="submit" value="{% translate 'Save Product' %}" class="default" name="_save" style="width: 100%; height: 42px; background: var(--purple) !important; color: #fff; font-weight: 700; border-radius: 8px; border: 0; cursor: pointer;">
-                <input type="submit" value="{% translate 'Save and continue' %}" name="_continue" style="width: 100%; height: 38px; background: #f1f5f9; color: #334155; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
-                <input type="submit" value="{% translate 'Save and add another' %}" name="_addanother" style="width: 100%; height: 38px; background: #fff; color: #475569; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
-                {% if show_delete_link %}
-                    <a href="delete/" class="deletelink" style="display: block; text-align: center; color: #ef4444; font-weight: 600; font-size: 13px; text-decoration: none; padding: 8px; margin-top: 6px;">Delete Product</a>
-                {% endif %}
-            </div>
-        {% endblock %}
-    </div>
-</div>
+<!-- React Changeform Mount Node -->
+<div id="react-changeform-root"></div>
 
 <!-- JS Context Serialization -->
 <script>
@@ -92,191 +30,13 @@
         isAdd: {% if add %}true{% else %}false{% endif %},
         originalName: "{{ original.name|escapejs }}",
         csrfToken: "{{ csrf_token }}",
-        hasErrors: {% if errors %}true{% else %}false{% endif %}
+        hasErrors: {% if errors %}true{% else %}false{% endif %},
+        categories: {{ categories_json|safe|default:"[]" }},
+        subcategories: {{ subcategories_json|safe|default:"[]" }},
+        initialData: {{ initial_data_json|safe|default:"{}" }},
+        existingVariants: {{ existing_variants_json|safe|default:"[]" }}
     };
 </script>
 
-<!-- React Changeform Mount Node -->
-<div id="react-changeform-root"></div>
-
-{% verbatim %}
-<script type="text/babel">
-    const { useEffect } = React;
-
-    function ProductForm() {
-        useEffect(() => {
-            // Move input fields from Django source to React placeholders
-            const fields = ['name', 'category', 'subcategory', 'price', 'discount_price', 'stock', 'is_active', 'description'];
-            fields.forEach(name => {
-                const src = document.getElementById(`source-field-${name}`);
-                const dest = document.getElementById(`dest-field-${name}`);
-                if (src && dest) {
-                    dest.appendChild(src);
-                }
-            });
-
-            // Move Inline images
-            const inlineSrc = document.getElementById('source-inlines');
-            const inlineDest = document.getElementById('dest-inlines');
-            if (inlineSrc && inlineDest) {
-                inlineDest.appendChild(inlineSrc);
-            }
-
-            // Move submits
-            const submitSrc = document.getElementById('source-submit-row');
-            const submitDest = document.getElementById('dest-submit');
-            if (submitSrc && submitDest) {
-                submitDest.appendChild(submitSrc);
-            }
-        }, []);
-
-        const context = window.DJANGO_CONTEXT;
-
-        return (
-            <div className="dashboard-shell" style={{ padding: '24px 28px' }}>
-                {/* Header Row */}
-                <div className="dashboard-heading" style={{ marginBottom: '20px' }}>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 750, color: '#1e293b' }}>
-                            {context.isAdd ? 'Add New Product' : `Edit Product: ${context.originalName}`}
-                        </h1>
-                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '12px' }}>Fill in the catalog details and upload media assets</p>
-                    </div>
-                </div>
-
-                <form enctype="multipart/form-data" action="" method="post" id="product-form" novalidate>
-                    <input type="hidden" name="csrfmiddlewaretoken" value={context.csrfToken} />
-                    
-                    {context.hasErrors && (
-                        <p className="errornote" style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#991b1b', padding: '12px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', marginBottom: '20px' }}>
-                            Please correct the errors below.
-                        </p>
-                    )}
-
-                    {/* React Grid */}
-                    <div className="product-edit-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 1fr)', gap: '20px', alignItems: 'start', marginBottom: '24px' }}>
-                        
-                        {/* Left Cards */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div className="panel" style={{ padding: '24px' }}>
-                                <h2 style={{ fontSize: '15px', fontWeight: 750, borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginTop: 0, marginBottom: '18px', color: '#0f172a' }}>Product Information</h2>
-                                
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Product Name <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <div id="dest-field-name"></div>
-                                    </div>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Category <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <div id="dest-field-category"></div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Subcategory</label>
-                                        <div id="dest-field-subcategory"></div>
-                                    </div>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Stock</label>
-                                        <div id="dest-field-stock"></div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Price <span style={{ color: '#ef4444' }}>*</span></label>
-                                        <div id="dest-field-price"></div>
-                                    </div>
-                                    <div className="field-box-custom">
-                                        <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Discount Price</label>
-                                        <div id="dest-field-discount_price"></div>
-                                    </div>
-                                </div>
-
-                                <div className="field-box-custom" style={{ marginTop: '16px' }}>
-                                    <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>Description</label>
-                                    <div id="dest-field-description"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Cards */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div className="panel" style={{ padding: '24px' }}>
-                                <h2 style={{ fontSize: '15px', fontWeight: 750, borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginTop: 0, marginBottom: '18px', color: '#0f172a' }}>Product Images</h2>
-                                <div id="dest-inlines"></div>
-                            </div>
-
-                            <div className="panel" style={{ padding: '24px' }}>
-                                <h2 style={{ fontSize: '15px', fontWeight: 750, borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginTop: 0, marginBottom: '18px', color: '#0f172a' }}>Save Actions</h2>
-                                <div className="field-box-custom" style={{ marginBottom: '16px' }}>
-                                    <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <span id="dest-field-is_active"></span>
-                                        Active in catalog
-                                    </label>
-                                </div>
-                                <div id="dest-submit"></div>
-                            </div>
-                        </div>
-
-                    </div>
-                </form>
-            </div>
-        );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('react-changeform-root'));
-    root.render(<ProductForm />);
-</script>
-{% endverbatim %}
-
-<style>
-    /* Styling select drop downs and text areas in the product form */
-    .field-box-custom input[type="text"],
-    .field-box-custom input[type="number"],
-    .field-box-custom select,
-    .field-box-custom textarea {
-        width: 100% !important;
-        height: 38px !important;
-        padding: 8px 12px !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 8px !important;
-        font-family: inherit !important;
-        font-size: 13px !important;
-        outline: none !important;
-        box-sizing: border-box !important;
-        background: #fff !important;
-    }
-    .field-box-custom textarea {
-        height: 120px !important;
-    }
-    .field-box-custom input[type="text"]:focus,
-    .field-box-custom input[type="number"]:focus,
-    .field-box-custom select:focus,
-    .field-box-custom textarea:focus {
-        border-color: var(--purple) !important;
-        box-shadow: 0 0 0 3px rgba(102, 87, 236, 0.1) !important;
-    }
-    .field-box-custom input[type="checkbox"] {
-        cursor: pointer;
-        width: 15px;
-        height: 15px;
-    }
-    .inline-image-row input[type="file"] {
-        font-size: 12px;
-        color: #475569;
-        margin-bottom: 6px;
-    }
-    .inline-image-row input[type="checkbox"] {
-        width: 13px;
-        height: 13px;
-        cursor: pointer;
-    }
-    @media (max-width: 1024px) {
-        .product-edit-grid {
-            grid-template-columns: 1fr !important;
-        }
-    }
-</style>
+<script type="module" src="{% static 'admin/react/addProduct.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

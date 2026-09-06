@@ -3,5 +3,5 @@
 {% block title %}{{ title }} | Moxie Admin Portal{% endblock %}
 
 {% block branding %}
-<h1 id="site-name"><a href="{% url 'admin:index' %}">Moxie Admin Portal</a></h1>
+<h1 id="site-name"><a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Moxie Admin Portal</a></h1>
 {% endblock %}

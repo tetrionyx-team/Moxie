@@ -227,5 +227,25 @@
     <p class="footer-text">Need help? Contact <a href="mailto:support@moxiestore.com">support@moxiestore.com</a></p>
 </div>
 
+<script>
+    (function() {
+        // If the user already has an active visit in this tab and backend user is authenticated, continue
+        {% if user.is_authenticated and user.is_staff and user.is_active %}
+        if (sessionStorage.getItem('adminVisitActive') === 'true') {
+            window.location.replace('{{ next|default:"/admin/dashboard/" }}');
+        }
+        {% endif %}
+
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function() {
+                try {
+                    sessionStorage.setItem('adminVisitActive', 'true');
+                } catch(e) {}
+            });
+        }
+    })();
+</script>
+
 </body>
 </html>

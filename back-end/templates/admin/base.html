@@ -3,221 +3,911 @@
 {% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}
 <html lang="{{ LANGUAGE_CODE|default:"en-us" }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
 <head>
-<title>{% block title %}{% endblock %}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="{% static "admin/css/custom_admin.css" %}">
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-{% block extrahead %}{% endblock %}
-{% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE">{% endblock %}
+    <title>{% block title %}{% endblock %}Moxie Admin Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" type="image/png" href="{% static 'images/moxie.png' %}">
+    <link rel="shortcut icon" href="{% static 'images/moxie.png' %}">
+    <link rel="stylesheet" href="{% static 'admin/css/custom_admin.css' %}?v={% now 'U' %}">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    {% block extrahead %}{% endblock %}
+    {% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE">{% endblock %}
 </head>
-<body class="{% if is_popup %}popup{% endif %} {% block bodyclass %}{% endblock %}"
-  data-admin-utc-offset="{% now "Z" %}">
+<body class="{% if is_popup %}popup{% endif %} {% block bodyclass %}{% endblock %}" data-admin-utc-offset="{% now 'Z' %}">
 
-<!-- Container -->
-<div id="container">
-    {% if not is_popup %}
-    <!-- Sidebar -->
-    <nav id="nav-sidebar">
-        <!-- Sidebar Brand -->
-        <a href="{% url 'admin:index' %}" class="sidebar-brand">
-            <span class="brand-mark">M</span>
-            <span>
-                <strong>Moxie</strong>
-                <small>ADMIN PORTAL</small>
-            </span>
-            <i></i>
-        </a>
-        
-        <!-- Navigation Menu -->
-        <div class="sidebar-nav-menu">
-            <a href="{% url 'admin:index' %}" class="sidebar-menu-item {% if request.path == '/admin/' %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Dashboard</span>
-            </a>
-            
-            <a href="/admin/products/product/" class="sidebar-menu-item {% if '/products/product/' in request.path %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                <span>Products</span>
-            </a>
-            
-            <a href="/admin/categories/category/" class="sidebar-menu-item {% if '/categories/category/' in request.path %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                <span>Categories</span>
-            </a>
-
-            <a href="/admin/categories/subcategory/" class="sidebar-menu-item {% if '/categories/subcategory/' in request.path %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>Subcategories</span>
-            </a>
-            
-            <a href="/admin/banners/banner/" class="sidebar-menu-item {% if '/banners/banner/' in request.path %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span>Banners</span>
-            </a>
-
-            <a href="/admin/products/review/" class="sidebar-menu-item {% if '/products/review/' in request.path %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>Reviews</span>
-            </a>
-            
-            <a href="/admin/auth/user/" class="sidebar-menu-item {% if '/auth/user/' in request.path and 'is_staff' in request.GET %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                <span>Users</span>
-            </a>
-
-            <a href="/admin/auth/user/" class="sidebar-menu-item {% if '/auth/user/' in request.path and not 'is_staff' in request.GET %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Customers</span>
-            </a>
-
-            <a href="#" class="sidebar-menu-item">
-                <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                <span>Orders</span>
-                <span class="badge" style="border-radius: 5px; font-size: 10px; font-weight: 700; color: #fff !important; background: var(--purple) !important; padding: 2px 6px; margin-left: auto;">24</span>
-            </a>
-
-            <a href="#" class="sidebar-menu-item">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Settings</span>
-            </a>
-
-            <form action="{% url 'admin:logout' %}" method="post" style="margin: 0; padding: 0;">
-                {% csrf_token %}
-                <button type="submit" class="sidebar-menu-item" style="width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left;">
-                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    <span>Logout</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Simple Go to Storefront Button -->
-        <div style="padding: 16px; margin-top: auto;">
-            <a id="storefront-link" href="http://localhost:3000" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #6657ec; color: #ffffff; padding: 12px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; transition: background 0.2s; font-size: 14px;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                <span>Go to Storefront</span>
-            </a>
-        </div>
-    </nav>
-
-    <button class="sidebar-scrim" aria-label="Close Sidebar" onclick="document.body.classList.remove('sidebar-open')"></button>
-    {% endif %}
-
-    <!-- Main Content Wrapper -->
-    <div id="main-content-wrapper">
+    <!-- Container -->
+    <div id="container">
         {% if not is_popup %}
-        <!-- Header -->
-        <header id="header">
-            <button class="hamburger-btn" aria-label="Toggle Sidebar" onclick="document.body.classList.toggle('sidebar-open')">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            
-            <div class="header-search">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="admin-search" placeholder="Search anything...">
+        <!-- Sidebar -->
+        <nav id="nav-sidebar">
+            <!-- Sidebar Brand -->
+            <a href="{% url 'admin:index' %}" class="sidebar-brand">
+                <img src="{% static 'images/moxie.png' %}" alt="Moxie Logo" class="brand-logo-img">
+                <span>
+                    <strong>Moxie</strong>
+                    <small>ADMIN PORTAL</small>
+                </span>
+            </a>
+
+            <!-- Navigation Menu -->
+            <div class="sidebar-nav-menu">
+                <a href="{% url 'admin:index' %}"
+                    class="sidebar-menu-item {% if request.path == '/admin/' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="/admin/products/product/"
+                    class="sidebar-menu-item {% if '/products/product/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                    </svg>
+                    <span>Products</span>
+                </a>
+
+                <a href="/admin/categories/category/"
+                    class="sidebar-menu-item {% if '/categories/category/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>Categories</span>
+                </a>
+
+                <a href="/admin/banners/banner/"
+                    class="sidebar-menu-item {% if '/banners/banner/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span>Banners</span>
+                </a>
+
+                <a href="/admin/products/review/"
+                    class="sidebar-menu-item {% if '/products/review/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>Reviews</span>
+                </a>
+
+                <a href="/admin/offers/"
+                    class="sidebar-menu-item {% if '/admin/offers/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span>Offers</span>
+                </a>
+
+                <a href="/admin/orders/"
+                    class="sidebar-menu-item {% if '/admin/orders/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                    <span>Orders</span>
+                </a>
+
+                <a href="/admin/customers/"
+                    class="sidebar-menu-item {% if '/admin/customers/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Customers</span>
+                </a>
+
+                <a href="/admin/messages/"
+                    class="sidebar-menu-item {% if '/admin/messages/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <span>Messages</span>
+                    <span id="messages-sidebar-badge" class="badge" style="display: none;">0</span>
+                </a>
+
+                <a href="/admin/users/"
+                    class="sidebar-menu-item {% if '/admin/users/' in request.path or '/auth/user/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    <span>Users</span>
+                </a>
+
+                <a href="/admin/settings/"
+                    class="sidebar-menu-item {% if '/admin/settings/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    <span>Settings</span>
+                </a>
+
+                <form id="sidebar-logout-form" action="{% url 'admin:logout' %}" method="post"
+                    style="margin: 0; padding: 0;">
+                    {% csrf_token %}
+                    <button type="button" id="sidebar-logout-btn" class="sidebar-menu-item trigger-logout-modal"
+                        onclick="window.showLogoutModal(event)"
+                        style="width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left;">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </form>
             </div>
-            
-            <div class="header-actions">
-                <button class="notification-button" aria-label="Notifications">
-                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    <span>5</span>
+
+            <!-- Simple Go to Storefront Button -->
+            <div style="padding: 16px; margin-top: auto;">
+                <a id="storefront-link" href="http://localhost:3000" target="_blank"
+                    style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #6657ec; color: #ffffff; padding: 12px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; transition: background 0.2s; font-size: 14px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    <span>Go to Storefront</span>
+                </a>
+            </div>
+        </nav>
+
+        <button class="sidebar-scrim" aria-label="Close Sidebar"
+            onclick="document.body.classList.remove('sidebar-open')"></button>
+        {% endif %}
+
+        <!-- Main Content Wrapper -->
+        <div id="main-content-wrapper">
+            {% if not is_popup %}
+            <!-- Header -->
+            <header id="header">
+                <button class="hamburger-btn" aria-label="Toggle Sidebar"
+                    onclick="document.body.classList.toggle('sidebar-open')">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </button>
-                <div class="header-divider"></div>
-                
-                <details class="user-menu">
-                    <summary>
-                        <div class="user-avatar">
-                            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+
+                <!-- Center Header Search -->
+                <div class="header-search-wrap">
+                    <div class="header-search">
+                        <div class="header-search-icon-box">
+                            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
                         </div>
-                        <div class="user-copy">
-                            <strong>{{ user.username|capfirst }}</strong>
-                            <small>{% if user.is_superuser %}Super Admin{% else %}Staff{% endif %}</small>
-                        </div>
-                        <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                    </summary>
-                    <div class="user-popover">
-                        <a href="/admin/auth/user/{{ user.id }}/change/">My Profile</a>
-                        <a href="/admin/password_change/">Change Password</a>
-                        <form action="{% url 'admin:logout' %}" method="post" style="margin: 0; padding: 0;">
-                            {% csrf_token %}
-                            <button type="submit">Sign Out</button>
-                        </form>
+                        <input type="text" id="admin-search" placeholder="Search products, categories, orders, menus..."
+                            autocomplete="off" spellcheck="false">
+                        <button type="button" id="admin-search-clear" class="header-search-clear"
+                            aria-label="Clear search" style="display: none;">&times;</button>
+                        <kbd class="header-search-kbd">⌘ K</kbd>
                     </div>
-                </details>
+                    <!-- Interactive Search & Menu Dropdown -->
+                    <div id="admin-search-dropdown" class="header-search-dropdown" style="display: none;"></div>
+                </div>
+
+                <div class="header-actions">
+                    <!-- Header Notification Dropdown Popover -->
+                    <div class="notification-menu-wrap">
+                        <button type="button" id="header-notification-btn" class="notification-button"
+                            aria-label="Notifications" aria-expanded="false" aria-haspopup="true" title="Notifications">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                            <span id="header-notification-badge" class="notification-badge"
+                                style="display: none;">0</span>
+                        </button>
+                        <div id="header-notification-dropdown" class="notification-popover" style="display: none;">
+                            <div class="notification-popover-header">
+                                <div class="notification-popover-title">
+                                    <strong>Notifications</strong>
+                                    <span id="notification-header-count" class="notification-count-pill"
+                                        style="display: none;">0 New</span>
+                                </div>
+                                <button type="button" id="mark-notifications-read-btn" class="mark-all-read-btn"
+                                    title="Mark all notifications as read">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    <span>Mark all as read</span>
+                                </button>
+                            </div>
+                            <div id="header-notification-list" class="notification-popover-body">
+                                <div class="notification-loading-state">
+                                    <div class="notification-spinner"></div>
+                                    <span>Loading notifications...</span>
+                                </div>
+                            </div>
+                            <div class="notification-popover-footer">
+                                <a href="/admin/messages/" class="view-all-notifications-link"
+                                    style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 600; color: #6657ec; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.15s ease;">
+                                    <span>View all messages &amp; notifications</span>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-divider"></div>
+
+                    <details class="user-menu">
+                        <summary>
+                            <div class="user-avatar">
+                                {% if user.admin_profile and user.admin_profile.profile_image %}
+                                <img src="{{ user.admin_profile.profile_image.url }}" alt="{{ user.username }}"
+                                    style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;" />
+                                {% else %}
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                                {% endif %}
+                            </div>
+                            <div class="user-copy">
+                                <strong>{% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username|capfirst }}{% endif %}</strong>
+                                <small>{% if user.is_superuser %}Super Admin{% else %}Staff{% endif %}</small>
+                            </div>
+                            <svg class="chevron" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </summary>
+                        <div class="user-popover">
+                            <a href="/admin/profile/">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                                <span>My Profile</span>
+                            </a>
+                            <a href="/admin/profile/?tab=password">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <span>Change Password</span>
+                            </a>
+                            <form id="usermenu-logout-form" action="{% url 'admin:logout' %}" method="post"
+                                style="margin: 0; padding: 0;">
+                                {% csrf_token %}
+                                <button type="button" id="usermenu-logout-btn" class="trigger-logout-modal danger"
+                                    onclick="window.showLogoutModal(event)">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                        <polyline points="16 17 21 12 16 7" />
+                                        <line x1="21" y1="12" x2="9" y2="12" />
+                                    </svg>
+                                    <span>Sign Out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+                </div>
+            </header>
+
+            <!-- Breadcrumbs -->
+            {% block breadcrumbs %}
+            {% endblock %}
+            {% endif %}
+
+            {% if messages %}
+            <div class="admin-messages-container">
+                <ul class="messagelist">
+                    {% for message in messages %}
+                    <li class="admin-alert-item {% if message.tags %}{{ message.tags }}{% else %}success{% endif %}">
+                        <div class="admin-alert-icon">
+                            {% if 'error' in message.tags %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            {% elif 'warning' in message.tags %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            {% else %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            {% endif %}
+                        </div>
+                        <div class="admin-alert-text">
+                            {{ message|capfirst }}
+                        </div>
+                        <button type="button" class="admin-alert-close" onclick="this.closest('.admin-alert-item').remove()" aria-label="Close">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
-        </header>
-        
-        <!-- Breadcrumbs -->
-        {% block breadcrumbs %}
-        {% endblock %}
-        {% endif %}
+            {% endif %}
 
-        {% if messages %}
-        <ul class="messagelist">
-          {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-
-        <!-- Content Body -->
-        <div class="content-body">
-            <div id="content" class="{% block coltype %}colM{% endblock %}">
-                {% block pretitle %}{% endblock %}
-                {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
-                {% block content %}
+            <!-- Content Body -->
+            <div class="content-body">
+                <div id="content" class="{% block coltype %}colM{% endblock %}">
+                    {% block pretitle %}{% endblock %}
+                    {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+                    {% block content %}
                     {% block object-tools %}{% endblock %}
                     {{ content }}
-                {% endblock %}
-                {% block sidebar %}{% endblock %}
+                    {% endblock %}
+                    {% block sidebar %}{% endblock %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="dashboard-footer">
+                <span>&copy; {% now "Y" %} <b>Moxie</b>. All rights reserved.</span>
+                <span>Made with ❤️ by Moxie Team</span>
+            </footer>
+        </div>
+    </div>
+    <!-- END Container -->
+    <script>
+        // Auto-dismiss admin alert messages after 4.5s
+        document.querySelectorAll('.admin-alert-item').forEach(function(alert) {
+            setTimeout(function() {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-6px)';
+                setTimeout(function() {
+                    alert.remove();
+                }, 300);
+            }, 4500);
+        });
+
+        // Enable auto-closing details dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            const details = document.querySelector('.user-menu');
+            if (details && details.hasAttribute('open') && !details.contains(e.target)) {
+                details.removeAttribute('open');
+            }
+        });
+
+        // Dynamic Storefront URL resolution (Localhost vs Netlify)
+        const sfLink = document.getElementById('storefront-link');
+        if (sfLink) {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            sfLink.href = isLocal ? 'http://localhost:3000' : 'https://moxie-dev.netlify.app';
+        }
+
+        // Sidebar Hamburger Close on ESC
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+
+        // Global Header Search Interactivity
+        (function () {
+            const searchInput = document.getElementById('admin-search');
+            const searchClear = document.getElementById('admin-search-clear');
+            const searchDropdown = document.getElementById('admin-search-dropdown');
+            const searchWrap = document.querySelector('.header-search-wrap');
+            if (!searchInput || !searchDropdown) return;
+
+            let activeIndex = -1;
+
+            const dashboardMenus = [
+                { name: 'Dashboard', url: '/admin/dashboard/', desc: 'Overview, analytics & metrics', keywords: ['dashboard', 'home', 'main', 'overview', 'stats', 'analytics'] },
+                { name: 'Products', url: '/admin/products/product/', desc: 'Manage store products, stock & inventory', keywords: ['products', 'items', 'inventory', 'stock', 'catalog'] },
+                { name: 'Categories', url: '/admin/categories/category/', desc: 'Product categories & collections', keywords: ['categories', 'collections', 'departments'] },
+                { name: 'Banners', url: '/admin/banners/banner/', desc: 'Promotional banners, hero sliders & ads', keywords: ['banners', 'hero', 'slider', 'ads', 'promo'] },
+                { name: 'Reviews', url: '/admin/products/review/', desc: 'Customer ratings & feedback', keywords: ['reviews', 'ratings', 'feedback', 'stars'] },
+                { name: 'Offers', url: '/admin/offers/', desc: 'Discounts, coupon codes & promo deals', keywords: ['offers', 'discounts', 'coupons', 'deals'] },
+                { name: 'Orders', url: '/admin/orders/', desc: 'Track customer orders & payments', keywords: ['orders', 'purchases', 'sales', 'transactions'] },
+                { name: 'Customers', url: '/admin/customers/', desc: 'Registered customer accounts & profiles', keywords: ['customers', 'users', 'buyers', 'clients'] },
+                { name: 'Users & Staff', url: '/admin/users/', desc: 'Admin users & staff permissions', keywords: ['users', 'staff', 'admins', 'roles', 'permissions'] },
+                { name: 'Messages & Notifications', url: '/admin/messages/', desc: 'Store messages, alerts & notifications', keywords: ['messages', 'notifications', 'alerts', 'inbox'] },
+                { name: 'Settings', url: '/admin/settings/', desc: 'Store configuration & preferences', keywords: ['settings', 'configuration', 'store setup'] },
+                { name: 'My Profile', url: '/admin/profile/', desc: 'Administrator account profile', keywords: ['profile', 'account', 'admin profile'] },
+            ];
+
+            function escapeHtml(str) {
+                return (str || '').replace(/[&<>"']/g, function (m) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+                });
+            }
+
+            function updateClearBtn() {
+                if (searchClear) {
+                    searchClear.style.display = searchInput.value.trim() ? 'flex' : 'none';
+                }
+            }
+
+            function renderDropdown(query) {
+                query = (query || '').trim().toLowerCase();
+                updateClearBtn();
+                if (!query) {
+                    searchDropdown.style.display = 'none';
+                    return;
+                }
+
+                const matched = dashboardMenus.filter(m =>
+                    m.name.toLowerCase().includes(query) ||
+                    (m.desc && m.desc.toLowerCase().includes(query)) ||
+                    (m.keywords && m.keywords.some(k => k.toLowerCase().includes(query)))
+                );
+
+                let html = '';
+                if (matched.length > 0) {
+                    html += '<div class="search-dropdown-section-title"><span>Dashboard Pages</span><span>' + matched.length + ' matched</span></div>';
+                    matched.forEach((m, idx) => {
+                        html += `
+                        <a href="${m.url}" class="search-dropdown-item ${idx === 0 ? 'active' : ''}" data-url="${m.url}">
+                            <div class="search-dropdown-item-info">
+                                <strong>${escapeHtml(m.name)}</strong>
+                                <small>${escapeHtml(m.desc)}</small>
+                            </div>
+                            <span class="search-dropdown-item-badge">Jump →</span>
+                        </a>
+                    `;
+                    });
+                    activeIndex = 0;
+                }
+
+                html += `<div class="search-dropdown-section-title"><span>Search Records for &ldquo;${escapeHtml(query)}&rdquo;</span><span>Quick Search</span></div>`;
+                const recordSections = [
+                    { name: 'Search in Products', url: '/admin/products/product/?q=' },
+                    { name: 'Search in Orders', url: '/admin/orders/?q=' },
+                    { name: 'Search in Customers', url: '/admin/customers/?q=' },
+                    { name: 'Search in Categories', url: '/admin/categories/category/?q=' },
+                    { name: 'Search in Reviews', url: '/admin/products/review/?q=' },
+                ];
+                recordSections.forEach(sec => {
+                    const fullUrl = sec.url + encodeURIComponent(query);
+                    html += `
+                    <a href="${fullUrl}" class="search-dropdown-item" data-url="${fullUrl}">
+                        <div class="search-dropdown-item-info">
+                            <strong>${escapeHtml(sec.name)}</strong>
+                            <small>Find records matching &ldquo;${escapeHtml(query)}&rdquo;</small>
+                        </div>
+                        <span class="search-dropdown-item-badge">View Records</span>
+                    </a>
+                `;
+                });
+
+                searchDropdown.innerHTML = html;
+                searchDropdown.style.display = 'block';
+
+                // Item click events
+                searchDropdown.querySelectorAll('.search-dropdown-item').forEach((item, idx) => {
+                    item.addEventListener('mouseenter', () => {
+                        searchDropdown.querySelectorAll('.search-dropdown-item').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                        activeIndex = idx;
+                    });
+                });
+            }
+
+            searchInput.addEventListener('input', function () {
+                renderDropdown(this.value);
+            });
+
+            searchInput.addEventListener('focus', function () {
+                if (this.value.trim()) renderDropdown(this.value);
+            });
+
+            searchInput.addEventListener('keydown', function (e) {
+                const items = searchDropdown.querySelectorAll('.search-dropdown-item');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        activeIndex = (activeIndex + 1) % items.length;
+                        items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
+                        items[activeIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        activeIndex = (activeIndex - 1 + items.length) % items.length;
+                        items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
+                        items[activeIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter') {
+                    if (searchDropdown.style.display !== 'none' && items.length > 0 && activeIndex >= 0) {
+                        e.preventDefault();
+                        const targetUrl = items[activeIndex].getAttribute('data-url');
+                        if (targetUrl) window.location.href = targetUrl;
+                    }
+                } else if (e.key === 'Escape') {
+                    searchDropdown.style.display = 'none';
+                }
+            });
+
+            if (searchClear) {
+                searchClear.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    searchInput.value = '';
+                    updateClearBtn();
+                    searchDropdown.style.display = 'none';
+                    searchInput.focus();
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (searchWrap && !searchWrap.contains(e.target)) {
+                    searchDropdown.style.display = 'none';
+                }
+            });
+        })();
+
+        // Cmd+K / Ctrl+K keyboard shortcut
+        document.addEventListener('keydown', function (e) {
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+                e.preventDefault();
+                const s = document.getElementById('admin-search');
+                if (s) {
+                    s.focus();
+                    s.select();
+                }
+            }
+        });
+
+        // Global Header Notification Dropdown & Badges
+        (function () {
+            const notifBtn = document.getElementById('header-notification-btn');
+            const notifDropdown = document.getElementById('header-notification-dropdown');
+            const notifWrap = document.querySelector('.notification-menu-wrap');
+            const notifList = document.getElementById('header-notification-list');
+            const headerBadge = document.getElementById('header-notification-badge');
+            const notifCountPill = document.getElementById('notification-header-count');
+            const markReadBtn = document.getElementById('mark-notifications-read-btn');
+            const sidebarBadge = document.getElementById('messages-sidebar-badge');
+
+            if (!notifBtn || !notifDropdown) return;
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            function updateBadges(unreadCount) {
+                const count = Math.max(0, parseInt(unreadCount, 10) || 0);
+                if (headerBadge) {
+                    if (count > 0) {
+                        headerBadge.textContent = count > 99 ? '99+' : count;
+                        headerBadge.style.display = 'inline-flex';
+                    } else {
+                        headerBadge.style.display = 'none';
+                    }
+                }
+                if (sidebarBadge) {
+                    if (count > 0) {
+                        sidebarBadge.textContent = count > 99 ? '99+' : count;
+                        sidebarBadge.style.display = 'inline-flex';
+                    } else {
+                        sidebarBadge.style.display = 'none';
+                    }
+                }
+                if (notifCountPill) {
+                    if (count > 0) {
+                        notifCountPill.textContent = count + ' New';
+                        notifCountPill.style.display = 'inline-block';
+                    } else {
+                        notifCountPill.style.display = 'none';
+                    }
+                }
+            }
+
+            window.updateGlobalNotificationBadges = updateBadges;
+            window.refreshAdminNotifications = fetchNotifications;
+
+            function escapeHtml(str) {
+                return (str || '').replace(/[&<>"']/g, function (m) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+                });
+            }
+
+            function renderNotifications(notifications) {
+                if (!notifList) return;
+                if (!notifications || notifications.length === 0) {
+                    notifList.innerHTML = `
+                    <div class="notification-empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <p>No notifications yet</p>
+                    </div>
+                `;
+                    return;
+                }
+
+                let html = '';
+                notifications.slice(0, 10).forEach(function (n) {
+                    const isUnread = !n.is_read;
+                    const avatarBg = n.sender_color || '#6657ec';
+                    const avatarText = escapeHtml(n.sender_initial || 'M');
+                    const titleText = escapeHtml(n.title || 'Notification');
+                    const timeText = escapeHtml(n.time || n.created_at || '');
+                    const bodyText = escapeHtml(n.body || n.content || '');
+                    const notifId = n.id || n.numeric_id || '';
+
+                    html += `
+                    <a href="/admin/messages/" class="notification-popover-item ${isUnread ? 'unread' : ''}" data-id="${notifId}">
+                        <div class="notification-item-avatar" style="background: ${avatarBg};">
+                            ${avatarText}
+                        </div>
+                        <div class="notification-item-content">
+                            <div class="notification-item-header">
+                                <span class="notification-item-title">${titleText}</span>
+                                <span class="notification-item-time">${timeText}</span>
+                            </div>
+                            <p class="notification-item-desc">${bodyText}</p>
+                        </div>
+                        ${isUnread ? '<span class="notification-unread-dot"></span>' : ''}
+                    </a>
+                `;
+                });
+
+                notifList.innerHTML = html;
+
+                // Bind click to mark individual item read
+                notifList.querySelectorAll('.notification-popover-item').forEach(function (el) {
+                    el.addEventListener('click', function (e) {
+                        const id = this.getAttribute('data-id');
+                        if (id) {
+                            const cleanId = String(id).replace('notif_', '');
+                            fetch('/api/notifications/' + cleanId + '/read/', {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken') || '',
+                                    'Content-Type': 'application/json'
+                                }
+                            }).catch(function () { });
+                        }
+                    });
+                });
+            }
+
+            function fetchNotifications() {
+                fetch('/api/notifications/?category=all')
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (data && data.notifications) {
+                            renderNotifications(data.notifications);
+                            const unread = data.unread_count !== undefined
+                                ? data.unread_count
+                                : data.notifications.filter(n => !n.is_read).length;
+                            updateBadges(unread);
+                        }
+                    })
+                    .catch(function (err) {
+                        console.warn('Notifications fetch error:', err);
+                    });
+            }
+
+            // Toggle dropdown
+            notifBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isOpen = notifDropdown.style.display !== 'none';
+                if (isOpen) {
+                    notifDropdown.style.display = 'none';
+                    notifBtn.setAttribute('aria-expanded', 'false');
+                    notifBtn.classList.remove('active');
+                } else {
+                    notifDropdown.style.display = 'flex';
+                    notifBtn.setAttribute('aria-expanded', 'true');
+                    notifBtn.classList.add('active');
+                    fetchNotifications();
+                }
+            });
+
+            // Close on click outside
+            document.addEventListener('click', function (e) {
+                if (notifWrap && !notifWrap.contains(e.target)) {
+                    notifDropdown.style.display = 'none';
+                    notifBtn.setAttribute('aria-expanded', 'false');
+                    notifBtn.classList.remove('active');
+                }
+            });
+
+            // Close on Escape
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && notifDropdown.style.display !== 'none') {
+                    notifDropdown.style.display = 'none';
+                    notifBtn.setAttribute('aria-expanded', 'false');
+                    notifBtn.classList.remove('active');
+                }
+            });
+
+            // Mark all as read
+            if (markReadBtn) {
+                markReadBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fetch('/api/notifications/mark-all-read/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken') || '',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(function () {
+                        updateBadges(0);
+                        fetchNotifications();
+                    }).catch(function (err) {
+                        console.warn('Failed mark all read:', err);
+                    });
+                });
+            }
+
+            // Initial fetch and periodic polling
+            fetchNotifications();
+            setInterval(fetchNotifications, 12000);
+        })();
+
+        // Browser Back Button Cache Protection
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
+
+        // Global Admin Logout Confirmation Modal Functions
+        window.showLogoutModal = function (event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            var modal = document.getElementById('logout-confirm-modal');
+            if (!modal) return;
+
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+
+            var cancelBtn = document.getElementById('logout-modal-cancel');
+            var confirmBtn = document.getElementById('logout-modal-confirm');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Yes, Logout';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                setTimeout(function () {
+                    cancelBtn.focus();
+                }, 50);
+            }
+
+            // Close user dropdown if open
+            var userMenu = document.querySelector('.user-menu');
+            if (userMenu && userMenu.hasAttribute('open')) {
+                userMenu.removeAttribute('open');
+            }
+        };
+
+        window.hideLogoutModal = function (event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            var modal = document.getElementById('logout-confirm-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+            }
+        };
+
+        window.executeLogout = function (event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            var confirmBtn = document.getElementById('logout-modal-confirm');
+            var cancelBtn = document.getElementById('logout-modal-cancel');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Logging out...';
+            }
+            if (cancelBtn) cancelBtn.disabled = true;
+
+            var modal = document.getElementById('logout-confirm-modal');
+            if (modal) modal.dataset.submitting = 'true';
+
+            // Clean up admin sessionStorage / localStorage
+            try {
+                sessionStorage.removeItem('adminVisitActive');
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_user');
+            } catch (err) {
+                console.warn('Storage cleanup:', err);
+            }
+
+            var form = document.getElementById('sidebar-logout-form') || document.getElementById('usermenu-logout-form') || document.querySelector('form[action*="logout"]');
+            if (form) {
+                form.submit();
+            } else {
+                var dynamicForm = document.createElement('form');
+                dynamicForm.method = 'POST';
+                dynamicForm.action = '/admin/logout/';
+                var csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+                csrfInput.value = csrfToken;
+                dynamicForm.appendChild(csrfInput);
+                document.body.appendChild(dynamicForm);
+                dynamicForm.submit();
+            }
+        };
+
+        // Global keyboard and backdrop listeners
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                window.hideLogoutModal();
+            }
+        });
+
+        // Capture-phase listener for any other logout click triggers
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('.trigger-logout-modal, #sidebar-logout-btn, #usermenu-logout-btn');
+            if (trigger) {
+                var modal = document.getElementById('logout-confirm-modal');
+                if (modal && modal.dataset.submitting === 'true') return;
+                e.preventDefault();
+                e.stopPropagation();
+                window.showLogoutModal(e);
+            }
+        }, true);
+    </script>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-confirm-modal" class="moxie-modal-backdrop" style="display: none;" role="dialog" aria-modal="true"
+        aria-labelledby="logout-modal-title" aria-describedby="logout-modal-desc"
+        onclick="if(event.target===this)window.hideLogoutModal(event)">
+        <div class="moxie-modal-card" onclick="event.stopPropagation()">
+            <div class="moxie-modal-icon-badge">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+            </div>
+            <h3 id="logout-modal-title" class="moxie-modal-title">Logout Confirmation</h3>
+            <p id="logout-modal-desc" class="moxie-modal-message">Are you sure you want to log out of your account?</p>
+            <div class="moxie-modal-actions">
+                <button type="button" id="logout-modal-cancel" class="moxie-modal-btn-cancel"
+                    onclick="window.hideLogoutModal(event)">Cancel</button>
+                <button type="button" id="logout-modal-confirm" class="moxie-modal-btn-confirm"
+                    onclick="window.executeLogout(event)">Yes, Logout</button>
             </div>
         </div>
-
-        <!-- Footer -->
-        <footer class="dashboard-footer">
-          <span>&copy; {% now "Y" %} <b>Moxie</b>. All rights reserved.</span>
-          <span>Made with ❤️ by Moxie Team</span>
-        </footer>
     </div>
-</div>
-<!-- END Container -->
-<script>
-    // Enable auto-closing details dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        const details = document.querySelector('.user-menu');
-        if (details && details.hasAttribute('open') && !details.contains(e.target)) {
-            details.removeAttribute('open');
-        }
-    });
-
-    // Dynamic Storefront URL resolution (Localhost vs Netlify)
-    const sfLink = document.getElementById('storefront-link');
-    if (sfLink) {
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        sfLink.href = isLocal ? 'http://localhost:3000' : 'https://moxie-dev.netlify.app';
-    }
-
-    // Sidebar Hamburger Close on ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.body.classList.remove('sidebar-open');
-        }
-    });
-
-    // Browser Back Button Cache Protection
-    window.addEventListener('pageshow', function(event) {
-        if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
-            window.location.reload();
-        }
-    });
-</script>
-
 
 </body>
+
 </html>

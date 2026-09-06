@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-messages-page messages-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/messages.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Messages</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-messages-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        csrfToken: "{{ csrf_token }}",
+    };
+</script>
+<script type="module" src="{% static 'admin/react/messages.js' %}?v={% now 'U' %}"></script>
+{% endblock %}
+

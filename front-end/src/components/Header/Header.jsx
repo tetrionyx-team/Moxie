@@ -3,6 +3,7 @@ import Logo from "./Logo/Logo";
 import SearchBar from "./SearchBar/SearchBar";
 import NavMenu from "./NavMenu/NavMenu";
 import NavBottom from "./NavBottom/NavBottom";
+import Offer from "../Banner/Offer";
 import "./Header.css";
 
 function Header({ searchQuery, setSearchQuery }) {
@@ -18,6 +19,7 @@ function Header({ searchQuery, setSearchQuery }) {
         </div>
       </div>
       <NavBottom />
+      <Offer />
     </header>
   );
 }

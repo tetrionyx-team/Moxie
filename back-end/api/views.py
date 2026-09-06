@@ -569,11 +569,19 @@ class CreateRazorpayOrderView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        if settings_obj.require_login_before_checkout and not (request.user and request.user.is_authenticated):
+        if not (settings_obj.online_payment_enabled and settings_obj.razorpay_enabled):
             return Response(
-                {'error': 'Login is required before checkout. Please sign in to complete your order.'},
-                status=status.HTTP_401_UNAUTHORIZED
+                {'error': 'Online payment via Razorpay is currently disabled.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
+
+        if settings_obj.require_login_before_checkout and not settings_obj.allow_guest_checkout:
+            cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
+            if not ((request.user and request.user.is_authenticated) or cust_email):
+                return Response(
+                    {'error': 'Login is required before checkout. Please sign in to complete your order.'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
 
         serializer = OrderCreateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -661,8 +669,16 @@ class CreateRazorpayOrderView(APIView):
                 )
 
             prefix = settings_obj.order_prefix or 'MOX'
+            user_obj = None
+            if request.user and request.user.is_authenticated:
+                user_obj = request.user
+            else:
+                cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
+                if cust_email:
+                    user_obj = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
+
             order = Order.objects.create(
-                user=request.user if request.user.is_authenticated else None,
+                user=user_obj,
                 shipping_name=data['shipping_name'],
                 shipping_phone=data['shipping_phone'],
                 shipping_address=data['shipping_address'],
@@ -726,11 +742,13 @@ class CreateCodOrderView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        if settings_obj.require_login_before_checkout and not (request.user and request.user.is_authenticated):
-            return Response(
-                {'error': 'Login is required before checkout. Please sign in to complete your order.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        if settings_obj.require_login_before_checkout and not settings_obj.allow_guest_checkout:
+            cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
+            if not ((request.user and request.user.is_authenticated) or cust_email):
+                return Response(
+                    {'error': 'Login is required before checkout. Please sign in to complete your order.'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
 
         if not (settings_obj.cod_available and settings_obj.cod_enabled):
             return Response(
@@ -804,8 +822,16 @@ class CreateCodOrderView(APIView):
             total_amount = totals['total_amount']
 
             prefix = settings_obj.order_prefix or 'MOX'
+            user_obj = None
+            if request.user and request.user.is_authenticated:
+                user_obj = request.user
+            else:
+                cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
+                if cust_email:
+                    user_obj = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
+
             order = Order.objects.create(
-                user=request.user if request.user.is_authenticated else None,
+                user=user_obj,
                 shipping_name=data['shipping_name'],
                 shipping_phone=data['shipping_phone'],
                 shipping_address=data['shipping_address'],
@@ -1271,11 +1297,17 @@ def parse_aware_datetime(val):
         return None
     if isinstance(val, datetime):
         return timezone.localtime(val) if timezone.is_aware(val) else timezone.make_aware(val, timezone.get_current_timezone())
-    parsed = parse_datetime(str(val))
+    val_str = str(val).strip()
+    parsed = parse_datetime(val_str)
     if parsed:
         if timezone.is_naive(parsed):
             return timezone.make_aware(parsed, timezone.get_current_timezone())
-        return parsed
+        return timezone.localtime(parsed)
+    from django.utils.dateparse import parse_date
+    parsed_d = parse_date(val_str)
+    if parsed_d:
+        dt = datetime.combine(parsed_d, datetime.min.time())
+        return timezone.make_aware(dt, timezone.get_current_timezone())
     return None
 
 
@@ -1299,7 +1331,7 @@ class CurrentOfferView(APIView):
     def get(self, request):
         now = timezone.now()
 
-        active_offers = Offer.objects.filter(is_active=True).order_by('-created_at')
+        active_offers = Offer.objects.prefetch_related('applicable_categories', 'applicable_products').filter(is_active=True).order_by('-created_at')
         valid_offers = []
         all_lines = []
 
@@ -1310,14 +1342,21 @@ class CurrentOfferView(APIView):
                 if not lines and offer_text:
                     lines = [offer_text.strip()]
 
+                categories = list(o.applicable_categories.values('id', 'name', 'slug'))
+                products = list(o.applicable_products.values('id', 'name'))
+
                 valid_offers.append({
                     'id': o.id,
                     'name': o.name,
                     'title': o.title or o.name,
+                    'description': o.description or '',
                     'offer_text': offer_text,
+                    'discount_type': o.discount_type,
                     'lines': lines,
                     'start_datetime': timezone.localtime(o.start_datetime).isoformat() if o.start_datetime else '',
                     'end_datetime': timezone.localtime(o.end_datetime).isoformat() if o.end_datetime else '',
+                    'categories': categories,
+                    'products': products,
                 })
                 all_lines.extend(lines)
 
@@ -1436,11 +1475,19 @@ class AdminOfferDetailView(APIView):
             return Response({
                 'id': offer.id,
                 'name': offer.name,
-                'title': offer.title,
-                'description': offer.description,
+                'title': offer.title or '',
+                'description': offer.description or '',
+                'offer_text': offer.name or offer.title or offer.description or '',
                 'status': get_offer_status(offer, now),
                 'discount_type': offer.discount_type,
+                'start_datetime': timezone.localtime(offer.start_datetime).isoformat() if offer.start_datetime else '',
+                'end_datetime': timezone.localtime(offer.end_datetime).isoformat() if offer.end_datetime else '',
+                'start_date': str(offer.start_date) if offer.start_date else '',
+                'end_date': str(offer.end_date) if offer.end_date else '',
                 'is_active': offer.is_active,
+                'isActive': offer.is_active,
+                'applicable_categories': [c.id for c in offer.applicable_categories.all()],
+                'applicable_products': [p.id for p in offer.applicable_products.all()],
             }, status=status.HTTP_200_OK)
         except Offer.DoesNotExist:
             return Response({'error': 'Offer not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2072,8 +2119,7 @@ class AdminUsersView(APIView):
         AdminProfile.objects.create(
             user=user,
             role=role,
-            permissions=permissions,
-            raw_password=password
+            permissions=permissions
         )
 
         # Create audit notification

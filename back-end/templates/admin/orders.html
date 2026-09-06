@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-orders-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/orders.css' %}?v=1">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Orders</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-orders-root"></div>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        totalOrders: parseInt("{{ total_orders|default:0 }}"),
+        pendingOrders: parseInt("{{ pending_orders|default:0 }}"),
+        shippedOrders: parseInt("{{ shipped_orders|default:0 }}"),
+        deliveredOrders: parseInt("{{ delivered_orders|default:0 }}"),
+        cancelledOrders: parseInt("{{ cancelled_orders|default:0 }}"),
+        totalRevenue: parseFloat("{{ total_revenue|default:0 }}"),
+        ordersList: [
+            {% for o in orders_list %}
+            {
+                id: "{{ o.id }}",
+                orderId: "{{ o.orderId|escapejs }}",
+                customer: {
+                    name: "{{ o.customer.name|escapejs }}",
+                    email: "{{ o.customer.email|escapejs }}",
+                    phone: "{{ o.customer.phone|escapejs }}",
+                    initial: "{{ o.customer.initial|escapejs }}"
+                },
+                date: "{{ o.date|escapejs }}",
+                fullDate: "{{ o.fullDate|escapejs }}",
+                itemsCount: parseInt("{{ o.itemsCount|default:1 }}"),
+                totalAmount: parseFloat("{{ o.totalAmount|default:0 }}"),
+                paymentStatus: "{{ o.paymentStatus|escapejs }}",
+                orderStatus: "{{ o.orderStatus|escapejs }}",
+                razorpayOrderId: "{{ o.razorpayOrderId|escapejs }}",
+                razorpayPaymentId: "{{ o.razorpayPaymentId|escapejs }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        csrfToken: '{{ csrf_token }}'
+    };
+</script>
+
+<script type="module" src="{% static 'admin/react/orders.js' %}"></script>
+{% endblock %}

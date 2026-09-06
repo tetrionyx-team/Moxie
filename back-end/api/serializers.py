@@ -221,7 +221,6 @@ class BannerSerializer(serializers.ModelSerializer):
             'button_text',
             'button_link',
             'display_order',
-            'click_count',
             'is_active',
             'created_at',
             'updated_at',
