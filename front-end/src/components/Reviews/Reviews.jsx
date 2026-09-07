@@ -2,16 +2,26 @@ import React, { useState, useEffect } from "react";
 import ReviewCard from "./ReviewCard";
 import "./Reviews.css";
 
-import { BACKEND_URL } from "../../config";
+import { API_URL, BACKEND_URL } from "../../config";
 
 const API_ORIGIN = BACKEND_URL;
 
 const getReviewImageUrl = (image) => {
   if (!image) return null;
+  let cleanImage = image;
+  if (typeof cleanImage === "string") {
+    cleanImage = cleanImage
+      .replace(/^http:\/\/127\.0\.0\.1:8000/, API_ORIGIN)
+      .replace(/^http:\/\/localhost:8000/, API_ORIGIN);
+
+    if (cleanImage.startsWith("http://") || cleanImage.startsWith("https://")) {
+      return cleanImage;
+    }
+  }
   try {
-    return new URL(image, API_ORIGIN).href;
+    return new URL(cleanImage, API_ORIGIN).href;
   } catch {
-    return image;
+    return cleanImage;
   }
 };
 
@@ -20,7 +30,7 @@ function Reviews() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_ORIGIN}/api/reviews/`)
+    fetch(`${API_URL}/reviews/`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch reviews");
@@ -28,7 +38,8 @@ function Reviews() {
         return res.json();
       })
       .then((data) => {
-        const mappedData = data.map((item) => ({
+        const list = Array.isArray(data) ? data : (data?.results || []);
+        const mappedData = list.map((item) => ({
           ...item,
           rating: Number(item.rating),
           image: getReviewImageUrl(item.image)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BACKEND_URL } from "../../config";
+import { API_URL, BACKEND_URL } from "../../config";
 import "./CustomerTestimonials.css";
 
 // Project local profile avatars
@@ -7,86 +7,38 @@ import profile1 from "../../assets/images/profile1.png";
 import profile2 from "../../assets/images/profile2.png";
 import profile3 from "../../assets/images/profile3.png";
 
-const DEFAULT_TESTIMONIALS = [
-  {
-    id: "testimonial-1",
-    name: "Aarav Sharma",
-    rating: 5,
-    message:
-      "The build quality of the Tonino Lamborghini watch blew me away. Super fast delivery and the packaging felt ultra-luxurious. Definitely buying again from Moxie!",
-    image: profile1,
-  },
-  {
-    id: "testimonial-2",
-    name: "Rohan Kapoor",
-    rating: 5,
-    message:
-      "Found the exact G-Shock series I was looking for. Premium customer service, smooth checkout, and 100% authentic product. Highly recommended for collectors!",
-    image: profile2,
-  },
-  {
-    id: "testimonial-3",
-    name: "Priya Nair",
-    rating: 5,
-    message:
-      "The 1:18 die-cast Mahindra Thar model has unbelievable detail. Looks amazing on my desk! The entire shopping experience with Moxie was top-notch.",
-    image: profile3,
-  },
-  {
-    id: "testimonial-4",
-    name: "Vikram Malhotra",
-    rating: 5,
-    message:
-      "Exceptional watch collection with unbeatable deals. The delivery was right on time and customer support answered all my questions instantly. A 5-star experience!",
-    image: profile1,
-  },
-  {
-    id: "testimonial-5",
-    name: "Ananya Iyer",
-    rating: 5,
-    message:
-      "Moxie is my go-to luxury lifestyle store now. Great warranty, authentic luxury items, and pristine packaging. Truly love the craftsmanship.",
-    image: profile2,
-  },
-  {
-    id: "testimonial-6",
-    name: "Arjun Kumar",
-    rating: 5,
-    message:
-      "Great collection and a smooth shopping experience. The product quality was excellent and delivery was faster than expected.",
-    image: profile3,
-  },
-  {
-    id: "testimonial-7",
-    name: "Priya S",
-    rating: 5,
-    message:
-      "Very happy with my purchase. The product matched the photos perfectly and the entire ordering process was simple and convenient.",
-    image: profile1,
-  },
-];
-
 const getReviewImageUrl = (image) => {
   if (!image) return null;
+  let cleanImage = image;
+  if (typeof cleanImage === "string") {
+    cleanImage = cleanImage
+      .replace(/^http:\/\/127\.0\.0\.1:8000/, BACKEND_URL)
+      .replace(/^http:\/\/localhost:8000/, BACKEND_URL);
+
+    if (cleanImage.startsWith("http://") || cleanImage.startsWith("https://")) {
+      return cleanImage;
+    }
+  }
   try {
-    return new URL(image, BACKEND_URL).href;
+    return new URL(cleanImage, BACKEND_URL).href;
   } catch {
-    return image;
+    return cleanImage;
   }
 };
 
 export default function CustomerTestimonials() {
-  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
+  const [testimonials, setTestimonials] = useState([]);
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/reviews/`)
+    fetch(`${API_URL}/reviews/`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch reviews");
         return res.json();
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((item, idx) => ({
+        const list = Array.isArray(data) ? data : (data?.results || []);
+        if (list.length > 0) {
+          const mapped = list.map((item, idx) => ({
             id: item.id || `api-review-${idx}`,
             name: item.name || "Verified Customer",
             rating: Number(item.rating) || 5,
@@ -95,17 +47,13 @@ export default function CustomerTestimonials() {
               getReviewImageUrl(item.image) ||
               (idx % 3 === 0 ? profile1 : idx % 3 === 1 ? profile2 : profile3),
           }));
-          // Ensure we have at least 5-7 items for smooth animation
-          if (mapped.length < 5) {
-            const combined = [...mapped, ...DEFAULT_TESTIMONIALS.slice(mapped.length)];
-            setTestimonials(combined);
-          } else {
-            setTestimonials(mapped);
-          }
+          setTestimonials(mapped);
+        } else {
+          setTestimonials([]);
         }
       })
       .catch(() => {
-        // Fallback to DEFAULT_TESTIMONIALS seamlessly
+        setTestimonials([]);
       });
   }, []);
 

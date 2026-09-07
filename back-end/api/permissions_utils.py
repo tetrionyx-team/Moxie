@@ -107,6 +107,15 @@ def get_first_allowed_admin_url(user):
     return '/admin/profile/'
 
 
+def is_admin_2fa_verified(request):
+    """
+    Verifies that the session has completed 2FA / OTP verification for Admin access.
+    """
+    if not request or not hasattr(request, 'session'):
+        return False
+    return bool(request.session.get('admin_2fa_verified', False))
+
+
 def admin_permission_required(module):
     """
     Django view decorator that verifies the staff member is permitted to access the module.
@@ -119,6 +128,9 @@ def admin_permission_required(module):
                 return redirect(f"/admin/login/?next={request.get_full_path()}")
 
             if not request.user.is_staff or not request.user.is_active:
+                return redirect(f"/admin/login/?next={request.get_full_path()}")
+
+            if not is_admin_2fa_verified(request):
                 return redirect(f"/admin/login/?next={request.get_full_path()}")
 
             if has_admin_permission(request.user, module):
@@ -150,13 +162,16 @@ from rest_framework import status
 def check_staff_api_permission(request, module):
     """
     Helper for API views to check permission for staff users.
-    Returns None if authorized, or a 403 Response if unauthorized.
+    Returns None if authorized, or a 403/401 Response if unauthorized.
     """
     if not request.user or not request.user.is_authenticated:
         return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     if not request.user.is_staff or not request.user.is_active:
         return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not is_admin_2fa_verified(request):
+        return Response({'error': 'Two-factor authentication (2FA) verification required.', 'requires_2fa': True}, status=status.HTTP_401_UNAUTHORIZED)
 
     if not has_admin_permission(request.user, module):
         return Response({
@@ -180,6 +195,8 @@ class HasAdminModulePermission(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         if not request.user.is_staff or not request.user.is_active:
+            return False
+        if not is_admin_2fa_verified(request):
             return False
         module = self.module_name or getattr(view, 'required_admin_module', None)
         if not module:

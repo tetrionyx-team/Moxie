@@ -230,10 +230,10 @@ if csrf_origins_env:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_origins_env.split(',') if o.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = [
-        'https://moxie-0avp.onrender.com',
-        'https://moxie-dev.netlify.app',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
         'http://localhost:8000',
         'http://127.0.0.1:8000',
     ]
@@ -273,8 +273,10 @@ else:
     CORS_ALLOWED_ORIGINS = [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
-        'https://moxie-0avp.onrender.com',
-        'https://moxie-dev.netlify.app',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
     ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -288,19 +290,32 @@ CORS_ALLOW_CREDENTIALS = True
 # SESSION & AUTHENTICATION SETTINGS
 # ============================================================
 
-# Persistent sessions across browser restart (24h validity)
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_COOKIE_AGE = 86400  # 24 hours
+# Customer sessions expire when browser closes (browser-session cookie)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 86400  # 24 hours max
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # For cross-site Netlify frontend and Render backend
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+else:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = 'Lax'
 
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', os.environ.get('REACT_APP_GOOGLE_CLIENT_ID', ''))
 
 
 

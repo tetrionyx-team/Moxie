@@ -1,26 +1,46 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../../context/DataContext";
-import Search from "../../../assets/icons/search.svg";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon } from "@hugeicons/core-free-icons";
 import "./SearchBar.css";
 
 export default function SearchBar({ searchQuery, setSearchQuery }) {
   const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef(null);
   const navigate = useNavigate();
-  const { products } = useData();
+  const { products = [] } = useData() || {};
 
   const query = (searchQuery || "").toLowerCase().trim();
-  
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const suggestions = query
     ? products
-        .filter((p) => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query))
+        .filter(
+          (p) =>
+            (p.name && p.name.toLowerCase().includes(query)) ||
+            (p.category && p.category.toLowerCase().includes(query)) ||
+            (p.category_name && p.category_name.toLowerCase().includes(query)) ||
+            (p.subcategory && p.subcategory.toLowerCase().includes(query)) ||
+            (p.subcategory_name && p.subcategory_name.toLowerCase().includes(query))
+        )
         .slice(0, 6)
     : [];
 
   const select = (p) => {
-    setSearchQuery("");
+    if (setSearchQuery) setSearchQuery("");
     setIsOpen(false);
-    navigate(`/products/${p.id}`);
+    navigate(`/product/${p.id}`);
   };
 
   const submit = (e) => {
@@ -33,26 +53,50 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
 
   return (
     <form className="search-wrapper" onSubmit={submit}>
-      <div className="search-container">
+      <div className="search-container" onClick={() => inputRef.current?.focus()}>
+        <span className="search-leading-icon" aria-hidden="true">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={18}
+            strokeWidth={1.8}
+            className="search-hugeicon"
+          />
+        </span>
         <input
+          ref={inputRef}
           id="search-bar"
-          value={searchQuery}
+          value={searchQuery || ""}
           onChange={(e) => {
-            setSearchQuery(e.target.value);
+            if (setSearchQuery) setSearchQuery(e.target.value);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-          placeholder="Search gadgets, lifestyle, tech..."
+          placeholder="Search products, categories, orders, menus..."
+          aria-label="Search products, categories, orders, menus"
+          autoComplete="off"
         />
-        {searchQuery && (
-          <button type="button" className="search-clear" onClick={() => setSearchQuery("")}>
-            ×
-          </button>
-        )}
-        <button id="search-icon" type="submit">
-          <img src={Search} alt="Search" />
-        </button>
+        <div className="search-trailing-actions">
+          {searchQuery && (
+            <button
+              type="button"
+              className="search-clear-pill"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (setSearchQuery) setSearchQuery("");
+                inputRef.current?.focus();
+              }}
+              aria-label="Clear search"
+            >
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+          <span className="search-shortcut-badge" title="Press ⌘ K to search">
+            ⌘ K
+          </span>
+        </div>
       </div>
 
       {isOpen && query && (
@@ -64,13 +108,17 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => select(p)}
             >
-              <img src={p.image} alt={p.name} className="suggestion-image" />
+              {p.image && (
+                <img src={p.image} alt={p.name} className="suggestion-image" />
+              )}
               <div className="suggestion-details ms-3">
                 <h5 className="suggestion-title mb-0">{p.name}</h5>
-                <span className="suggestion-category">{p.category}</span>
+                <span className="suggestion-category">
+                  {p.category_name || p.category}
+                </span>
               </div>
               <span className="suggestion-price ms-auto">
-                ₹{p.price.toLocaleString("en-IN")}
+                ₹{Number(p.price || 0).toLocaleString("en-IN")}
               </span>
             </div>
           ))}
@@ -82,3 +130,4 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
     </form>
   );
 }
+

@@ -1,229 +1,354 @@
-import React, { useContext, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../context/AuthContext";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Mail01Icon,
+  SquareLock02Icon,
+  ViewIcon,
+  ViewOffSlashIcon,
+  UserIcon,
+} from "@hugeicons/core-free-icons";
+import { useAuth } from "../../context/AuthContext";
+import { useModal } from "../../context/ModalContext";
 import { useToast } from "../../context/ToastContext";
 import "./Register.css";
 
+const GoogleIcon = () => (
+  <svg className="google-icon-svg" viewBox="0 0 24 24" style={{ width: 20, height: 20 }}>
+    <path
+      fill="#4285F4"
+      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.29 21.39 7.35 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.17 0 9.97 0 12s.46 3.83 1.26 5.42l4.02-3.15z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.29 2.61 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+    />
+  </svg>
+);
+
 export default function Register() {
-  const { register } = useContext(AuthContext);
+  const { register, googleLogin } = useAuth();
+  const { openLogin } = useModal();
   const showToast = useToast();
   const navigate = useNavigate();
 
-  /* ── Form state ── */
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [globalError, setGlobalError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  /* ── Helpers ── */
-  const update = (field) => (e) => {
-    const val = e.target.value;
-    setForm((f) => ({ ...f, [field]: val }));
-    if (submitted) {
-      setErrors((prev) => ({ ...prev, [field]: validateField(field, val) }));
+  /* ── Handle Google ID token response ── */
+  const handleGoogleCredentialResponse = useCallback(
+    async (response) => {
+      if (!response?.credential) {
+        setGlobalError("Google sign-up was cancelled or failed.");
+        return;
+      }
+      setIsGoogleLoading(true);
+      setGlobalError("");
+      try {
+        await googleLogin(response.credential);
+        showToast("✓ Signed in with Google! Welcome to Moxie.");
+        navigate("/");
+      } catch (err) {
+        setGlobalError(err.message || "Google sign-up failed. Please try again.");
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    },
+    [googleLogin, navigate, showToast]
+  );
+
+  /* ── Initialize Google Identity Services ── */
+  useEffect(() => {
+    const clientId =
+      process.env.REACT_APP_GOOGLE_CLIENT_ID ||
+      "916379236525-sample.apps.googleusercontent.com";
+
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+        });
+      } catch {
+        // Safe fallback
+      }
     }
-  };
+  }, [handleGoogleCredentialResponse]);
 
-  const validateField = (field, val) => {
-    switch (field) {
-      case "firstName":
-        return val.trim().length < 1 ? "First name is required." : "";
-      case "lastName":
-        return val.trim().length < 1 ? "Last name is required." : "";
-      case "email":
-        if (!val.trim()) return "Email is required.";
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()))
-          return "Please enter a valid email address.";
-        return "";
-      case "password":
-        return val.length < 6
-          ? "Password must be at least 6 characters."
-          : "";
-      default:
-        return "";
+  const update = (field) => (e) => {
+    setForm({ ...form, [field]: e.target.value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: "" });
     }
   };
 
   const validate = () => {
     const errs = {};
-    Object.keys(form).forEach((f) => {
-      const msg = validateField(f, form[f]);
-      if (msg) errs[f] = msg;
-    });
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (!form.email.trim()) {
+      errs.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = "Please enter a valid email address.";
+    }
+    if (!form.password) {
+      errs.password = "Password is required.";
+    } else if (form.password.length < 6) {
+      errs.password = "Password must be at least 6 characters.";
+    }
+    if (!form.confirmPassword) {
+      errs.confirmPassword = "Confirm password is required.";
+    } else if (form.password !== form.confirmPassword) {
+      errs.confirmPassword = "Passwords do not match.";
+    }
     return errs;
   };
 
-  /* ── Submit ── */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    setGlobalError("");
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
-    const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
-    register(fullName || "User", form.email.trim());
-    showToast("✓ Account created! Welcome to Moxie.");
-    navigate("/");
+
+    setIsSubmitting(true);
+    try {
+      await register({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+      });
+      showToast("✓ Account created! Welcome to Moxie.");
+      navigate("/");
+    } catch (err) {
+      setGlobalError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  /* ── Go to Sign In: navigate home with state to open modal automatically ── */
-  const handleSignIn = () => {
-    navigate("/", {
-      state: {
-        openProfile: true,
-      },
-    });
+  const handleGoogleClick = () => {
+    setGlobalError("");
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt();
+      } catch {
+        setGlobalError("Google Sign-In is loading. Please try again.");
+      }
+    } else {
+      setGlobalError("Google Identity Services is loading. Please try again.");
+    }
+  };
+
+  const handleSignInClick = () => {
+    openLogin();
+    navigate("/");
   };
 
   return (
     <main className="register-section">
       <div className="register-card">
-        <h1 className="register-title">Create Account</h1>
+        <div className="register-header">
+          <div className="register-brand-title">MOXIE</div>
+          <h1 className="register-title">Create Your Account</h1>
+          <p className="register-subtext">Join Moxie and start shopping.</p>
+        </div>
+
+        {globalError && (
+          <div className="register-alert register-alert--error" role="alert">
+            {globalError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate className="register-form">
-          {/* First Name */}
+          {/* Name */}
           <div className="form-group">
-            <input
-              id="register-firstname"
-              type="text"
-              name="firstName"
-              placeholder="First Name"
-              value={form.firstName}
-              onChange={update("firstName")}
-              className={`form-control${errors.firstName ? " form-control--error" : ""}`}
-              autoComplete="given-name"
-            />
-            {errors.firstName && (
-              <p className="field-error">{errors.firstName}</p>
-            )}
-          </div>
-
-          {/* Last Name */}
-          <div className="form-group">
-            <input
-              id="register-lastname"
-              type="text"
-              name="lastName"
-              placeholder="Last Name"
-              value={form.lastName}
-              onChange={update("lastName")}
-              className={`form-control${errors.lastName ? " form-control--error" : ""}`}
-              autoComplete="family-name"
-            />
-            {errors.lastName && (
-              <p className="field-error">{errors.lastName}</p>
-            )}
+            <label htmlFor="reg-name" className="form-label">
+              Name<span className="form-required">*</span>
+            </label>
+            <div className="input-icon-wrapper">
+              <span className="input-icon">
+                <HugeiconsIcon icon={UserIcon} size={19} strokeWidth={1.8} />
+              </span>
+              <input
+                id="reg-name"
+                type="text"
+                name="name"
+                placeholder="Enter your name"
+                value={form.name}
+                onChange={update("name")}
+                className={`register-input${errors.name ? " register-input--error" : ""}`}
+                autoComplete="name"
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.name && <p className="register-field-error">{errors.name}</p>}
           </div>
 
           {/* Email */}
           <div className="form-group">
-            <input
-              id="register-email"
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={update("email")}
-              className={`form-control${errors.email ? " form-control--error" : ""}`}
-              autoComplete="email"
-            />
-            {errors.email && (
-              <p className="field-error">{errors.email}</p>
-            )}
+            <label htmlFor="reg-email" className="form-label">
+              Email Address<span className="form-required">*</span>
+            </label>
+            <div className="input-icon-wrapper">
+              <span className="input-icon">
+                <HugeiconsIcon icon={Mail01Icon} size={19} strokeWidth={1.8} />
+              </span>
+              <input
+                id="reg-email"
+                type="email"
+                name="email"
+                placeholder="Enter your email address"
+                value={form.email}
+                onChange={update("email")}
+                className={`register-input${errors.email ? " register-input--error" : ""}`}
+                autoComplete="email"
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.email && <p className="register-field-error">{errors.email}</p>}
           </div>
 
-          {/* Password with eye toggle */}
+          {/* Password */}
           <div className="form-group">
-            <div className="pw-input-wrapper">
+            <label htmlFor="reg-password" className="form-label">
+              Password<span className="form-required">*</span>
+            </label>
+            <div className="input-icon-wrapper">
+              <span className="input-icon">
+                <HugeiconsIcon icon={SquareLock02Icon} size={19} strokeWidth={1.8} />
+              </span>
               <input
-                id="register-password"
+                id="reg-password"
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Password"
+                placeholder="Create a password"
                 value={form.password}
                 onChange={update("password")}
-                className={`form-control${errors.password ? " form-control--error" : ""}`}
+                className={`register-input${errors.password ? " register-input--error" : ""}`}
                 autoComplete="new-password"
+                disabled={isSubmitting}
               />
               <button
                 type="button"
-                className="pw-eye-btn"
+                className="register-eye-btn"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 tabIndex={-1}
               >
-                {showPassword ? (
-                  /* Eye-open icon */
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ) : (
-                  /* Eye-off icon */
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                )}
+                <HugeiconsIcon
+                  icon={showPassword ? ViewIcon : ViewOffSlashIcon}
+                  size={19}
+                  strokeWidth={1.8}
+                />
               </button>
             </div>
-            {errors.password && (
-              <p className="field-error">{errors.password}</p>
+            {errors.password && <p className="register-field-error">{errors.password}</p>}
+          </div>
+
+          {/* Confirm Password */}
+          <div className="form-group">
+            <label htmlFor="reg-confirm-password" className="form-label">
+              Confirm Password<span className="form-required">*</span>
+            </label>
+            <div className="input-icon-wrapper">
+              <span className="input-icon">
+                <HugeiconsIcon icon={SquareLock02Icon} size={19} strokeWidth={1.8} />
+              </span>
+              <input
+                id="reg-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                value={form.confirmPassword}
+                onChange={update("confirmPassword")}
+                className={`register-input${errors.confirmPassword ? " register-input--error" : ""}`}
+                autoComplete="new-password"
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                className="register-eye-btn"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                <HugeiconsIcon
+                  icon={showConfirmPassword ? ViewIcon : ViewOffSlashIcon}
+                  size={19}
+                  strokeWidth={1.8}
+                />
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="register-field-error">{errors.confirmPassword}</p>
             )}
           </div>
 
-          {/* Marketing tagline */}
-          <p className="register-description">
-            Join Moxie for early access to exclusive drops, trending styles, special offers, and personalized new arrivals.
-          </p>
-
-          {/* Register Button */}
+          {/* Create Account Button */}
           <button
             id="register-submit-btn"
             type="submit"
-            className="auth-button auth-button--primary"
+            className="register-submit-btn"
+            disabled={isSubmitting || isGoogleLoading}
           >
-            REGISTER
+            {isSubmitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
           </button>
 
-          {/* Sign In Button */}
+          {/* Divider */}
+          <div className="register-divider">
+            <span>OR CONTINUE WITH</span>
+          </div>
+
+          {/* Google Button */}
           <button
-            id="register-signin-btn"
+            id="register-google-btn"
             type="button"
-            className="auth-button auth-button--outline"
-            onClick={handleSignIn}
+            className="register-google-btn"
+            onClick={handleGoogleClick}
+            disabled={isSubmitting || isGoogleLoading}
           >
-            SIGN IN
+            <GoogleIcon />
+            <span>Sign up with Google</span>
           </button>
+
+          {/* Switch to Sign In */}
+          <div className="register-switch-footer">
+            <span>
+              Already have an account?
+              <button
+                type="button"
+                className="register-switch-btn"
+                onClick={handleSignInClick}
+              >
+                Sign In
+              </button>
+            </span>
+          </div>
         </form>
       </div>
     </main>
   );
 }
+

@@ -84,7 +84,7 @@ export default function ProductCard({ product }) {
   return (
     <article className="product-card">
       <Link
-        to={`/products/${product.id}`}
+        to={`/product/${product.id}`}
         className="product-card-link"
       >
         <div className="product-card-media">

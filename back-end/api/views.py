@@ -1,10 +1,13 @@
+import hashlib
 import json
 import re
+import secrets
 import uuid
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout, update_session_auth_hash
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Avg, DecimalField, ExpressionWrapper, F, Q, Sum
@@ -13,6 +16,10 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
+from django.middleware.csrf import get_token
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -24,6 +31,7 @@ from categories.models import Category, Subcategory
 from products.models import Product, ProductImage, ProductVariant, Review, VariantImage
 
 from .models import (
+    AdminLoginOTP,
     AdminPasswordResetOTP,
     AdminPasswordResetToken,
     AdminProfile,
@@ -39,6 +47,7 @@ from .permissions_utils import (
     get_first_allowed_admin_url,
     get_user_permissions,
     has_admin_permission,
+    is_admin_2fa_verified,
     is_super_admin,
 )
 from .razorpay_service import RazorpayService
@@ -133,16 +142,32 @@ class CustomerRegisterView(APIView):
             )
 
         data = request.data
+        name = (data.get('name') or f"{data.get('firstName', '')} {data.get('lastName', '')}").strip()
         first_name = data.get('firstName', '').strip()
         last_name = data.get('lastName', '').strip()
-        email = data.get('email', '').strip().lower()
+        if not first_name and name:
+            parts = name.split(' ', 1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else ''
+
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
+        confirm_password = data.get('confirmPassword') or data.get('confirm_password')
 
         if not email or not password:
             return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
-            return Response({'error': 'A user with this email address already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return Response({'error': 'Please provide a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if confirm_password is not None and password != confirm_password:
+            return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(password) < 6:
+            return Response({'error': 'Password must be at least 6 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).exists():
+            return Response({'error': 'Account already exists. Please sign in.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.create_user(
             username=email,
@@ -151,7 +176,11 @@ class CustomerRegisterView(APIView):
             first_name=first_name,
             last_name=last_name
         )
-        CustomerProfile.objects.get_or_create(user=user)
+        profile, _ = CustomerProfile.objects.get_or_create(user=user)
+
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        django_login(request, user)
+        request.session.set_expiry(0)
 
         try:
             Notification.objects.create(
@@ -170,15 +199,348 @@ class CustomerRegisterView(APIView):
         except Exception:
             pass
 
+        full_name = f"{user.first_name} {user.last_name}".strip() or email.split('@')[0].capitalize()
         return Response({
             'success': True,
             'message': 'Account created successfully.',
+            'authenticated': True,
             'user': {
                 'id': user.id,
-                'name': f"{first_name} {last_name}".strip() or email.split('@')[0].capitalize(),
-                'email': user.email
+                'name': full_name,
+                'email': user.email,
+                'is_staff': user.is_staff
+            },
+            'profile': {
+                'name': full_name,
+                'email': user.email,
+                'mobile': profile.mobile or '',
+                'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
             }
         }, status=status.HTTP_201_CREATED)
+
+
+class CustomerLoginView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
+        password = request.data.get('password', '')
+
+        if not email or not password:
+            return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = None
+        matched_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
+        for u in matched_users:
+            if u.check_password(password):
+                user = u
+                break
+
+        if not user:
+            user = authenticate(request, username=email, password=password)
+
+        if user is not None:
+            if not user.is_active:
+                return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            django_login(request, user)
+            request.session.set_expiry(0)
+
+            profile, _ = CustomerProfile.objects.get_or_create(user=user)
+            full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+            return Response({
+                'success': True,
+                'message': 'Signed in successfully.',
+                'authenticated': True,
+                'user': {
+                    'id': user.id,
+                    'name': full_name,
+                    'email': user.email,
+                    'is_staff': user.is_staff
+                },
+                'profile': {
+                    'name': full_name,
+                    'email': user.email,
+                    'mobile': profile.mobile or '',
+                    'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+                }
+            }, status=status.HTTP_200_OK)
+
+        return Response({'error': 'Invalid email address or password. Please try again.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class CustomerLogoutView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        django_logout(request)
+        if hasattr(request, 'session'):
+            request.session.flush()
+        return Response({'success': True, 'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+
+    def get(self, request):
+        django_logout(request)
+        if hasattr(request, 'session'):
+            request.session.flush()
+        return Response({'success': True, 'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+
+
+class CustomerAuthStatusView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        if request.user.is_authenticated and request.user.is_active:
+            user = request.user
+            profile, _ = CustomerProfile.objects.get_or_create(user=user)
+            full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+            return Response({
+                'authenticated': True,
+                'user': {
+                    'id': user.id,
+                    'name': full_name,
+                    'email': user.email,
+                    'is_staff': user.is_staff
+                },
+                'profile': {
+                    'name': full_name,
+                    'email': user.email,
+                    'mobile': profile.mobile or '',
+                    'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+                }
+            }, status=status.HTTP_200_OK)
+
+        return Response({'authenticated': False}, status=status.HTTP_200_OK)
+
+
+class CustomerGoogleLoginView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        token = (request.data.get('credential') or request.data.get('id_token') or request.data.get('token') or '').strip()
+        if not token:
+            return Response({'error': 'Google ID token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        try:
+            id_info = google_id_token.verify_oauth2_token(
+                token,
+                google_requests.Request(),
+                audience=client_id if client_id else None
+            )
+        except Exception:
+            try:
+                id_info = google_id_token.verify_oauth2_token(token, google_requests.Request())
+            except Exception:
+                return Response({'error': 'Google authentication failed: invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        issuer = id_info.get('iss', '')
+        if issuer not in ['accounts.google.com', 'https://accounts.google.com']:
+            return Response({'error': 'Invalid Google token issuer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = (id_info.get('email') or '').strip().lower()
+        email_verified = id_info.get('email_verified', False)
+
+        if not email:
+            return Response({'error': 'No email address found in Google account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not email_verified:
+            return Response({'error': 'Your Google account email is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sub = id_info.get('sub', '')
+        given_name = id_info.get('given_name', '').strip()
+        family_name = id_info.get('family_name', '').strip()
+        full_name = id_info.get('name', '').strip() or f"{given_name} {family_name}".strip()
+
+        existing_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
+        if len(existing_users) > 1:
+            return Response({'error': 'Multiple user accounts match this email. Please sign in with email and password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(existing_users) == 1:
+            user = existing_users[0]
+            if not user.is_active:
+                return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+            profile, _ = CustomerProfile.objects.get_or_create(user=user)
+            if sub and not profile.google_sub:
+                profile.google_sub = sub
+                profile.save(update_fields=['google_sub'])
+        else:
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                first_name=given_name,
+                last_name=family_name
+            )
+            user.set_unusable_password()
+            user.save()
+            CustomerProfile.objects.create(user=user, google_sub=sub)
+
+            try:
+                Notification.objects.create(
+                    title="New Google Customer Registration",
+                    sender=full_name or email,
+                    sender_initial=(full_name[:1] or email[:1]).upper(),
+                    sender_color="#4285F4",
+                    body=f"New Google user registered: {email}",
+                    full_body=f"Name: {full_name}\nEmail: {email}\nRegistered via Google Sign-In at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
+                    category_badge="Customer",
+                    department="User Management",
+                    notification_type="registration",
+                    user=user,
+                    target_url="/admin/customers/"
+                )
+            except Exception:
+                pass
+
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        django_login(request, user)
+        request.session.set_expiry(0)
+
+        display_name = f"{user.first_name} {user.last_name}".strip() or full_name or user.email.split('@')[0].capitalize()
+        return Response({
+            'success': True,
+            'message': 'Google sign-in successful.',
+            'authenticated': True,
+            'user': {
+                'id': user.id,
+                'name': display_name,
+                'email': user.email,
+                'is_staff': user.is_staff
+            },
+            'profile': {
+                'name': display_name,
+                'email': user.email,
+                'mobile': getattr(user.customer_profile, 'mobile', '') if hasattr(user, 'customer_profile') else '',
+                'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class CustomerOrdersView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user).prefetch_related('items__product').order_by('-created_at')
+        orders_data = []
+        store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
+
+        for o in orders:
+            order_num = o.order_number or f"{store_prefix}-{o.id:04d}"
+            items = []
+            for item in o.items.all():
+                img_url = ''
+                if item.product and item.product.images.exists():
+                    img_url = item.product.images.first().image.url
+                items.append({
+                    'id': item.id,
+                    'productId': item.product_id,
+                    'name': item.product.name if item.product else 'Product',
+                    'variant': f"{item.color_name or ''} {item.size or ''}".strip(),
+                    'quantity': item.quantity,
+                    'price': float(item.price),
+                    'image': img_url
+                })
+
+            first_item_name = items[0]['name'] if items else 'Moxie Order'
+            first_item_img = items[0]['image'] if items else ''
+            first_item_var = items[0]['variant'] if items else ''
+
+            orders_data.append({
+                'id': order_num,
+                'rawId': o.id,
+                'date': o.created_at.strftime('%d %b %Y') if o.created_at else '',
+                'name': first_item_name,
+                'image': first_item_img,
+                'variant': first_item_var,
+                'quantity': sum(it['quantity'] for it in items),
+                'price': float(o.total_amount),
+                'subtotal': float(o.subtotal_amount),
+                'shippingCharge': float(o.shipping_fee),
+                'tax': float(o.tax_amount),
+                'total': float(o.total_amount),
+                'status': o.order_status,
+                'paymentStatus': o.payment_status,
+                'paymentMethod': 'Razorpay' if o.razorpay_payment_id else 'COD',
+                'trackingNumber': o.razorpay_order_id or f"MX{o.id:08d}",
+                'items': items,
+                'shippingAddress': {
+                    'name': o.shipping_name,
+                    'phone': o.shipping_phone,
+                    'address': o.shipping_address,
+                    'city': o.shipping_city,
+                    'pincode': o.shipping_pincode
+                }
+            })
+
+        return Response(orders_data, status=status.HTTP_200_OK)
+
+
+class CustomerProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        profile, _ = CustomerProfile.objects.get_or_create(user=user)
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        return Response({
+            'name': full_name,
+            'firstName': user.first_name,
+            'lastName': user.last_name,
+            'email': user.email,
+            'mobile': profile.mobile or '',
+            'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        return self.patch(request)
+
+    def patch(self, request):
+        user = request.user
+        profile, _ = CustomerProfile.objects.get_or_create(user=user)
+        data = request.data
+
+        name = data.get('name')
+        if name is not None:
+            parts = str(name).strip().split(' ', 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ''
+
+        if 'firstName' in data:
+            user.first_name = str(data['firstName']).strip()
+        if 'lastName' in data:
+            user.last_name = str(data['lastName']).strip()
+
+        user.save()
+
+        if 'mobile' in data or 'phone' in data:
+            profile.mobile = str(data.get('mobile') or data.get('phone') or '').strip()
+            profile.save(update_fields=['mobile'])
+
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        return Response({
+            'success': True,
+            'message': 'Profile updated successfully.',
+            'profile': {
+                'name': full_name,
+                'firstName': user.first_name,
+                'lastName': user.last_name,
+                'email': user.email,
+                'mobile': profile.mobile or '',
+                'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class CsrfTokenView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        token = get_token(request)
+        return Response({'csrfToken': token}, status=status.HTTP_200_OK)
+
 
 
 # ==============================================================================
@@ -403,8 +765,23 @@ class ReviewListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         if self.request.user.is_authenticated and self.request.user.is_staff:
-            return Review.objects.all().order_by('-created_at')
-        return Review.objects.filter(is_active=True, status='Approved').order_by('-created_at')
+            qs = Review.objects.all()
+        else:
+            qs = Review.objects.filter(is_active=True, status='Approved')
+
+        prod_id = self.request.query_params.get('product_id') or self.request.query_params.get('product')
+        if prod_id:
+            qs = qs.filter(product_id=prod_id)
+
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+
+        order_id = self.request.query_params.get('order_id') or self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+
+        return qs.order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         settings_obj = StoreSettings.objects.filter(id=1).first()
@@ -413,10 +790,82 @@ class ReviewListView(generics.ListCreateAPIView):
                 {'error': 'Product reviews and ratings are currently disabled by store administration.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        # Enforce review eligibility for customers
+        if not (request.user.is_authenticated and request.user.is_staff):
+            if not request.user.is_authenticated:
+                return Response(
+                    {'error': 'You must be signed in to submit a review.'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            product_id = request.data.get('product_id') or request.data.get('product')
+            if not product_id:
+                return Response(
+                    {'error': 'Product ID is required.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Check if customer has a delivered order for this product
+            delivered_orders = Order.objects.filter(
+                user=request.user,
+                order_status__iexact='Delivered',
+                items__product_id=product_id
+            )
+
+            order_id = request.data.get('order_id') or request.data.get('order')
+            if order_id:
+                delivered_orders = delivered_orders.filter(id=order_id)
+
+            if not delivered_orders.exists():
+                return Response(
+                    {'error': 'You can only review products from delivered orders you have purchased.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            matched_order = delivered_orders.first()
+
+            # Prevent duplicate review for the same purchase
+            if Review.objects.filter(user=request.user, product_id=product_id, order=matched_order).exists():
+                return Response(
+                    {'error': 'You have already submitted a review for this delivered item.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        rev = serializer.save()
+        user = self.request.user if self.request.user.is_authenticated else None
+        product_id = self.request.data.get('product_id') or self.request.data.get('product')
+        order_id = self.request.data.get('order_id') or self.request.data.get('order')
+
+        matched_order = None
+        if user and product_id:
+            delivered_qs = Order.objects.filter(
+                user=user,
+                order_status__iexact='Delivered',
+                items__product_id=product_id
+            )
+            if order_id:
+                delivered_qs = delivered_qs.filter(id=order_id)
+            matched_order = delivered_qs.first()
+
+        name = self.request.data.get('name')
+        if not name and user:
+            name = (user.first_name + " " + user.last_name).strip() or user.username
+
+        email = user.email if user else self.request.data.get('email')
+
+        rev = serializer.save(
+            user=user,
+            product_id=product_id if product_id else None,
+            order=matched_order if matched_order else (Order.objects.filter(id=order_id).first() if order_id else None),
+            name=name or "Customer",
+            email=email or None,
+            is_verified=True if matched_order else False,
+            status='Approved',
+            is_active=True
+        )
         try:
             product_name = rev.product.name if rev.product else "Product"
             sender_name = rev.name or "Customer"
@@ -1085,11 +1534,38 @@ class RazorpayWebhookView(APIView):
 
 
 # ==============================================================================
-# Admin Auth APIs
+# Admin Auth APIs (Two-Step Password + 3-Minute Email OTP)
 # ==============================================================================
+def mask_admin_email(email):
+    if not email or '@' not in email:
+        return '***@moxiestore.com'
+    parts = email.split('@', 1)
+    name = parts[0]
+    domain = parts[1]
+    if len(name) <= 2:
+        masked = name[0] + '***'
+    else:
+        masked = name[0] + '***' + name[-1]
+    return f"{masked}@{domain}"
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', '')
+    return ip
+
+
 class AdminCheckAuthView(APIView):
     def get(self, request):
-        if request.user.is_authenticated and request.user.is_staff and request.user.is_active:
+        if (
+            request.user.is_authenticated
+            and request.user.is_staff
+            and request.user.is_active
+            and is_admin_2fa_verified(request)
+        ):
             perms = list(get_user_permissions(request.user))
             super_admin = is_super_admin(request.user)
             first_url = get_first_allowed_admin_url(request.user)
@@ -1110,34 +1586,347 @@ class AdminCheckAuthView(APIView):
 
 
 class AdminApiLoginView(APIView):
+    """
+    Step 1 of Admin Login:
+    Validates identifier & password, applies brute-force checks,
+    generates a 6-digit hashed OTP valid for exactly 3 minutes,
+    and emails it to the registered staff account.
+    """
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+        identifier = str(request.data.get('identifier') or request.data.get('username') or request.data.get('email') or '').strip()
+        password = str(request.data.get('password') or '').strip()
 
-        if not username or not password:
-            return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not identifier or not password:
+            return Response(
+                {'error': 'Username/email and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        user = authenticate(request, username=username, password=password)
-        if user is not None and user.is_staff and user.is_active:
-            django_login(request, user)
-            perms = list(get_user_permissions(user))
-            super_admin = is_super_admin(user)
-            first_url = get_first_allowed_admin_url(user)
-            role = 'Super Admin' if user.is_superuser else 'Staff Admin'
-            if hasattr(user, 'admin_profile') and user.admin_profile:
-                role = user.admin_profile.role or role
-            return Response({
-                'message': 'Login successful',
-                'username': user.username,
-                'email': user.email,
-                'is_superuser': user.is_superuser,
-                'is_super_admin': super_admin,
-                'role': role,
-                'permissions': perms,
-                'first_allowed_url': first_url,
-            }, status=status.HTTP_200_OK)
+        client_ip = get_client_ip(request)
+        cache_key = f"admin_login_fails_{client_ip}_{identifier.lower()}"
+        failed_attempts = cache.get(cache_key, 0)
 
-        return Response({'error': 'Invalid credentials or non-staff account.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if failed_attempts >= 5:
+            return Response(
+                {'error': 'Too many sign-in attempts. Please wait before trying again.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        user = None
+
+        # 1. Match case-insensitively by username or email
+        matched_users = list(User.objects.filter(
+            Q(username__iexact=identifier) | Q(email__iexact=identifier)
+        ))
+        for u in matched_users:
+            if u.check_password(password):
+                user = u
+                break
+
+        # 2. Fallback standard Django authenticate
+        if not user:
+            user = authenticate(request, username=identifier, password=password)
+
+        if not user or not user.is_active:
+            # Increment failed attempts rate-limit counter (15 minutes TTL)
+            cache.set(cache_key, failed_attempts + 1, timeout=900)
+            return Response(
+                {'error': 'Unable to sign in with those credentials.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not (user.is_staff or user.is_superuser):
+            return Response(
+                {'error': 'Access denied: Staff or administrator account required.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Clear brute-force failure count on valid password
+        cache.delete(cache_key)
+
+        target_email = (user.email or '').strip()
+        if not target_email:
+            return Response(
+                {'error': 'This staff account has no registered email address for verification. Please contact a Super Admin.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Invalidate previous unused login OTPs for this staff user
+        AdminLoginOTP.objects.filter(user=user, used=False).update(used=True)
+
+        # Generate cryptographically secure 6-digit OTP
+        otp_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+        otp_hash = hashlib.sha256(otp_code.encode('utf-8')).hexdigest()
+        expires_at = timezone.now() + timedelta(minutes=3)
+
+        otp_obj = AdminLoginOTP.objects.create(
+            user=user,
+            email=target_email,
+            otp_hash=otp_hash,
+            expires_at=expires_at,
+            attempts=0,
+            resend_count=0,
+            used=False,
+            is_locked=False
+        )
+
+        # Send email
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@moxie.com')
+        try:
+            send_mail(
+                subject='Moxie Admin Security Code',
+                message=(
+                    f"Your Moxie Admin verification code is:\n\n"
+                    f"{otp_code}\n\n"
+                    f"This code expires in 3 minutes.\n\n"
+                    f"If you did not attempt to sign in, please secure your account immediately."
+                ),
+                from_email=from_email,
+                recipient_list=[target_email],
+                fail_silently=False
+            )
+        except Exception:
+            # Safe local fallback - allow dev without failing
+            pass
+
+        # Set pending challenge state in secure session
+        request.session['admin_pending_user_id'] = user.id
+        request.session['admin_pending_otp_id'] = otp_obj.id
+        request.session['admin_2fa_verified'] = False
+
+        masked = mask_admin_email(target_email)
+
+        return Response({
+            'status': 'pending_otp',
+            'message': 'Security code sent to registered admin email.',
+            'masked_email': masked,
+            'expires_at': expires_at.isoformat(),
+            'expires_in_seconds': 180,
+            'resend_cooldown_seconds': 30,
+            'attempts_remaining': 5,
+        }, status=status.HTTP_200_OK)
+
+
+class AdminVerifyOtpView(APIView):
+    """
+    Step 2 of Admin Login:
+    Validates the 6-digit OTP against the secure server-side pending challenge.
+    Enforces expiry (3 mins), max 5 attempts, single-use, and replay protection.
+    """
+    def post(self, request):
+        pending_user_id = request.session.get('admin_pending_user_id')
+        if not pending_user_id:
+            return Response(
+                {'error': 'Verification session has expired. Please sign in again.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            user = User.objects.get(pk=pending_user_id, is_active=True)
+            if not (user.is_staff or user.is_superuser):
+                request.session.flush()
+                return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+        except User.DoesNotExist:
+            request.session.flush()
+            return Response({'error': 'Admin account not found.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        otp_input = str(request.data.get('otp') or request.data.get('code') or '').strip()
+        if not otp_input or len(otp_input) != 6 or not otp_input.isdigit():
+            return Response(
+                {'error': 'Please enter a valid 6-digit numeric security code.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        otp_obj = AdminLoginOTP.objects.filter(
+            user=user,
+            used=False,
+            is_locked=False
+        ).order_by('-created_at').first()
+
+        if not otp_obj:
+            request.session.pop('admin_pending_user_id', None)
+            return Response(
+                {'error': 'Verification locked for your security. Please sign in again to request a new security code.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        now = timezone.now()
+        if now > otp_obj.expires_at:
+            otp_obj.used = True
+            otp_obj.save(update_fields=['used'])
+            return Response(
+                {'error': 'This security code has expired. Request a new code or return to sign in.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if otp_obj.attempts >= 5:
+            otp_obj.is_locked = True
+            otp_obj.used = True
+            otp_obj.save(update_fields=['is_locked', 'used'])
+            request.session.pop('admin_pending_user_id', None)
+            return Response(
+                {'error': 'Verification locked for your security. Please sign in again to request a new security code.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        input_hash = hashlib.sha256(otp_input.encode('utf-8')).hexdigest()
+        if input_hash != otp_obj.otp_hash:
+            otp_obj.attempts += 1
+            if otp_obj.attempts >= 5:
+                otp_obj.is_locked = True
+                otp_obj.used = True
+                otp_obj.save(update_fields=['attempts', 'is_locked', 'used'])
+                request.session.pop('admin_pending_user_id', None)
+                return Response(
+                    {
+                        'error': 'Verification locked for your security. Please sign in again to request a new security code.',
+                        'attempts_remaining': 0,
+                        'is_locked': True
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            otp_obj.save(update_fields=['attempts'])
+            remaining = 5 - otp_obj.attempts
+            return Response(
+                {
+                    'error': f"That security code didn't match. Check the code and try again.",
+                    'attempts_remaining': remaining,
+                    'is_locked': False
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # OTP Verified Successfully
+        otp_obj.used = True
+        otp_obj.save(update_fields=['used'])
+
+        # Establish Django Admin Session
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        django_login(request, user)
+        request.session['admin_2fa_verified'] = True
+        request.session.pop('admin_pending_user_id', None)
+        request.session.pop('admin_pending_otp_id', None)
+
+        perms = list(get_user_permissions(user))
+        super_admin = is_super_admin(user)
+        first_url = get_first_allowed_admin_url(user)
+        role = 'Super Admin' if user.is_superuser else 'Staff Admin'
+        if hasattr(user, 'admin_profile') and user.admin_profile:
+            role = user.admin_profile.role or role
+
+        return Response({
+            'success': True,
+            'message': 'Identity Verified',
+            'username': user.username,
+            'email': user.email,
+            'is_superuser': user.is_superuser,
+            'is_super_admin': super_admin,
+            'role': role,
+            'permissions': perms,
+            'first_allowed_url': first_url,
+        }, status=status.HTTP_200_OK)
+
+
+class AdminResendOtpView(APIView):
+    """
+    Resends the 6-digit OTP with a 30s cooldown and max 3 resends per login challenge.
+    Invalidates the previous OTP code permanently.
+    """
+    def post(self, request):
+        pending_user_id = request.session.get('admin_pending_user_id')
+        if not pending_user_id:
+            return Response(
+                {'error': 'No active verification challenge. Please sign in again.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            user = User.objects.get(pk=pending_user_id, is_active=True)
+            if not (user.is_staff or user.is_superuser):
+                request.session.flush()
+                return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+        except User.DoesNotExist:
+            request.session.flush()
+            return Response({'error': 'Admin user not found.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        last_otp = AdminLoginOTP.objects.filter(user=user).order_by('-created_at').first()
+
+        if last_otp and last_otp.is_locked:
+            request.session.pop('admin_pending_user_id', None)
+            return Response(
+                {'error': 'Verification locked for your security. Please sign in again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        current_resends = last_otp.resend_count if last_otp else 0
+        if current_resends >= 3:
+            return Response(
+                {'error': 'Too many security codes requested. Please return to sign in and try again later.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        now = timezone.now()
+        ref_time = (last_otp.last_resend_at or last_otp.created_at) if last_otp else None
+        if ref_time:
+            diff_seconds = (now - ref_time).total_seconds()
+            if diff_seconds < 30:
+                remaining_wait = int(30 - diff_seconds)
+                return Response(
+                    {'error': f'Please wait {remaining_wait}s before requesting a new code.', 'cooldown_remaining': remaining_wait},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
+                )
+
+        # Invalidate all prior login OTPs for this user
+        AdminLoginOTP.objects.filter(user=user, used=False).update(used=True)
+
+        target_email = user.email.strip()
+        new_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+        new_hash = hashlib.sha256(new_code.encode('utf-8')).hexdigest()
+        expires_at = now + timedelta(minutes=3)
+
+        new_otp_obj = AdminLoginOTP.objects.create(
+            user=user,
+            email=target_email,
+            otp_hash=new_hash,
+            expires_at=expires_at,
+            attempts=0,
+            resend_count=current_resends + 1,
+            last_resend_at=now,
+            used=False,
+            is_locked=False
+        )
+
+        request.session['admin_pending_otp_id'] = new_otp_obj.id
+
+        # Send email
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@moxie.com')
+        try:
+            send_mail(
+                subject='Moxie Admin Security Code',
+                message=(
+                    f"Your new Moxie Admin verification code is:\n\n"
+                    f"{new_code}\n\n"
+                    f"This code expires in 3 minutes.\n\n"
+                    f"If you did not attempt to sign in, please secure your account immediately."
+                ),
+                from_email=from_email,
+                recipient_list=[target_email],
+                fail_silently=False
+            )
+        except Exception:
+            pass
+
+        masked = mask_admin_email(target_email)
+
+        return Response({
+            'status': 'pending_otp',
+            'message': 'New security code sent to registered admin email.',
+            'masked_email': masked,
+            'expires_at': expires_at.isoformat(),
+            'expires_in_seconds': 180,
+            'resend_cooldown_seconds': 30,
+            'attempts_remaining': 5,
+        }, status=status.HTTP_200_OK)
 
 
 class AdminApiLogoutView(APIView):

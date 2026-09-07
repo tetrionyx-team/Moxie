@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LuFileText,
@@ -8,15 +8,31 @@ import {
   LuCircleX,
   LuShoppingBag,
 } from "react-icons/lu";
+import { FaStar } from "react-icons/fa";
+import WriteReviewModal from "../Review/WriteReviewModal";
 
 export default function MyOrders({
   orders,
   storeSettings,
+  user,
   onViewDetails,
   onTrackOrder,
   onCancelOrder,
 }) {
   const navigate = useNavigate();
+  const [reviewModalOrder, setReviewModalOrder] = useState(null);
+  const [reviewedOrders, setReviewedOrders] = useState(() => {
+    const keys = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("reviewed_order_")) {
+          keys[k] = true;
+        }
+      }
+    } catch { }
+    return keys;
+  });
 
   // Siva settings logic
   const allowCancellation =
@@ -294,6 +310,34 @@ export default function MyOrders({
                       </span>
                     </button>
                   )}
+
+                  {/* Write a Review button for delivered orders */}
+                  {statusLower === "delivered" && (
+                    (() => {
+                      const prodId = order.productId || order.product_id || order.id;
+                      const isReviewed = reviewedOrders[`reviewed_order_${order.id}_prod_${prodId}`];
+
+                      return (
+                        <button
+                          type="button"
+                          className="order-action-btn order-btn-secondary"
+                          onClick={() => {
+                            if (!isReviewed) setReviewModalOrder(order);
+                          }}
+                          disabled={isReviewed}
+                          style={isReviewed ? { opacity: 0.6, cursor: "default" } : { color: "#d97706" }}
+                          title={isReviewed ? "You have already reviewed this purchase" : "Write a review for this delivered item"}
+                        >
+                          <FaStar
+                            className="order-btn-icon"
+                            style={{ color: "#f59e0b" }}
+                            aria-hidden="true"
+                          />
+                          <span>{isReviewed ? "Reviewed ✓" : "Write a Review"}</span>
+                        </button>
+                      );
+                    })()
+                  )}
                 </div>
 
                 <div className="order-actions-right">
@@ -317,7 +361,22 @@ export default function MyOrders({
           );
         })}
       </div>
+
+      {/* Write Review Modal */}
+      {reviewModalOrder && (
+        <WriteReviewModal
+          order={reviewModalOrder}
+          user={user}
+          onClose={() => setReviewModalOrder(null)}
+          onSuccess={() => {
+            const prodId = reviewModalOrder.productId || reviewModalOrder.product_id || reviewModalOrder.id;
+            setReviewedOrders((prev) => ({
+              ...prev,
+              [`reviewed_order_${reviewModalOrder.id}_prod_${prodId}`]: true,
+            }));
+          }}
+        />
+      )}
     </div>
   );
-
 }

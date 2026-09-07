@@ -1,122 +1,78 @@
 import React from "react";
-import { useData } from "../../context/DataContext";
 import { Link } from "react-router-dom";
 import "./Category.css";
 
-import Watch from "../../assets/images/watch.svg";
-import Shoe from "../../assets/images/shoe.svg";
-import Buds from "../../assets/images/Buds.png";
-import Cap from "../../assets/images/cap.png";
+import watchImg from "../../assets/images/watch.svg";
+import shoeImg from "../../assets/images/shoe.svg";
+import budsImg from "../../assets/images/Buds.png";
+import capImg from "../../assets/images/cap.png";
 
+const STATIC_CATEGORIES = [
+  {
+    id: "watch",
+    title: "Watch",
+    linkText: "Explore Now",
+    route: "/products/watches",
+    image: watchImg,
+    cardClass: "watch-card",
+  },
+  {
+    id: "shoes",
+    title: "Shoes",
+    linkText: "Explore Now",
+    route: "/products/shoes",
+    image: shoeImg,
+    cardClass: "shoes-card",
+  },
+  {
+    id: "air-buds",
+    title: "Air Buds",
+    linkText: "Explore Now",
+    route: "/products/air-buds",
+    image: budsImg,
+    cardClass: "buds-card",
+  },
+  {
+    id: "caps",
+    title: "Caps",
+    linkText: "Explore Now",
+    route: "/products/caps",
+    image: capImg,
+    cardClass: "cap-card",
+  },
+];
 
 export default function Category() {
-    const { categories, loading } = useData();
-
-    if (loading) {
-        return (
-            <div className="container text-center py-5">
-                <div className="spinner-border text-warning" role="status">
-                    <span className="visually-hidden">Loading categories...</span>
-                </div>
-            </div>
-        );
-    }
-
-
-    const categoryImages = {
-        "Watches": Watch,
-        "Accessories": Watch,
-        "Gadgets": Buds,
-        "Fashion & Bags": Cap,
-        "Die-Cast Cars": Shoe,
-        "Footwear": Shoe,
-        "Clothing": Cap,
-        "Electronics & Cameras": Buds,
-    };
-
-    const categoryClasses = {
-        "Watches": "watch-card",
-        "Accessories": "watch-card",
-        "Gadgets": "buds-card",
-        "Fashion & Bags": "cap-card",
-        "Die-Cast Cars": "shoes-card",
-        "Footwear": "shoes-card",
-        "Clothing": "cap-card",
-        "Electronics & Cameras": "buds-card",
-    };
-
-    const categorySlugs = {
-        "Watches": "watches",
-        "Accessories": "accessories",
-        "Gadgets": "gadgets",
-        "Fashion & Bags": "fashion-bags",
-        "Die-Cast Cars": "die-cast-cars",
-        "Footwear": "footwear",
-        "Clothing": "clothing",
-        "Electronics & Cameras": "electronics-cameras",
-    };
-
-
-    return (
-        <div className="container category-section mb-4">
-
-            <div className="category-header">
-
-                <span className="category-tagline">
-                    Explore Collection
+  return (
+    <section className="category-section" aria-label="Explore Categories">
+      <div className="container">
+        <div className="category-grid">
+          {STATIC_CATEGORIES.map((category) => (
+            <Link
+              key={category.id}
+              to={category.route}
+              className={`category-card ${category.cardClass}`}
+              aria-label={`Explore ${category.title}`}
+            >
+              <div className="category-info">
+                <h3 className="category-card-title">{category.title}</h3>
+                <span className="explore-btn">
+                  {category.linkText}
                 </span>
+              </div>
 
-                <h2 className="category-heading">
-                    Our Category
-                </h2>
-
-            </div>
-
-
-            <div className="category-grid">
-
-                {categories.map((category) => (
-
-                    <div
-                        key={category.id}
-                        className={`category-card ${categoryClasses[category.name] || ""}`}
-                    >
-
-                        <div className="category-info">
-
-                            <h4>
-                                {category.name}
-                            </h4>
-
-                            <Link
-                                to={`/products/${categorySlugs[category.name] || category.name
-                                    .toLowerCase()
-                                    .replace(/\s+/g, "-")}`}
-                                className="explore-btn"
-                                style={{ textDecoration: "none" }}
-                            >
-                                Explore Now
-                            </Link>
-
-                        </div>
-
-
-                        <div className="category-img-container">
-
-                            <img
-                                src={categoryImages[category.name] || Watch}
-                                alt={category.name}
-                                className="category-img"
-                            />
-
-                        </div>
-
-                    </div>
-
-                ))}
-
-            </div>
-
+              <div className="category-img-container">
+                <img
+                  src={category.image}
+                  alt={category.title}
+                  className="category-img"
+                  loading="lazy"
+                />
+              </div>
+            </Link>
+          ))}
         </div>
-    );
-}
+      </div>
+    </section>
+  );
+}

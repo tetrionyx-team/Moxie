@@ -258,6 +258,7 @@ export default function ProfilePage({ defaultTab = "profile" }) {
           <MyOrders
             orders={orders}
             storeSettings={storeSettings}
+            user={user}
             onViewDetails={handleViewOrderDetails}
             onTrackOrder={handleTrackOrder}
             onCancelOrder={handleCancelOrder}

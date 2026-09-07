@@ -131,7 +131,9 @@ admin.site.index_title = "Welcome to Moxie Admin Portal"
 def custom_logout(request):
     from django.contrib.auth import logout as django_logout
     django_logout(request)
-    response = redirect('admin:login')
+    if hasattr(request, 'session'):
+        request.session.flush()
+    response = redirect('custom_admin_login')
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
@@ -139,59 +141,22 @@ def custom_logout(request):
 
 
 def custom_admin_login(request, extra_context=None):
-    from django.contrib.auth import login as auth_login, authenticate
-    from django.contrib.auth.models import User
-
-    if request.user.is_authenticated and request.user.is_staff and request.user.is_active:
+    if (
+        request.user.is_authenticated
+        and request.user.is_staff
+        and request.user.is_active
+        and request.session.get('admin_2fa_verified')
+    ):
         response = redirect('/admin/')
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         return response
 
-    error_message = None
-
-    if request.method == 'POST':
-        login_input = request.POST.get('username', '').strip()
-        password_input = request.POST.get('password', '')
-
-        user = None
-
-        # 1. Try finding by username or email (case-insensitive)
-        matched_users = list(User.objects.filter(
-            Q(username__iexact=login_input) | Q(email__iexact=login_input)
-        ))
-
-        for u in matched_users:
-            if u.check_password(password_input):
-                user = u
-                break
-
-        # 2. Fallback standard Django authenticate
-        if not user:
-            user = authenticate(request, username=login_input, password=password_input)
-
-        if user:
-            if user.is_active and user.is_staff:
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
-                auth_login(request, user)
-                if not request.POST.get('remember_me'):
-                    request.session.set_expiry(0)
-                next_url = request.POST.get('next') or request.GET.get('next') or '/admin/'
-                response = redirect(next_url)
-                response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-                return response
-            elif not user.is_active:
-                error_message = "This account is inactive. Please contact the administrator."
-            else:
-                error_message = "You do not have staff permissions to access the admin portal."
-        else:
-            error_message = "Please enter a correct username and password. Note that both fields may be case-sensitive."
-
     context = {
-        'error_message': error_message,
         'app_path': request.get_full_path(),
         'username': request.POST.get('username', '') if request.method == 'POST' else '',
         'next': request.POST.get('next') or request.GET.get('next') or '',
         'title': 'Log in',
+        'csrfToken': get_token(request),
     }
     if extra_context:
         context.update(extra_context)

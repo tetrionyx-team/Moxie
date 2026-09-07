@@ -1,11 +1,4 @@
-/**
- * Order Service API Client
- * Manages customer order history, order details, tracking timelines, and cancellations.
- * Prepared for future integration with Python + Django REST API /api/orders/.
- */
-
-import watch1 from "../assets/images/watch1.png";
-import shoe from "../assets/images/shoe.svg";
+import { apiFetch } from "../api/apiConfig";
 import buds from "../assets/images/Buds.png";
 
 // Helper to calculate date offsets relative to today
@@ -19,126 +12,23 @@ const getDateOffset = (offsetDays) => {
   });
 };
 
-const getInitialMockOrders = () => [
-  {
-    id: "ORD10245",
-    date: getDateOffset(-2),
-    name: "Classic Black Watch",
-    image: watch1,
-    variant: "Color: Midnight Gold",
-    quantity: 1,
-    price: 4999,
-    subtotal: 4999,
-    discount: 500,
-    shippingCharge: 100,
-    tax: 450,
-    total: 5049, // subtotal - discount + shippingCharge + tax
-    paymentStatus: "Paid",
-    paymentMethod: "UPI (Paytm)",
-    transactionRef: "TXN882740194",
-    status: "Shipped",
-    expectedDelivery: getDateOffset(3),
-    deliveryPartner: "BlueDart Express",
-    trackingNumber: "BD98274619",
-    shippingAddress: {
-      name: "Amit Kumar",
-      phone: "+91 98765 43210",
-      flat: "Flat 402, Building C",
-      area: "Sector 17-B",
-      city: "Chandigarh",
-      state: "Chandigarh",
-      pincode: "160017",
-    },
-    timeline: {
-      placed: `${getDateOffset(-2)}, 10:09 AM`,
-      confirmed: `${getDateOffset(-2)}, 02:30 PM`,
-      packed: `${getDateOffset(-1)}, 11:00 AM`,
-      shipped: `${getDateOffset(-1)}, 05:45 PM`,
-      outForDelivery: null,
-      delivered: null,
-    },
-  },
-  {
-    id: "ORD10212",
-    date: getDateOffset(-7),
-    name: "Air Comfort Running Shoes",
-    image: shoe,
-    variant: "Size: 9 · Color: Neon Yellow",
-    quantity: 1,
-    price: 3499,
-    subtotal: 3499,
-    discount: 300,
-    shippingCharge: 100,
-    tax: 320,
-    total: 3619,
-    paymentStatus: "Paid",
-    paymentMethod: "Credit Card",
-    transactionRef: "TXN748920194",
-    status: "Delivered",
-    expectedDelivery: getDateOffset(-3),
-    deliveryPartner: "Moxie Logistics",
-    trackingNumber: "MX88274601",
-    shippingAddress: {
-      name: "Amit Kumar",
-      phone: "+91 98765 43210",
-      flat: "Flat 402, Building C",
-      area: "Sector 17-B",
-      city: "Chandigarh",
-      state: "Chandigarh",
-      pincode: "160017",
-    },
-    timeline: {
-      placed: `${getDateOffset(-7)}, 03:12 PM`,
-      confirmed: `${getDateOffset(-7)}, 05:00 PM`,
-      packed: `${getDateOffset(-6)}, 10:00 AM`,
-      shipped: `${getDateOffset(-5)}, 12:30 PM`,
-      outForDelivery: `${getDateOffset(-3)}, 09:15 AM`,
-      delivered: `${getDateOffset(-3)}, 02:40 PM`,
-    },
-  },
-  {
-    id: "ORD10190",
-    date: getDateOffset(-15),
-    name: "BassBlast Air Buds Pro",
-    image: buds,
-    variant: "Color: Pearl White",
-    quantity: 2,
-    price: 2499,
-    subtotal: 4998,
-    discount: 1000,
-    shippingCharge: 200,
-    tax: 720,
-    total: 4918,
-    paymentStatus: "Paid",
-    paymentMethod: "Debit Card",
-    transactionRef: "TXN228491048",
-    status: "Delivered",
-    expectedDelivery: getDateOffset(-11),
-    deliveryPartner: "BlueDart Express",
-    trackingNumber: "BD22940581",
-    shippingAddress: {
-      name: "Amit Kumar",
-      phone: "+91 98765 43210",
-      flat: "Flat 402, Building C",
-      area: "Sector 17-B",
-      city: "Chandigarh",
-      state: "Chandigarh",
-      pincode: "160017",
-    },
-    timeline: {
-      placed: `${getDateOffset(-15)}, 09:30 AM`,
-      confirmed: `${getDateOffset(-15)}, 11:45 AM`,
-      packed: `${getDateOffset(-14)}, 02:00 PM`,
-      shipped: `${getDateOffset(-13)}, 08:00 AM`,
-      outForDelivery: `${getDateOffset(-11)}, 11:00 AM`,
-      delivered: `${getDateOffset(-11)}, 04:15 PM`,
-    },
-  }
-];
-
 export const orderService = {
   fetchOrders: async (email) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      const res = await apiFetch("/customer/orders/");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((o) => ({
+            ...o,
+            image: o.image || buds,
+          }));
+        }
+      }
+    } catch {
+      // Fallback below
+    }
+
     if (!email) return [];
 
     try {
@@ -147,21 +37,31 @@ export const orderService = {
         return JSON.parse(stored);
       }
     } catch (e) {
-      console.error("Error reading orders:", e);
+      // Ignore
     }
 
-    const initial = getInitialMockOrders();
-    localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(initial));
-    return initial;
+    return [];
   },
 
   cancelOrder: async (email, orderId) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Attempt backend cancellation if numeric id or formatted id
+      const cleanId = String(orderId).replace(/^[A-Za-z]+-?/, "");
+      const res = await apiFetch(`/orders/${cleanId}/cancel/`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        return true;
+      }
+    } catch {
+      // Fallback
+    }
+
     if (!email || !orderId) return false;
 
     const orders = await orderService.fetchOrders(email);
     const updated = orders.map((o) => {
-      if (o.id === orderId) {
+      if (o.id === orderId || o.rawId === orderId) {
         return {
           ...o,
           status: "Cancelled",
@@ -181,9 +81,12 @@ export const orderService = {
       return o;
     });
 
-    localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(updated));
+    try {
+      localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(updated));
+    } catch {}
     return true;
   },
+
 
   placeOrder: async (email, orderData) => {
     await new Promise((resolve) => setTimeout(resolve, 500));

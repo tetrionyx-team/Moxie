@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Banner from "../../components/Banner/Hero";
 import RecommendedForYou from "../../components/RecommendedForYou/RecommendedForYou";
 import EditorialWatches from "../../components/EditorialWatches/EditorialWatches";
+import Category from "../../components/category/Category";
 import MostLovedVideos from "../../components/MostLovedVideos/MostLovedVideos";
 import SpecialOffer from "../../components/SpecialOffer/SpecialOffer";
 import StyleEssentials from "../../components/StyleEssentials/StyleEssentials";
@@ -42,6 +43,7 @@ function Home() {
     <>
       <Banner />
       <RecommendedForYou />
+      <Category />
       <EditorialWatches />
       <SpecialOffer />
       <MostLovedVideos />

@@ -17,11 +17,18 @@
 
 /* Section Header */
 .style-essentials-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.style-essentials-header-center {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 40px;
 }
 
 .style-essentials-subtitle {
@@ -50,6 +57,27 @@
   background-color: #fdb101;
   border-radius: 999px;
   margin-top: 12px;
+}
+
+.style-essentials-view-all {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.style-essentials-view-all:hover {
+  color: #fdb101;
+  transform: translateY(-50%) translateX(3px);
 }
 
 /* 4-Card Desktop Grid */
@@ -372,6 +400,23 @@
 }
 
 @media (max-width: 600px) {
+  .style-essentials-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .style-essentials-view-all {
+    position: static;
+    transform: none;
+    font-size: 13px;
+  }
+
+  .style-essentials-view-all:hover {
+    transform: translateX(3px);
+  }
+
   .style-essentials-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;

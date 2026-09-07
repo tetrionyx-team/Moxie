@@ -70,6 +70,7 @@ class OrderItem(models.Model):
 class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile')
     mobile = models.CharField(max_length=20, null=True, blank=True)
+    google_sub = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"CustomerProfile: {self.user.username}"
@@ -259,3 +260,23 @@ class AdminPasswordResetToken(models.Model):
 
     def __str__(self):
         return f"ResetToken for {self.user.username}"
+
+
+class AdminLoginOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_login_otps')
+    email = models.EmailField()
+    otp_hash = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.IntegerField(default=0)
+    resend_count = models.IntegerField(default=0)
+    last_resend_at = models.DateTimeField(null=True, blank=True)
+    used = models.BooleanField(default=False)
+    is_locked = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"LoginOTP for {self.email} ({'Used' if self.used else 'Pending'})"
+

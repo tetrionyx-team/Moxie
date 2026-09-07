@@ -15,6 +15,7 @@ import BrandIntro from "./components/BrandIntro/BrandIntro";
 import ProfilePage from "./pages/Profile/ProfilePage";
 import SignInModal from "./components/auth/SignInModal";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
+import CartDrawer from "./components/CartDrawer/CartDrawer";
 
 import MaintenancePage from "./pages/Maintenance/MaintenancePage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
@@ -202,21 +203,21 @@ function App() {
 
       <Footer />
 
+      {/* Mini Cart Drawer */}
+      {!isAdminRoute && <CartDrawer />}
+
+      {/* Global WhatsApp button (hidden during Brand Intro as part of appContent) */}
+      {!isAdminRoute && <WhatsAppButton />}
+
       {/* Sign In Modal */}
       {isLoginOpen && <SignInModal onClose={closeLogin} />}
     </>
   );
 
   return (
-    <>
-      {/* Keep Mari/Main Starting Animation */}
-      <BrandIntro>
-        {appContent}
-      </BrandIntro>
-
-      {/* Keep Harish global WhatsApp button outside BrandIntro */}
-      {!isAdminRoute && <WhatsAppButton />}
-    </>
+    <BrandIntro>
+      {appContent}
+    </BrandIntro>
   );
 }
 

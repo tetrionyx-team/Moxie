@@ -4,13 +4,13 @@ import "@testing-library/jest-dom";
 import WhatsAppButton from "./WhatsAppButton";
 
 describe("WhatsAppButton", () => {
-  it("renders the floating WhatsApp button with proper accessibility attributes", () => {
+  it("renders the floating WhatsApp button with proper accessibility attributes and direct wa.me link", () => {
     render(<WhatsAppButton />);
     const button = screen.getByRole("link", { name: /Chat with Moxie on WhatsApp/i });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute("target", "_blank");
     expect(button).toHaveAttribute("rel", "noopener noreferrer");
-    expect(button.getAttribute("href")).toContain("https://wa.me/");
+    expect(button).toHaveAttribute("href", "https://wa.me/916379236525");
   });
 
   it("displays the hover tooltip text", () => {

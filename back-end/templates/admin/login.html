@@ -26,14 +26,15 @@
         }
         .login-container {
             width: 100%;
-            max-width: 480px;
+            max-width: 460px;
             text-align: center;
         }
         .header-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 32px;
+            font-size: 30px;
+            font-weight: 750;
+            margin-bottom: 26px;
             letter-spacing: -0.5px;
+            color: #0f172a;
         }
         .header-title span {
             color: #fdb101;
@@ -41,46 +42,53 @@
         .login-card {
             background: #ffffff;
             border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-            border: 1px solid rgba(0, 0, 0, 0.03);
+            padding: 38px 36px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             text-align: left;
             margin-bottom: 24px;
+            box-sizing: border-box;
+            transition: all 0.25s ease;
         }
         .card-heading {
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 24px;
+            font-weight: 750;
+            margin-bottom: 6px;
+            color: #0f172a;
         }
         .card-sub {
-            font-size: 14px;
-            color: #8c8c8c;
-            margin-bottom: 24px;
+            font-size: 13.5px;
+            color: #64748b;
+            margin-bottom: 22px;
+            line-height: 1.45;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             position: relative;
         }
         .form-group input {
             width: 100%;
-            padding: 14px 16px 14px 44px;
-            font-size: 15px;
-            border: 1px solid #e0e0e0;
+            padding: 13px 16px 13px 44px;
+            font-size: 14.5px;
+            border: 1.5px solid #cbd5e1;
             border-radius: 10px;
             outline: none;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
             font-family: inherit;
+            background: #f8fafc;
+            color: #0f172a;
         }
         .form-group input:focus {
+            background: #ffffff;
             border-color: #fdb101;
-            box-shadow: 0 0 0 3px rgba(253, 177, 1, 0.1);
+            box-shadow: 0 0 0 3px rgba(253, 177, 1, 0.15);
         }
         .form-icon {
             position: absolute;
-            left: 16px;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #a0a0a0;
+            color: #64748b;
             display: flex;
             align-items: center;
         }
@@ -92,14 +100,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
-            margin-bottom: 24px;
+            font-size: 13.5px;
+            margin-bottom: 22px;
         }
         .checkbox-container {
             display: flex;
             align-items: center;
             cursor: pointer;
             user-select: none;
+            color: #475569;
+            font-weight: 500;
         }
         .checkbox-container input {
             margin-right: 8px;
@@ -110,57 +120,174 @@
         .forgot-link {
             color: #fdb101;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
         }
         .forgot-link:hover {
             text-decoration: underline;
         }
         .submit-btn {
             width: 100%;
-            background: #1a1a1a;
+            background: #0f172a;
             color: #ffffff;
             border: none;
             padding: 14px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 750;
             border-radius: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
         }
-        .submit-btn:hover {
-            background: #000000;
+        .submit-btn:hover:not(:disabled) {
+            background: #1e293b;
             transform: translateY(-1px);
         }
+        .submit-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
         .footer-text {
-            font-size: 14px;
-            color: #8c8c8c;
+            font-size: 13.5px;
+            color: #64748b;
         }
         .footer-text a {
             color: #fdb101;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
         }
         .footer-text a:hover {
             text-decoration: underline;
         }
         .errornote {
-            background-color: #ffeded;
-            border: 1px solid #ffcdd2;
-            color: #d32f2f;
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
             padding: 12px 16px;
             border-radius: 10px;
-            font-size: 14px;
-            margin-bottom: 20px;
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            display: none;
         }
-        .errorlist {
-            color: #d32f2f;
+
+        /* ── Shake Animation ── */
+        .shake-card {
+            animation: authShake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        @keyframes authShake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* ── OTP 6-Box Styling ── */
+        .otp-boxes-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 20px 0;
+            width: 100%;
+        }
+        .otp-digit-box {
+            width: 48px;
+            height: 56px;
+            font-size: 22px;
+            font-weight: 750;
+            text-align: center;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            background-color: #f8fafc;
+            color: #0f172a;
+            outline: none;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: inherit;
+        }
+        .otp-digit-box:focus {
+            border-color: #fdb101;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(253, 177, 1, 0.2);
+            transform: translateY(-2px);
+        }
+        .otp-digit-box.filled {
+            border-color: #94a3b8;
+            background-color: #ffffff;
+        }
+        .otp-digit-box.error {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+        }
+        .otp-digit-box.success {
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+            color: #16a34a !important;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
+        }
+        .otp-meta-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 13px;
-            margin-top: 4px;
-            list-style: none;
+            color: #64748b;
+            margin: 10px 0 16px 0;
+        }
+        .otp-meta-info strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .resend-row {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 13.5px;
+        }
+        .resend-btn {
+            background: none;
+            border: none;
+            color: #fdb101;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-family: inherit;
+        }
+        .resend-btn:hover {
+            color: #d97706;
+            text-decoration: underline;
+        }
+        .back-row {
+            margin-top: 12px;
+            text-align: center;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-family: inherit;
+        }
+        .back-btn:hover {
+            color: #0f172a;
+            text-decoration: underline;
+        }
+        .otp-success-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding: 8px 18px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 30px;
+            color: #15803d;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -169,87 +296,398 @@
 <div class="login-container">
     <h1 class="header-title">Welcome to <span>Moxie</span> Admin Dashboard</h1>
 
-    <div class="login-card">
-        <h2 class="card-heading">Welcome Back! 👋</h2>
-        <p class="card-sub">Sign in to your admin account</p>
+    <div class="login-card" id="login-card-container">
+        <!-- Error Alert Note -->
+        <div id="error-alert" class="errornote" role="alert"></div>
 
-        {% if error_message %}
-            <p class="errornote">{{ error_message }}</p>
-        {% endif %}
+        <!-- STEP 1: CREDENTIALS FORM -->
+        <div id="step-credentials">
+            <h2 class="card-heading">Welcome Back! 👋</h2>
+            <p class="card-sub">Sign in to your admin account</p>
 
-        {% if form.errors and not form.non_field_errors %}
-            <p class="errornote">
-                {% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
+            <form id="credentials-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <span class="form-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 11-8 0 4 4 0 018 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                        </svg>
+                    </span>
+                    <input type="text" id="input_username" name="username" placeholder="Username or email address" required autofocus autocomplete="username">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <span class="form-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </span>
+                    <input type="password" id="input_password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+
+                <div class="row-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember_me" name="remember_me" checked>
+                        Remember me
+                    </label>
+                    <a href="#" class="forgot-link" onclick="event.preventDefault(); showError('Please contact a Super Admin to reset your account credentials.');">Forgot Password?</a>
+                </div>
+
+                <button type="submit" id="btn-submit-credentials" class="submit-btn">
+                    Sign In &rarr;
+                </button>
+            </form>
+        </div>
+
+        <!-- STEP 2: OTP VERIFICATION FORM -->
+        <div id="step-otp" style="display: none;">
+            <h2 class="card-heading">VERIFY YOUR IDENTITY</h2>
+            <p class="card-sub">
+                We sent a 6-digit security code to<br />
+                <strong id="display-masked-email" style="color: #0f172a; font-weight: 700;">admin@moxie.com</strong>
             </p>
-        {% endif %}
 
-        {% if form.non_field_errors %}
-            {% for error in form.non_field_errors %}
-                <p class="errornote">{{ error }}</p>
-            {% endfor %}
-        {% endif %}
+            <form id="otp-form">
+                <div class="otp-boxes-wrapper" id="otp-inputs-row">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="0" aria-label="Digit 1" autocomplete="one-time-code">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="1" aria-label="Digit 2">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="2" aria-label="Digit 3">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="3" aria-label="Digit 4">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="4" aria-label="Digit 5">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="5" aria-label="Digit 6">
+                </div>
 
-        <form action="{{ app_path }}" method="post" id="login-form">
-            {% csrf_token %}
-            
-            <div class="form-group">
-                <span class="form-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 11-8 0 4 4 0 018 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
-                    </svg>
-                </span>
-                <input type="text" name="username" id="id_username" placeholder="Enter your username" required autofocus>
-                {{ form.username.errors }}
+                <div class="otp-meta-info">
+                    <div class="otp-expiry-timer">
+                        Code expires in <strong id="timer-text">02:59</strong>
+                    </div>
+                    <div class="otp-attempts-info">
+                        Attempts remaining: <strong id="attempts-text">5</strong>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-submit-otp" class="submit-btn" style="margin-top: 16px;">
+                    VERIFY &amp; SIGN IN &rarr;
+                </button>
+
+                <div class="resend-row" id="resend-container">
+                    <span id="cooldown-text" style="color: #64748b;">Resend code in <strong>00:30</strong></span>
+                    <button type="button" id="btn-resend-otp" class="resend-btn" style="display: none;">Resend OTP</button>
+                </div>
+
+                <div class="back-row">
+                    <button type="button" id="btn-back-to-signin" class="back-btn">&larr; Back to Sign In</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- STEP 3: SUCCESS ANIMATION -->
+        <div id="step-success" style="display: none; text-align: center; padding: 10px 0;">
+            <div class="otp-boxes-wrapper" id="otp-success-row">
+                <div class="otp-digit-box success">&#10003;</div>
+                <div class="otp-digit-box success">&#10003;</div>
+                <div class="otp-digit-box success">&#10003;</div>
+                <div class="otp-digit-box success">&#10003;</div>
+                <div class="otp-digit-box success">&#10003;</div>
+                <div class="otp-digit-box success">&#10003;</div>
             </div>
-
-            <div class="form-group" style="margin-bottom: 16px;">
-                <span class="form-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </span>
-                <input type="password" name="password" id="id_password" placeholder="Enter your password" required>
-                {{ form.password.errors }}
+            <div class="otp-success-badge">
+                <span>&#10003;</span> Identity Verified
             </div>
-
-            <div class="row-options">
-                <label class="checkbox-container">
-                    <input type="checkbox" name="remember_me" checked>
-                    Remember me
-                </label>
-                <a href="#" class="forgot-link">Forgot Password?</a>
-            </div>
-
-            <input type="hidden" name="next" value="{{ next }}">
-
-            <button type="submit" class="submit-btn">
-                Sign In &rarr;
-            </button>
-        </form>
+            <p class="card-sub" style="margin-top: 12px;">Redirecting to Admin Dashboard...</p>
+        </div>
     </div>
 
     <p class="footer-text">Need help? Contact <a href="mailto:support@moxiestore.com">support@moxiestore.com</a></p>
 </div>
 
 <script>
-    (function() {
-        // If the user already has an active visit in this tab and backend user is authenticated, continue
-        {% if user.is_authenticated and user.is_staff and user.is_active %}
-        if (sessionStorage.getItem('adminVisitActive') === 'true') {
-            window.location.replace('{{ next|default:"/admin/dashboard/" }}');
-        }
-        {% endif %}
+(function() {
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    var nextUrl = '{{ next|default:"/admin/dashboard/" }}';
+    var expiresAt = null;
+    var timerInterval = null;
+    var cooldownInterval = null;
+    var cooldownSecs = 30;
 
-        const loginForm = document.getElementById('login-form');
-        if (loginForm) {
-            loginForm.addEventListener('submit', function() {
-                try {
-                    sessionStorage.setItem('adminVisitActive', 'true');
-                } catch(e) {}
-            });
+    var errorAlert = document.getElementById('error-alert');
+    var cardContainer = document.getElementById('login-card-container');
+    var stepCreds = document.getElementById('step-credentials');
+    var stepOtp = document.getElementById('step-otp');
+    var stepSuccess = document.getElementById('step-success');
+    var otpInputs = Array.from(document.querySelectorAll('.otp-digit-box'));
+    var timerText = document.getElementById('timer-text');
+    var attemptsText = document.getElementById('attempts-text');
+    var cooldownText = document.getElementById('cooldown-text');
+    var btnResend = document.getElementById('btn-resend-otp');
+    var btnSubmitCreds = document.getElementById('btn-submit-credentials');
+    var btnSubmitOtp = document.getElementById('btn-submit-otp');
+
+    function showError(msg) {
+        if (!errorAlert) return;
+        errorAlert.textContent = msg;
+        errorAlert.style.display = 'block';
+        cardContainer.classList.remove('shake-card');
+        void cardContainer.offsetWidth;
+        cardContainer.classList.add('shake-card');
+    }
+
+    function hideError() {
+        if (errorAlert) errorAlert.style.display = 'none';
+    }
+
+    function formatTimer(secs) {
+        var m = Math.floor(secs / 60);
+        var s = secs % 60;
+        return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+
+    function startOtpTimer(expiryIso) {
+        expiresAt = new Date(expiryIso).getTime();
+        clearInterval(timerInterval);
+        function update() {
+            var now = new Date().getTime();
+            var diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
+            timerText.textContent = formatTimer(diff);
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                showError('This security code has expired. Request a new code or return to sign in.');
+                otpInputs.forEach(function(i) { i.disabled = true; });
+                btnSubmitOtp.disabled = true;
+            }
         }
-    })();
+        update();
+        timerInterval = setInterval(update, 1000);
+    }
+
+    function startCooldown(secs) {
+        cooldownSecs = secs || 30;
+        btnResend.style.display = 'none';
+        cooldownText.style.display = 'inline';
+        clearInterval(cooldownInterval);
+        function update() {
+            cooldownText.innerHTML = 'Resend code in <strong>00:' + (cooldownSecs < 10 ? '0' + cooldownSecs : cooldownSecs) + '</strong>';
+            if (cooldownSecs <= 0) {
+                clearInterval(cooldownInterval);
+                cooldownText.style.display = 'none';
+                btnResend.style.display = 'inline';
+            }
+            cooldownSecs--;
+        }
+        update();
+        cooldownInterval = setInterval(update, 1000);
+    }
+
+    // Handle Step 1: Credentials
+    document.getElementById('credentials-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        hideError();
+        var username = document.getElementById('input_username').value.trim();
+        var password = document.getElementById('input_password').value;
+
+        if (!username || !password) {
+            showError('Please enter your username and password.');
+            return;
+        }
+
+        btnSubmitCreds.disabled = true;
+        btnSubmitCreds.textContent = 'Verifying Credentials...';
+
+        fetch('/api/admin/login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'include',
+            body: JSON.stringify({ username: username, password: password })
+        })
+        .then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
+        .then(function(resObj) {
+            btnSubmitCreds.disabled = false;
+            btnSubmitCreds.innerHTML = 'Sign In &rarr;';
+            if (resObj.status !== 200) {
+                showError(resObj.data.error || 'Unable to sign in with those credentials.');
+                return;
+            }
+
+            if (resObj.data.status === 'pending_otp') {
+                document.getElementById('display-masked-email').textContent = resObj.data.masked_email || 'your registered email';
+                attemptsText.textContent = resObj.data.attempts_remaining || '5';
+                stepCreds.style.display = 'none';
+                stepOtp.style.display = 'block';
+                otpInputs.forEach(function(i) { i.value = ''; i.disabled = false; i.classList.remove('error', 'filled'); });
+                startOtpTimer(resObj.data.expires_at);
+                startCooldown(resObj.data.resend_cooldown_seconds || 30);
+                setTimeout(function() { otpInputs[0]?.focus(); }, 100);
+            } else {
+                window.location.href = resObj.data.first_allowed_url || nextUrl;
+            }
+        })
+        .catch(function(err) {
+            btnSubmitCreds.disabled = false;
+            btnSubmitCreds.innerHTML = 'Sign In &rarr;';
+            showError('Connection error. Please try again.');
+        });
+    });
+
+    // Handle Step 2: OTP boxes input and navigation
+    otpInputs.forEach(function(input, idx) {
+        input.addEventListener('input', function(e) {
+            var val = e.target.value.replace(/\D/g, '');
+            e.target.value = val ? val[val.length - 1] : '';
+            if (val) {
+                e.target.classList.add('filled');
+                if (idx < 5) otpInputs[idx + 1].focus();
+            } else {
+                e.target.classList.remove('filled');
+            }
+            hideError();
+
+            var fullCode = otpInputs.map(function(i) { return i.value; }).join('');
+            if (fullCode.length === 6) {
+                submitOtp(fullCode);
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                if (!input.value && idx > 0) {
+                    otpInputs[idx - 1].value = '';
+                    otpInputs[idx - 1].classList.remove('filled');
+                    otpInputs[idx - 1].focus();
+                } else {
+                    input.value = '';
+                    input.classList.remove('filled');
+                }
+            } else if (e.key === 'ArrowLeft' && idx > 0) {
+                otpInputs[idx - 1].focus();
+            } else if (e.key === 'ArrowRight' && idx < 5) {
+                otpInputs[idx + 1].focus();
+            }
+        });
+
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            var paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+            if (!paste) return;
+            paste.split('').forEach(function(c, i) {
+                if (otpInputs[i]) {
+                    otpInputs[i].value = c;
+                    otpInputs[i].classList.add('filled');
+                }
+            });
+            var nextFocus = Math.min(paste.length, 5);
+            otpInputs[nextFocus]?.focus();
+            if (paste.length === 6) {
+                submitOtp(paste);
+            }
+        });
+    });
+
+    function submitOtp(code) {
+        hideError();
+        btnSubmitOtp.disabled = true;
+        btnSubmitOtp.textContent = 'Verifying Code...';
+
+        fetch('/api/admin/verify-otp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'include',
+            body: JSON.stringify({ otp: code })
+        })
+        .then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
+        .then(function(resObj) {
+            btnSubmitOtp.disabled = false;
+            btnSubmitOtp.innerHTML = 'VERIFY &amp; SIGN IN &rarr;';
+            if (resObj.status !== 200) {
+                if (resObj.data.attempts_remaining !== undefined) {
+                    attemptsText.textContent = resObj.data.attempts_remaining;
+                }
+                otpInputs.forEach(function(i) { i.value = ''; i.classList.remove('filled'); i.classList.add('error'); });
+                showError(resObj.data.error || "That security code didn't match. Check the code and try again.");
+                if (resObj.data.is_locked) {
+                    otpInputs.forEach(function(i) { i.disabled = true; });
+                    btnSubmitOtp.disabled = true;
+                } else {
+                    otpInputs[0]?.focus();
+                }
+                return;
+            }
+
+            // SUCCESS
+            clearInterval(timerInterval);
+            clearInterval(cooldownInterval);
+            stepOtp.style.display = 'none';
+            stepSuccess.style.display = 'block';
+            try { sessionStorage.setItem('adminVisitActive', 'true'); } catch(e) {}
+            setTimeout(function() {
+                window.location.href = resObj.data.first_allowed_url || nextUrl;
+            }, 850);
+        })
+        .catch(function(err) {
+            btnSubmitOtp.disabled = false;
+            btnSubmitOtp.innerHTML = 'VERIFY &amp; SIGN IN &rarr;';
+            showError('Connection error. Please try again.');
+        });
+    }
+
+    document.getElementById('otp-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var code = otpInputs.map(function(i) { return i.value; }).join('');
+        if (code.length !== 6) {
+            showError('Please enter all 6 digits of your security code.');
+            return;
+        }
+        submitOtp(code);
+    });
+
+    // Resend OTP
+    btnResend.addEventListener('click', function() {
+        hideError();
+        btnResend.disabled = true;
+        fetch('/api/admin/resend-otp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'include'
+        })
+        .then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
+        .then(function(resObj) {
+            btnResend.disabled = false;
+            if (resObj.status !== 200) {
+                showError(resObj.data.error || 'Failed to resend code.');
+                return;
+            }
+            otpInputs.forEach(function(i) { i.value = ''; i.classList.remove('filled', 'error'); i.disabled = false; });
+            btnSubmitOtp.disabled = false;
+            attemptsText.textContent = resObj.data.attempts_remaining || '5';
+            startOtpTimer(resObj.data.expires_at);
+            startCooldown(resObj.data.resend_cooldown_seconds || 30);
+            otpInputs[0]?.focus();
+        })
+        .catch(function() {
+            btnResend.disabled = false;
+            showError('Failed to resend code.');
+        });
+    });
+
+    // Back to Sign In
+    document.getElementById('btn-back-to-signin').addEventListener('click', function() {
+        clearInterval(timerInterval);
+        clearInterval(cooldownInterval);
+        hideError();
+        stepOtp.style.display = 'none';
+        stepCreds.style.display = 'block';
+    });
+})();
 </script>
 
 </body>
 </html>
+

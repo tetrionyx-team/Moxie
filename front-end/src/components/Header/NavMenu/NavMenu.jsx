@@ -7,18 +7,21 @@ import { useData } from "../../../context/DataContext";
 import { useModal } from "../../../context/ModalContext";
 import AccountDropdown from "../../auth/AccountDropdown";
 import LogoutConfirmModal from "../../account/LogoutConfirmModal";
-import CategoryIcon from "../../../assets/icons/categories.svg";
-import WishlistIcon from "../../../assets/icons/wishlist.svg";
-import CartIcon from "../../../assets/icons/cart.svg";
-import ProfileIcon from "../../../assets/icons/user.svg";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Menu01Icon,
+  FavouriteIcon,
+  ShoppingCart01Icon,
+  UserIcon,
+} from "@hugeicons/core-free-icons";
 import "./NavMenu.css";
 
 function NavMenu() {
-  const { wishlistCount } = useContext(WishlistContext);
-  const { cartCount } = useContext(CartContext);
-  const { user, isLoggedIn, logout } = useContext(AuthContext);
-  const { categories } = useData();
-  const { openLogin } = useModal();
+  const { wishlistCount } = useContext(WishlistContext) || {};
+  const { cartCount, openCart } = useContext(CartContext) || {};
+  const { user, isLoggedIn, logout } = useContext(AuthContext) || {};
+  const { categories = [] } = useData() || {};
+  const { openLogin } = useModal() || {};
   const navigate = useNavigate();
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -57,11 +60,9 @@ function NavMenu() {
   // Handle Profile click
   const handleProfileClick = () => {
     if (user || isLoggedIn) {
-      // Toggle account dropdown for logged-in user
       setShowUserMenu((prev) => !prev);
     } else {
-      // Logged-out user -> open login modal directly
-      openLogin();
+      if (openLogin) openLogin();
     }
   };
 
@@ -73,25 +74,38 @@ function NavMenu() {
 
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
-    logout();
+    if (logout) logout();
     navigate("/", { replace: true });
   };
 
   return (
     <div className="nav-menu">
-
-      {/* Categories Nav Item */}
+      {/* Categories Nav Item with Hugeicons Menu Icon */}
       <div
         ref={categoryRef}
         className="nav-item position-relative"
         onClick={() => setShowDropdown((prev) => !prev)}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="true"
+        aria-expanded={showDropdown}
       >
-        <img src={CategoryIcon} alt="Categories" />
+        <div className="nav-icon-box">
+          <HugeiconsIcon
+            icon={Menu01Icon}
+            size={24}
+            strokeWidth={1.8}
+            className="nav-hugeicon"
+          />
+        </div>
         <span>CATEGORIES</span>
 
         {/* Floating Categories Dropdown List with Nested Subcategories */}
-        {showDropdown && (
-          <div className="category-dropdown-list" onClick={(e) => e.stopPropagation()}>
+        {showDropdown && categories && categories.length > 0 && (
+          <div
+            className="category-dropdown-list"
+            onClick={(e) => e.stopPropagation()}
+          >
             {categories.map((cat, index) => (
               <div key={index} className="category-dropdown-item-wrapper">
                 <Link
@@ -101,9 +115,11 @@ function NavMenu() {
                   style={{ textDecoration: "none" }}
                 >
                   <span>{cat.name}</span>
-                  {cat.subcategories?.length > 0 && <span className="arrow-indicator">›</span>}
+                  {cat.subcategories?.length > 0 && (
+                    <span className="arrow-indicator">›</span>
+                  )}
                 </Link>
-                
+
                 {cat.subcategories?.length > 0 && (
                   <div className="category-subcategory-flyout">
                     {cat.subcategories.map((sub, sIndex) => (
@@ -121,25 +137,24 @@ function NavMenu() {
                 )}
               </div>
             ))}
-            {/* Deals static link */}
-            <div className="category-dropdown-item-wrapper">
-              <Link
-                className="category-dropdown-item"
-                to="/products/deals"
-                onClick={() => setShowDropdown(false)}
-                style={{ textDecoration: "none" }}
-              >
-                Deals
-              </Link>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Wishlist Nav Item with Dynamic Notification Badge */}
-      <Link to="/wishlist" className="nav-item" style={{ textDecoration: "none", color: "inherit" }}>
-        <div className="wishlist-icon-wrapper">
-          <img src={WishlistIcon} alt="Wishlist" />
+      {/* Wishlist Nav Item with Hugeicons Heart Icon */}
+      <Link
+        to="/wishlist"
+        className="nav-item"
+        style={{ textDecoration: "none", color: "inherit" }}
+        aria-label="Wishlist"
+      >
+        <div className="wishlist-icon-wrapper nav-icon-box">
+          <HugeiconsIcon
+            icon={FavouriteIcon}
+            size={24}
+            strokeWidth={1.8}
+            className="nav-hugeicon"
+          />
           {wishlistCount > 0 && (
             <span className="wishlist-badge">{wishlistCount}</span>
           )}
@@ -147,18 +162,28 @@ function NavMenu() {
         <span>WISHLIST</span>
       </Link>
 
-      {/* Cart Nav Item with Dynamic Notification Badge */}
-      <Link to="/cart" className="nav-item" style={{ textDecoration: "none", color: "inherit" }}>
-        <div className="cart-icon-wrapper">
-          <img src={CartIcon} alt="Cart" />
+      {/* Cart Nav Item with Hugeicons Shopping Cart Icon - Opens Mini Cart Drawer */}
+      <button
+        type="button"
+        className="nav-item nav-item--btn"
+        onClick={openCart}
+        aria-label="Open Cart Drawer"
+      >
+        <div className="cart-icon-wrapper nav-icon-box">
+          <HugeiconsIcon
+            icon={ShoppingCart01Icon}
+            size={24}
+            strokeWidth={1.8}
+            className="nav-hugeicon"
+          />
           {cartCount > 0 && (
             <span className="cart-badge">{cartCount}</span>
           )}
         </div>
         <span>CART</span>
-      </Link>
+      </button>
 
-      {/* Profile Nav Item */}
+      {/* Profile Nav Item with Hugeicons User Icon */}
       <div ref={userMenuRef} className="nav-item position-relative">
         <button
           id="nav-profile-btn"
@@ -167,9 +192,18 @@ function NavMenu() {
           onClick={handleProfileClick}
           aria-haspopup="menu"
           aria-expanded={showUserMenu}
-          aria-label={user || isLoggedIn ? "User account menu" : "Sign in to your account"}
+          aria-label={
+            user || isLoggedIn ? "User account menu" : "Sign in to your account"
+          }
         >
-          <img src={ProfileIcon} alt="Profile" />
+          <div className="nav-icon-box">
+            <HugeiconsIcon
+              icon={UserIcon}
+              size={24}
+              strokeWidth={1.8}
+              className="nav-hugeicon"
+            />
+          </div>
           <span>{user?.name ? user.name.toUpperCase() : "PROFILE"}</span>
         </button>
 

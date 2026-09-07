@@ -20,12 +20,14 @@ from .views import (
     AdminOrderDetailView,
     AdminOrdersView,
     AdminProfileSettingsView,
+    AdminResendOtpView,
     AdminResetPasswordView,
     AdminSettingsView,
     AdminTestEmailView,
     AdminUserDetailView,
     AdminUsersView,
     AdminUserToggleActiveView,
+    AdminVerifyOtpView,
     AdminVerifyResetCodeView,
     BannerDetailView,
     BannerListView,
@@ -37,6 +39,13 @@ from .views import (
     CurrentOfferView,
     CustomerCancelOrderView,
     CustomerRegisterView,
+    CustomerLoginView,
+    CustomerLogoutView,
+    CustomerAuthStatusView,
+    CustomerGoogleLoginView,
+    CustomerProfileView,
+    CustomerOrdersView,
+    CsrfTokenView,
     HealthCheckView,
     ProductDetailView,
     ProductListView,
@@ -51,17 +60,36 @@ from .views import (
 )
 
 urlpatterns = [
-    # Health Check & Public Settings
+    # Health Check & Public Settings & CSRF
     path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('csrf/', CsrfTokenView.as_view(), name='csrf-token'),
+    path('auth/csrf/', CsrfTokenView.as_view(), name='auth-csrf-token'),
     path('public-settings/', PublicSettingsView.as_view(), name='public-settings'),
     path('public/settings/', PublicSettingsView.as_view(), name='public-settings-slash'),
     path('settings/public/', PublicSettingsView.as_view(), name='settings-public'),
+
+    # Customer Authentication & Profile
     path('customer/register/', CustomerRegisterView.as_view(), name='customer-register'),
     path('register/', CustomerRegisterView.as_view(), name='customer-register-root'),
+    path('auth/register/', CustomerRegisterView.as_view(), name='auth-register'),
+    path('customer/login/', CustomerLoginView.as_view(), name='customer-login'),
+    path('login/', CustomerLoginView.as_view(), name='customer-login-root'),
+    path('auth/login/', CustomerLoginView.as_view(), name='auth-login'),
+    path('customer/logout/', CustomerLogoutView.as_view(), name='customer-logout'),
+    path('logout/', CustomerLogoutView.as_view(), name='customer-logout-root'),
+    path('auth/logout/', CustomerLogoutView.as_view(), name='auth-logout'),
+    path('customer/me/', CustomerAuthStatusView.as_view(), name='customer-auth-status'),
+    path('auth/me/', CustomerAuthStatusView.as_view(), name='auth-me'),
+    path('customer/google/', CustomerGoogleLoginView.as_view(), name='customer-google-login'),
+    path('auth/google/', CustomerGoogleLoginView.as_view(), name='auth-google-login'),
+    path('customer/profile/', CustomerProfileView.as_view(), name='customer-profile'),
+    path('customer/orders/', CustomerOrdersView.as_view(), name='customer-orders-list'),
 
     # Admin Authentication
     path('admin/check-auth/', AdminCheckAuthView.as_view(), name='admin-api-check-auth'),
     path('admin/login/', AdminApiLoginView.as_view(), name='admin-api-login'),
+    path('admin/verify-otp/', AdminVerifyOtpView.as_view(), name='admin-api-verify-otp'),
+    path('admin/resend-otp/', AdminResendOtpView.as_view(), name='admin-api-resend-otp'),
     path('admin/logout/', AdminApiLogoutView.as_view(), name='admin-api-logout'),
 
     # Categories & Subcategories

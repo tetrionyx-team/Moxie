@@ -169,22 +169,26 @@ class ProductSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(
         source='category.name',
-        read_only=True
+        read_only=True,
+        default=''
     )
 
     category_slug = serializers.CharField(
         source='category.slug',
-        read_only=True
+        read_only=True,
+        default=''
     )
 
     subcategory_name = serializers.CharField(
         source='subcategory.name',
-        read_only=True
+        read_only=True,
+        default=''
     )
 
     subcategory_slug = serializers.CharField(
         source='subcategory.slug',
-        read_only=True
+        read_only=True,
+        default=''
     )
 
     class Meta:
@@ -211,6 +215,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class BannerSerializer(serializers.ModelSerializer):
+    media_type = serializers.SerializerMethodField()
+
     class Meta:
         model = Banner
         fields = [
@@ -218,6 +224,7 @@ class BannerSerializer(serializers.ModelSerializer):
             'title',
             'subtitle',
             'image',
+            'media_type',
             'button_text',
             'button_link',
             'display_order',
@@ -233,19 +240,49 @@ class BannerSerializer(serializers.ModelSerializer):
             'button_link': {'required': False, 'allow_blank': True},
         }
 
+    def get_media_type(self, obj):
+        if not obj.image:
+            return 'image'
+        name = str(obj.image.name or '').lower()
+        if any(name.endswith(ext) for ext in ['.mp4', '.webm', '.mov', '.ogg', '.m4v', '.ogv']):
+            return 'video'
+        return 'image'
+
 
 class ReviewSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True, default='')
+    product_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    order_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
     class Meta:
         model = Review
         fields = [
             'id',
+            'product',
+            'product_id',
+            'product_name',
+            'order',
+            'order_id',
             'name',
+            'email',
             'rating',
             'image',
             'text',
+            'is_verified',
+            'status',
             'is_active',
             'created_at',
         ]
+        extra_kwargs = {
+            'product': {'required': False, 'allow_null': True},
+            'order': {'required': False, 'allow_null': True},
+            'name': {'required': False, 'allow_blank': True},
+            'email': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'image': {'required': False, 'allow_null': True},
+            'is_verified': {'required': False},
+            'status': {'required': False},
+            'is_active': {'required': False},
+        }
 
 
 class OrderItemCreateSerializer(serializers.Serializer):

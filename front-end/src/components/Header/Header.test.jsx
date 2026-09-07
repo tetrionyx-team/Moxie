@@ -44,7 +44,7 @@ describe("Header component", () => {
     // Moxie logo
     expect(screen.getByAltText(/Moxie Logo/i)).toBeInTheDocument();
     // Search input
-    expect(screen.getByPlaceholderText(/Search gadgets, lifestyle, tech.../i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search products, categories/i)).toBeInTheDocument();
     // Action items
     expect(screen.getByText("CATEGORIES")).toBeInTheDocument();
     expect(screen.getByText("WISHLIST")).toBeInTheDocument();

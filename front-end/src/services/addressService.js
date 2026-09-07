@@ -4,33 +4,6 @@
  * Prepared for future integration with Python + Django REST API /api/addresses/.
  */
 
-const getInitialMockAddresses = () => [
-  {
-    id: "1",
-    name: "Amit Kumar",
-    phone: "+91 98765 43210",
-    flat: "Flat 402, Building C, Green Valley",
-    area: "Opposite Town Park, Sector 17-B",
-    city: "Chandigarh",
-    state: "Chandigarh",
-    pincode: "160017",
-    type: "Home",
-    isDefault: true,
-  },
-  {
-    id: "2",
-    name: "Amit Kumar",
-    phone: "+91 98765 43210",
-    flat: "Tower 3, Office 101, Tech Park",
-    area: "Phase 8, Industrial Area",
-    city: "Mohali",
-    state: "Punjab",
-    pincode: "160055",
-    type: "Work",
-    isDefault: false,
-  }
-];
-
 export const addressService = {
   fetchAddresses: async (email) => {
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -45,9 +18,7 @@ export const addressService = {
       console.error("Error reading addresses:", e);
     }
 
-    const initial = getInitialMockAddresses();
-    localStorage.setItem(`moxie_addresses_${email}`, JSON.stringify(initial));
-    return initial;
+    return [];
   },
 
   addAddress: async (email, addressData) => {

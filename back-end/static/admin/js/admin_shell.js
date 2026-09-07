@@ -22,7 +22,7 @@ document.addEventListener('click', function (e) {
     let activeIndex = -1;
     const storefrontUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:3000'
-        : 'https://moxie-dev.netlify.app';
+        : (window.STOREFRONT_URL || window.location.origin);
 
     // Quick navigation items map
     const dashboardMenus = [
@@ -281,11 +281,11 @@ document.addEventListener('click', function (e) {
     }
 })();
 
-// Dynamic Storefront URL resolution (Localhost vs Netlify)
+// Dynamic Storefront URL resolution (Localhost vs Production Origin)
 const sfLink = document.getElementById('storefront-link');
 if (sfLink) {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    sfLink.href = isLocal ? 'http://localhost:3000' : 'https://moxie-dev.netlify.app';
+    sfLink.href = isLocal ? 'http://localhost:3000' : (window.STOREFRONT_URL || window.location.origin);
 }
 
 // Sidebar Hamburger Close on ESC

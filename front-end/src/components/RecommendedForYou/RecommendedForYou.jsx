@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FiShoppingBag } from "react-icons/fi";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
@@ -8,110 +8,61 @@ import { useToast } from "../../context/ToastContext";
 import { useData } from "../../context/DataContext";
 import "./RecommendedForYou.css";
 
-import watch1Img from "../../assets/images/recommended/watch_1_black_gold.jpeg";
-import watch2Img from "../../assets/images/recommended/watch_2_two_tone.jpeg";
-import watch3Img from "../../assets/images/recommended/watch_3_silver_black.jpeg";
-import watch4Img from "../../assets/images/recommended/watch_4_silver_blue.jpeg";
-import watch5Img from "../../assets/images/recommended/watch_5_orange_skeleton.png";
-import watch6Img from "../../assets/images/recommended/watch_6_vertu.png";
-import watch7Img from "../../assets/images/recommended/watch_7_garmin.png";
-import watch8Img from "../../assets/images/recommended/watch_8_beige.png";
+import watchFallbackImg from "../../assets/images/watch1.png";
 
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
+// Helper to filter ONLY real backend Watch products
+export const isWatchProduct = (product) => {
+  if (!product || product.is_active === false) return false;
 
-const getFallbackImage = (categorySlug) => {
-  const slug = String(categorySlug || "").toLowerCase();
-  if (slug.includes("watch")) return watchImg;
-  if (slug.includes("footwear") || slug.includes("shoe") || slug.includes("slider")) return shoeImg;
-  if (slug.includes("cap")) return capImg;
-  if (slug.includes("gadget") || slug.includes("bud")) return budsImg;
-  return defaultImg;
+  const catSlug = String(product.category_slug || product.category || "").toLowerCase();
+  const catName = String(product.category_name || "").toLowerCase();
+  const subSlug = String(product.subcategory_slug || product.subcategory || "").toLowerCase();
+  const subName = String(product.subcategory_name || "").toLowerCase();
+  const name = String(product.name || "").toLowerCase();
+
+  const watchKeywords = [
+    "watch",
+    "watches",
+    "chronograph",
+    "analog",
+    "digital",
+    "smartwatch",
+    "smart-watch",
+    "wrist-watch",
+    "wristwatch",
+  ];
+
+  if (watchKeywords.some((k) => catSlug.includes(k) || catName.includes(k))) {
+    return true;
+  }
+
+  if (watchKeywords.some((k) => subSlug.includes(k) || subName.includes(k))) {
+    return true;
+  }
+
+  const unrelatedCategories = [
+    "clothing",
+    "footwear",
+    "shoe",
+    "shoes",
+    "slider",
+    "slipper",
+    "cap",
+    "gadget",
+    "bag",
+    "electronics",
+  ];
+
+  const isUnrelated = unrelatedCategories.some(
+    (u) => catSlug === u || catSlug.startsWith(`${u}-`) || catName.includes(u)
+  );
+
+  if (!isUnrelated && watchKeywords.some((k) => name.includes(k))) {
+    return true;
+  }
+
+  return false;
 };
-
-// Fallback items if database hasn't loaded yet
-const FALLBACK_RECOMMENDED = [
-  {
-    id: 101,
-    brand: "CASIO",
-    name: "Edifice Men Chronograph Black Gold Watch",
-    price: 9999,
-    image: watch1Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 102,
-    brand: "CASIO",
-    name: "Edifice Men Chronograph Two Tone Watch",
-    price: 10999,
-    image: watch2Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 103,
-    brand: "CASIO",
-    name: "Edifice Men Chronograph Classic Black Watch",
-    price: 9499,
-    image: watch3Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 104,
-    brand: "CASIO",
-    name: "Edifice Men Chronograph Blue Dial Watch",
-    price: 9999,
-    image: watch4Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 105,
-    brand: "JACOB & CO",
-    name: "Jacob & Co Inspired Skeleton Orange Watch",
-    price: 12999,
-    image: watch5Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 106,
-    brand: "OBLIK",
-    name: "Vertu Men Quartz Blue Dial Chronograph Leather Watch...",
-    price: 9600,
-    oldPrice: 28299,
-    image: watch6Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 107,
-    brand: "GARMIN",
-    name: "FORERUNNER Unisex Quartz Black Dial Digital Silicone Watch 010-...",
-    price: 25990,
-    oldPrice: 28299,
-    discount: 18,
-    rating: 4.5,
-    reviewCount: 90,
-    image: watch7Img,
-    category: "watches",
-    stock: true,
-  },
-  {
-    id: 108,
-    brand: "CASIO",
-    name: "Edifice Men Quartz Beige Dial Chronograph Leather Watch EX303",
-    price: 7795,
-    image: watch8Img,
-    category: "watches",
-    stock: true,
-  },
-];
 
 export default function RecommendedForYou() {
   const { cart, addToCart } = useContext(CartContext) || {};
@@ -119,8 +70,16 @@ export default function RecommendedForYou() {
   const toast = useToast();
   const { products = [] } = useData() || {};
 
-  // Use all products from database; fallback to static items if empty
-  const displayProducts = products.length > 0 ? products : FALLBACK_RECOMMENDED;
+  // Filter ONLY backend Watch products and limit to 2 rows (max 8 products on desktop)
+  const displayProducts = useMemo(() => {
+    const watchProducts = (products || []).filter((p) => isWatchProduct(p));
+    return watchProducts.slice(0, 8);
+  }, [products]);
+
+  // Cleanly hide section if zero Watch products exist in backend
+  if (!displayProducts || displayProducts.length === 0) {
+    return null;
+  }
 
   const handleWishlistClick = (e, productItem) => {
     e.preventDefault();
@@ -137,8 +96,14 @@ export default function RecommendedForYou() {
   const handleAddToCart = (e, productItem) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (productItem.stock === false || productItem.rawStock <= 0) {
+      if (toast) toast("Item is currently out of stock");
+      return;
+    }
+
     if (addToCart) {
-      addToCart(productItem);
+      addToCart(productItem, 1);
       if (toast) {
         toast(`${productItem.name} added to cart`);
       }
@@ -155,26 +120,39 @@ export default function RecommendedForYou() {
             <h2 className="recommended-title">RECOMMENDED FOR YOU</h2>
           </div>
           <Link
-            to="/products"
+            to="/products?category=watches"
             className="recommended-view-all"
-            aria-label="View all products"
+            aria-label="View all Watch products"
           >
             View All →
           </Link>
         </div>
 
-        {/* Product Cards Grid with Recommended Card Style */}
+        {/* Product Cards Grid with Recommended Watch Card Style (max 2 rows) */}
         <div className="recommended-grid">
           {displayProducts.map((product) => {
             const inCart = cart?.some((item) => item.id === product.id);
             const isWished = isInWishlist ? isInWishlist(product.id) : false;
-            const fallback = getFallbackImage(product.category);
-            const cardImage = product.image || fallback;
+            const cardImage = product.image || watchFallbackImg;
 
-            const brandName =
+            const brandLabel =
               product.brand ||
               product.specifications?.Brand ||
-              (product.category ? String(product.category).toUpperCase() : "MOXIE");
+              (product.category_name && !product.category_name.toLowerCase().includes("all")
+                ? product.category_name.toUpperCase()
+                : "WATCHES");
+
+            const hasDiscount =
+              Boolean(product.discount) &&
+              product.discount > 0 &&
+              Boolean(product.oldPrice) &&
+              Number(product.oldPrice) > Number(product.price);
+
+            const hasOldPrice =
+              Boolean(product.oldPrice) &&
+              Number(product.oldPrice) > Number(product.price);
+
+            const hasRating = Boolean(product.rating) && Number(product.rating) > 0;
 
             const targetLink = `/product/${product.id}`;
 
@@ -187,7 +165,7 @@ export default function RecommendedForYou() {
                 >
                   {/* Top Image Media Area */}
                   <div className="watch-card-media product-image-container">
-                    {product.discount > 0 && (
+                    {hasDiscount && (
                       <span className="watch-discount-badge">
                         {product.discount}% OFF
                       </span>
@@ -211,27 +189,29 @@ export default function RecommendedForYou() {
                       loading="lazy"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = fallback;
+                        e.currentTarget.src = watchFallbackImg;
                       }}
                     />
                   </div>
 
                   {/* Product Card Body */}
                   <div className="watch-card-body">
-                    <span className="watch-brand-name">{brandName}</span>
-                    <h3 className="watch-product-title">{product.name}</h3>
+                    {brandLabel && <span className="watch-brand-name">{brandLabel}</span>}
+                    <h3 className="watch-product-title" title={product.name}>
+                      {product.name}
+                    </h3>
 
                     {/* Price and Rating Row */}
                     <div className="watch-price-row">
                       <strong className="watch-current-price">
                         ₹{Number(product.price || 0).toLocaleString("en-IN")}
                       </strong>
-                      {product.oldPrice && (
+                      {hasOldPrice && (
                         <span className="watch-old-price">
                           ₹{Number(product.oldPrice || 0).toLocaleString("en-IN")}
                         </span>
                       )}
-                      {product.rating && (
+                      {hasRating && (
                         <div className="watch-rating-row">
                           <span className="watch-star-icon">★</span>
                           <span className="watch-rating-val">{product.rating}</span>
@@ -256,9 +236,14 @@ export default function RecommendedForYou() {
                     className={`watch-add-to-cart-btn ${inCart ? "added" : ""}`}
                     onClick={(e) => handleAddToCart(e, product)}
                     aria-label={`Add ${product.name} to cart`}
+                    disabled={product.stock === false}
                   >
                     <FiShoppingBag className="watch-cart-icon" />
-                    {inCart ? "IN CART (+)" : "ADD TO CART"}
+                    {product.stock === false
+                      ? "OUT OF STOCK"
+                      : inCart
+                      ? "IN CART (+)"
+                      : "ADD TO CART"}
                   </button>
                 </div>
               </article>
