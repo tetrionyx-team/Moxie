@@ -18,6 +18,7 @@ from django.utils import timezone
 from api.permissions_utils import (
     admin_permission_required,
     is_super_admin,
+    is_admin_2fa_verified,
     get_first_allowed_admin_url,
 )
 from api.models import StoreSettings, Order, Notification, Offer, AdminProfile
@@ -29,7 +30,34 @@ from django.contrib.auth.models import User
 # Save original index view
 original_index = admin.site.index
 
+def custom_admin_has_permission(request):
+    """
+    Strict admin gate: verifies user is authenticated, active, staff/superuser,
+    and has successfully completed 2FA verification.
+    """
+    return bool(
+        request.user
+        and request.user.is_authenticated
+        and request.user.is_active
+        and (request.user.is_staff or request.user.is_superuser)
+        and is_admin_2fa_verified(request)
+    )
+
+admin.site.has_permission = custom_admin_has_permission
+
 def custom_admin_index(request, extra_context=None):
+    if not (
+        request.user.is_authenticated
+        and request.user.is_active
+        and (request.user.is_staff or request.user.is_superuser)
+        and is_admin_2fa_verified(request)
+    ):
+        response = redirect('/admin/login/?next=/admin/')
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
     extra_context = extra_context or {}
     try:
         products = Product.objects.select_related('category').prefetch_related('images')
@@ -387,7 +415,12 @@ def admin_users_view(request):
 
 
 def admin_profile_view(request):
-    if not request.user.is_authenticated or not request.user.is_staff or not request.user.is_active:
+    if (
+        not request.user.is_authenticated
+        or not request.user.is_staff
+        or not request.user.is_active
+        or not is_admin_2fa_verified(request)
+    ):
         return redirect(f"/admin/login/?next={request.get_full_path()}")
 
     admin_info = _get_admin_info(request.user)
@@ -435,20 +468,32 @@ def admin_customers_view(request):
         if hasattr(u, 'customer_profile') and u.customer_profile and u.customer_profile.mobile:
             mobile = u.customer_profile.mobile
 
+        last_login_str = u.last_login.strftime('%d %b %Y, %I:%M %p') if u.last_login else 'Never'
+        created_at_str = u.date_joined.strftime('%d %b %Y, %I:%M %p') if u.date_joined else '—'
+        customer_id_str = f"CUST-{u.id:04d}"
+
         cust_list.append({
             'id': u.id,
-            'customerId': f"CUST-{u.id:04d}",
+            'customerId': customer_id_str,
+            'customer_id': customer_id_str,
             'name': f"{u.first_name} {u.last_name}".strip() or u.username,
             'username': u.username,
             'email': u.email or 'customer@example.com',
             'mobile': mobile,
             'isActive': u.is_active,
             'is_active': u.is_active,
-            'lastLogin': u.last_login.strftime('%d %b %Y, %I:%M %p') if u.last_login else 'Never',
-            'createdAt': u.date_joined.strftime('%d %b %Y, %I:%M %p') if u.date_joined else '—',
+            'lastLogin': last_login_str,
+            'last_login': last_login_str,
+            'createdAt': created_at_str,
+            'created_at': created_at_str,
+            'date_joined': created_at_str,
+            'ordersCount': orders_count,
             'orders_count': orders_count,
+            'completedOrdersCount': completed_orders,
             'completed_orders_count': completed_orders,
+            'totalSpent': spent,
             'total_spent': spent,
+            'reviewsCount': Review.objects.filter(user=u).count(),
             'reviews_count': Review.objects.filter(user=u).count(),
         })
 

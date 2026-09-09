@@ -38,14 +38,14 @@
     bottom: 0;
     width: 0;
     height: 2px;
-    background-color: #FDB101;
+    background-color: #c9a35c;
     transition: width 0.25s ease;
 }
 
 /* Hover Effect & Active State */
 .bottom-menu li:hover,
 .bottom-menu li.active {
-    color: #FDB101;
+    color: #c9a35c;
 }
 
 .bottom-menu li:hover::after,

@@ -46,7 +46,7 @@
 }
 
 .offer-tag {
-  color: #FDB101;
+  color: #c9a35c;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -70,8 +70,8 @@
 }
 
 .offer-btn {
-  background: #FDB101;
-  color: #000000;
+  background: #c9a35c;
+  color: #ffffff;
   font-weight: 700;
   font-size: 13px;
   padding: 9px 22px;
@@ -84,9 +84,9 @@
 }
 
 .offer-btn:hover {
-  background: #ffffff;
-  color: #000000;
-  transform: scale(1.04);
+  background: #b8924b;
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 
 .offer-img-container {

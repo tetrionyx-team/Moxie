@@ -1,7 +1,7 @@
 /* ============================================================
    Hero.css
    Moxie Premium Media Banner (Image / Video Only)
-   Cinematic rounded container with clean spacing
+   Cinematic rounded container with clean spacing and hover arrows
    ============================================================ */
 
 .moxie-hero-banner-section {
@@ -32,6 +32,8 @@
   border: none;
   box-shadow: none;
   transition: all 0.3s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .moxie-banner-media {
@@ -42,6 +44,73 @@
   display: block;
   border: none;
   outline: none;
+  animation: bannerFadeIn 0.3s ease forwards;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hover-Only Navigation Arrows */
+.moxie-banner-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  outline: none;
+  padding: 0;
+}
+
+.moxie-banner-nav-btn.prev-btn {
+  left: 20px;
+}
+
+.moxie-banner-nav-btn.next-btn {
+  right: 20px;
+}
+
+/* Desktop hover reveal */
+.moxie-hero-banner-container:hover .moxie-banner-nav-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.moxie-banner-nav-btn:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.moxie-banner-nav-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.moxie-banner-nav-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* Tablet Layout */
@@ -56,6 +125,21 @@
     aspect-ratio: 2.2 / 1;
     min-height: 280px;
   }
+
+  .moxie-banner-nav-btn {
+    width: 38px;
+    height: 38px;
+    opacity: 0.9;
+    pointer-events: auto;
+  }
+
+  .moxie-banner-nav-btn.prev-btn {
+    left: 14px;
+  }
+
+  .moxie-banner-nav-btn.next-btn {
+    right: 14px;
+  }
 }
 
 /* Mobile Layout */
@@ -69,6 +153,21 @@
     border-radius: 18px;
     aspect-ratio: 16 / 9;
     min-height: 200px;
+  }
+
+  .moxie-banner-nav-btn {
+    width: 34px;
+    height: 34px;
+    opacity: 0.9;
+    pointer-events: auto;
+  }
+
+  .moxie-banner-nav-btn.prev-btn {
+    left: 10px;
+  }
+
+  .moxie-banner-nav-btn.next-btn {
+    right: 10px;
   }
 }
 

@@ -35,13 +35,13 @@
                 username: "{{ c.username|escapejs }}",
                 email: "{{ c.email|escapejs }}",
                 mobile: "{{ c.mobile|escapejs }}",
-                isActive: {% if c.isActive or c.is_active %}true{% else %}false{% endif %},
-                lastLogin: "{{ c.lastLogin|default:c.last_login|escapejs }}",
-                createdAt: "{{ c.createdAt|default:c.created_at|escapejs }}",
-                ordersCount: parseInt("{{ c.orders_count|default:0 }}"),
-                completedOrdersCount: parseInt("{{ c.completed_orders_count|default:0 }}"),
-                totalSpent: parseFloat("{{ c.total_spent|default:0 }}"),
-                reviewsCount: parseInt("{{ c.reviews_count|default:0 }}")
+                isActive: {% if c.isActive %}true{% else %}false{% endif %},
+                lastLogin: "{{ c.lastLogin|default:'Never'|escapejs }}",
+                createdAt: "{{ c.createdAt|default:'—'|escapejs }}",
+                ordersCount: parseInt("{{ c.ordersCount|default:0 }}"),
+                completedOrdersCount: parseInt("{{ c.completedOrdersCount|default:0 }}"),
+                totalSpent: parseFloat("{{ c.totalSpent|default:0 }}"),
+                reviewsCount: parseInt("{{ c.reviewsCount|default:0 }}")
             }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ],

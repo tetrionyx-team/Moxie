@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import WhatsAppButton from "./WhatsAppButton";
 
+import { WHATSAPP_NUMBER } from "../../config";
+
 describe("WhatsAppButton", () => {
   it("renders the floating WhatsApp button with proper accessibility attributes and direct wa.me link", () => {
     render(<WhatsAppButton />);
@@ -10,7 +12,7 @@ describe("WhatsAppButton", () => {
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute("target", "_blank");
     expect(button).toHaveAttribute("rel", "noopener noreferrer");
-    expect(button).toHaveAttribute("href", "https://wa.me/916379236525");
+    expect(button).toHaveAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}`);
   });
 
   it("displays the hover tooltip text", () => {

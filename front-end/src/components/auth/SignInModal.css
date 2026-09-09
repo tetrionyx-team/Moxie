@@ -9,15 +9,15 @@
   inset: 0;
   width: 100vw;
   height: 100dvh;
-  background: rgba(10, 10, 10, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(10, 10, 10, 0.68);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 
   display: flex;
   justify-content: center;
   align-items: center;
 
-  padding: 20px;
+  padding: 16px;
   z-index: 99999;
   overflow-y: auto;
   scrollbar-width: none;
@@ -113,22 +113,18 @@
   font-size: 22px;
   font-weight: 850;
   letter-spacing: 0.26em;
-  background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 30%, #b38728 55%, #fbf5b7 80%, #aa771c 100%);
+  background: linear-gradient(135deg, #dfba73 0%, #c9a35c 50%, #9a7836 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: #c59b27;
+  color: #c9a35c;
   text-shadow: 0 1px 2px rgba(179, 135, 40, 0.12);
   margin: 0 0 10px 0;
   text-transform: uppercase;
   display: inline-block;
 }
 
-.auth-brand-title .brand-accent {
-  color: #c9a35c;
-}
-
 .auth-modal-heading {
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 700;
   color: #111111;
   margin: 0 0 6px 0;
@@ -152,6 +148,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  animation: authAlertFade 0.2s ease;
+}
+
+@keyframes authAlertFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .auth-global-alert--error {
@@ -161,16 +163,16 @@
 }
 
 .auth-global-alert--success {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #15803d;
+  background: #fcf9f2;
+  border: 1px solid #e8d7ad;
+  color: #936e22;
 }
 
 /* ── Form Layout ──────────────────────────────────────────── */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 14px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -261,7 +263,7 @@
 
 .auth-input:focus + .auth-input-icon,
 .auth-input-wrapper:focus-within .auth-input-icon {
-  color: #111111;
+  color: #c9a35c;
 }
 
 .auth-input--error {
@@ -365,7 +367,7 @@
 /* ── Google Button ────────────────────────────────────────── */
 .auth-google-btn {
   width: 100%;
-  height: 50px;
+  height: 48px;
   background: #ffffff;
   color: #1f2937;
   border: 1.5px solid #e5e7eb;
@@ -424,19 +426,145 @@
 }
 
 /* ============================================================
-   RESPONSIVE DESIGN
+   PREMIUM MOXIE ANIMATED SUCCESS POPUP OVERLAY
+   ============================================================ */
+.auth-success-popup-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: successPopupFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes successPopupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.auth-success-popup-card {
+  text-align: center;
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-success-popup-brand {
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: 0.28em;
+  background: linear-gradient(135deg, #dfba73 0%, #c9a35c 50%, #9a7836 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #c9a35c;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.auth-success-popup-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbf7ee 0%, #f4eacc 100%);
+  border: 2px solid #dfba73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 24px rgba(201, 163, 92, 0.35);
+  animation: checkPulse 1.4s infinite alternate ease-in-out;
+}
+
+@keyframes checkPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 16px rgba(201, 163, 92, 0.3);
+  }
+  100% {
+    transform: scale(1.06);
+    box-shadow: 0 0 28px rgba(201, 163, 92, 0.55);
+  }
+}
+
+.auth-success-popup-check-icon {
+  font-size: 32px;
+  color: #c9a35c;
+  stroke-width: 2.5;
+}
+
+.auth-success-popup-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.2px;
+}
+
+.auth-success-popup-desc {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 4px 0;
+  line-height: 1.45;
+}
+
+.auth-success-popup-sub {
+  font-size: 13px;
+  color: #9a7836;
+  font-style: italic;
+  margin: 0 0 16px 0;
+}
+
+.auth-success-popup-loader {
+  width: 120px;
+  height: 3px;
+  background: #f1ebd8;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.auth-gold-progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #dfba73, #c9a35c, #9a7836);
+  border-radius: 99px;
+  animation: goldProgress 1.8s linear forwards;
+}
+
+@keyframes goldProgress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN (375px, 390px, 430px, 768px, 1024px, 1440px)
    ============================================================ */
 @media (max-width: 600px) {
   .login-overlay,
   .auth-overlay {
-    padding: 12px;
+    padding: 10px;
   }
 
   .login-modal,
   .auth-modal {
-    padding: 32px 20px;
+    padding: 28px 18px 24px;
     border-radius: 22px;
-    max-height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 20px);
   }
 
   .auth-modal-heading {
@@ -444,18 +572,26 @@
   }
 
   .auth-input {
-    height: 48px;
+    height: 46px;
     font-size: 14px;
   }
 
   .auth-submit-btn {
-    height: 48px;
+    height: 46px;
     font-size: 14px;
   }
 
   .auth-google-btn {
-    height: 48px;
+    height: 46px;
     font-size: 13.5px;
   }
-}
 
+  .auth-success-popup-icon-wrap {
+    width: 58px;
+    height: 58px;
+  }
+
+  .auth-success-popup-check-icon {
+    font-size: 28px;
+  }
+}

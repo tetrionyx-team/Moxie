@@ -42,15 +42,15 @@ describe("Header component", () => {
   it("renders the main header logo, search bar, and action items with CART label", () => {
     renderWithProviders(<Header searchQuery="" setSearchQuery={() => {}} />);
     // Moxie logo
-    expect(screen.getByAltText(/Moxie Logo/i)).toBeInTheDocument();
+    expect(screen.getAllByAltText(/Moxie Logo/i)[0]).toBeInTheDocument();
     // Search input
     expect(screen.getByPlaceholderText(/Search products, categories/i)).toBeInTheDocument();
     // Action items
-    expect(screen.getByText("CATEGORIES")).toBeInTheDocument();
-    expect(screen.getByText("WISHLIST")).toBeInTheDocument();
+    expect(screen.getAllByText("CATEGORIES")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("WISHLIST")[0]).toBeInTheDocument();
     expect(screen.getByText("CART")).toBeInTheDocument();
     expect(screen.queryByText("CARD")).not.toBeInTheDocument();
-    expect(screen.getByText("PROFILE")).toBeInTheDocument();
+    expect(screen.getAllByText("PROFILE")[0]).toBeInTheDocument();
   });
 
   it("renders the black category navigation with expected links", () => {

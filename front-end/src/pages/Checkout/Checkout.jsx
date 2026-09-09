@@ -3,8 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
 import { orderService } from "../../services/orderService";
-import { API_URL } from "../../config";
+import { apiFetch } from "../../api/apiConfig";
 import "./Checkout.css";
+
 import watchImg from "../../assets/images/watch1.png";
 import shoeImg from "../../assets/images/shoe.svg";
 import capImg from "../../assets/images/cap.png";
@@ -21,13 +22,14 @@ const getFallbackImage = (category, name) => {
 };
 
 export default function Checkout() {
-  const { cart, clearCart } = useContext(CartContext);
-  const { user } = useContext(AuthContext);
+  const { cart = [], clearCart } = useContext(CartContext) || {};
+  const { user } = useContext(AuthContext) || {};
   const location = useLocation();
   const checkoutItem = location.state?.checkoutItem;
-  
-  const [payment, setPayment] = useState("razorpay");
+
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [placed, setPlaced] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -35,15 +37,25 @@ export default function Checkout() {
   // Use the direct checkoutItem if present, otherwise fallback to the cart list
   const checkoutList = checkoutItem ? [checkoutItem] : cart;
 
-  const subtotal = checkoutList.reduce((s, i) => s + i.price * i.quantity, 0);
-  const mrp = checkoutList.reduce((s, i) => s + (i.oldPrice || i.price) * i.quantity, 0);
-  
-  // Dynamic Delivery Fee: Rs. 100 for COD Promise Fee, FREE for Online Payment
-  const delivery = payment === "cod" ? 100 : 0;
+  const subtotal = checkoutList.reduce(
+    (s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1),
+    0
+  );
+  const mrp = checkoutList.reduce(
+    (s, i) => s + (Number(i.oldPrice) || Number(i.price) || 0) * (Number(i.quantity) || 1),
+    0
+  );
+  const discount = Math.max(0, mrp - subtotal);
+
+  // Delivery fee: ₹100 for COD, FREE for Online Payment
+  const delivery = paymentMethod === "cod" ? 100 : 0;
   const grandTotal = subtotal + delivery;
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      if (window.Razorpay) {
+        return resolve(true);
+      }
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
@@ -52,331 +64,613 @@ export default function Checkout() {
     });
   };
 
-  const place = async (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const next = {};
+    if (loading) return;
 
-    const shippingData = {
-      shipping_name: f.get("name"),
-      shipping_phone: f.get("phone"),
-      shipping_address: f.get("address"),
-      shipping_city: f.get("city"),
-      shipping_pincode: f.get("pincode"),
-    };
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const nextErrors = {};
 
-    ["name", "phone", "address", "city", "pincode"].forEach((k) => {
-      if (!String(f.get(k) || "").trim()) next[k] = "Required";
-    });
+    const shippingName = (formData.get("name") || "").trim();
+    const shippingPhone = (formData.get("phone") || "").trim();
+    const shippingEmail = (formData.get("email") || user?.email || "").trim();
+    const shippingAddress = (formData.get("address") || "").trim();
+    const shippingCity = (formData.get("city") || "").trim();
+    const shippingDistrict = (formData.get("district") || "").trim();
+    const shippingPincode = (formData.get("pincode") || "").trim();
 
-    if (String(f.get("phone") || "").replace(/\D/g, "").length !== 10) {
-      next.phone = "Enter a valid 10-digit number";
+    if (!shippingName) nextErrors.name = "Full name is required";
+    if (!shippingPhone) {
+      nextErrors.phone = "Phone number is required";
+    } else if (shippingPhone.replace(/\D/g, "").length !== 10) {
+      nextErrors.phone = "Enter a valid 10-digit phone number";
     }
 
-    if (String(f.get("pincode") || "").replace(/\D/g, "").length !== 6) {
-      next.pincode = "Enter a valid 6-digit PIN";
+    if (!shippingAddress) nextErrors.address = "Street address is required";
+    if (!shippingCity) nextErrors.city = "City is required";
+    if (!shippingDistrict) nextErrors.district = "District is required";
+    if (!shippingPincode) {
+      nextErrors.pincode = "PIN code is required";
+    } else if (shippingPincode.replace(/\D/g, "").length !== 6) {
+      nextErrors.pincode = "Enter a valid 6-digit PIN code";
     }
 
-    setErrors(next);
+    setErrors(nextErrors);
     setPaymentError("");
 
-    if (!Object.keys(next).length) {
-      if (payment === "cod") {
-        if (user?.email) {
-          const firstItem = checkoutList[0] || {};
-          orderService.placeOrder(user.email, {
-            name: checkoutList.length > 1 ? `${firstItem.name} + ${checkoutList.length - 1} more items` : firstItem.name,
-            image: firstItem.image,
-            variant: firstItem.selectedSize ? `Size: ${firstItem.selectedSize}` : "",
-            quantity: checkoutList.reduce((acc, i) => acc + i.quantity, 0),
-            price: firstItem.price || 0,
-            subtotal: subtotal,
-            discount: mrp - subtotal,
-            shippingCharge: delivery,
-            total: grandTotal,
-            paymentStatus: "Pending (COD)",
-            paymentMethod: "Cash on Delivery",
-            shippingAddress: {
-              name: shippingData.shipping_name,
-              phone: shippingData.shipping_phone,
-              flat: shippingData.shipping_address,
-              city: shippingData.shipping_city,
-              pincode: shippingData.shipping_pincode,
-            }
-          });
-        }
-        if (!checkoutItem) {
-          clearCart();
-        }
-        setPlaced(true);
-        window.scrollTo(0, 0);
-        return;
-      }
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
 
-      // Razorpay checkout integration
+    const shippingPayload = {
+      shipping_name: shippingName,
+      shipping_phone: shippingPhone,
+      shipping_address: shippingAddress,
+      shipping_city: shippingCity,
+      shipping_district: shippingDistrict,
+      shipping_pincode: shippingPincode,
+      customer_email: shippingEmail || user?.email || "shopper@moxie.com",
+      customer_name: shippingName,
+    };
+
+    const orderItems = checkoutList.map((item) => ({
+      product_id: item.id,
+      quantity: Number(item.quantity) || 1,
+      variant_id: item.variant_id || item.variantId || null,
+      color_name: item.selectedColor || item.color || null,
+      size: item.selectedSize || item.size || null,
+    }));
+
+    const productsData = checkoutList.map((item) => ({
+      productId: item.id || 1,
+      productName: item.name || "Moxie Product",
+      price: Number(item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+      size: item.selectedSize || item.size || "Regular",
+      color: item.selectedColor || item.color || "Standard",
+      image: item.image || getFallbackImage(item.category, item.name),
+    }));
+
+    const effectiveEmail = shippingEmail || user?.email || "shopper@moxie.com";
+
+    // Cash on Delivery flow
+    if (paymentMethod === "cod") {
       setLoading(true);
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        setPaymentError("Razorpay SDK failed to load. Are you online?");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const orderItems = checkoutList.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          variant_id: item.variant_id || item.variantId || null,
-          color_name: item.selectedColor || item.color || null,
-          size: item.selectedSize || item.size || null,
-        }));
-
-        const createOrderRes = await fetch(`${API_URL}/payment/order/create/`, {
+        const codRes = await apiFetch("/orders/cod/", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
           body: JSON.stringify({
-            ...shippingData,
-            customer_email: user?.email,
-            customer_name: user?.name,
-            items: orderItems
-          })
+            ...shippingPayload,
+            items: orderItems,
+          }),
         });
 
-        if (!createOrderRes.ok) {
-          const errData = await createOrderRes.json().catch(() => ({}));
+        if (!codRes.ok) {
+          const errData = await codRes.json().catch(() => ({}));
           let errMsg = errData.error || errData.detail;
           if (!errMsg && typeof errData === "object" && Object.keys(errData).length > 0) {
             const firstKey = Object.keys(errData)[0];
             const firstVal = errData[firstKey];
-            errMsg = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === "object" ? JSON.stringify(firstVal) : String(firstVal));
+            errMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
           }
-          throw new Error(errMsg || "Failed to create order on server.");
+          throw new Error(errMsg || "Failed to place COD order.");
         }
 
-        const orderInfo = await createOrderRes.json();
-        
-        const options = {
-          key: orderInfo.razorpay_key_id,
-          amount: orderInfo.amount,
-          currency: orderInfo.currency,
-          name: "Moxie E-Commerce",
-          description: "Purchase of products from Moxie",
-          order_id: orderInfo.razorpay_order_id,
-          handler: async (response) => {
-            setLoading(true);
-            try {
-              const verifyRes = await fetch(`${API_URL}/payment/verify/`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature
-                })
-              });
+        const codData = await codRes.json().catch(() => ({}));
+        const newPlacedId = codData.order_number || codData.order_id || null;
+        setPlacedOrderId(newPlacedId);
 
-              if (!verifyRes.ok) {
-                const errVal = await verifyRes.json().catch(() => ({}));
-                throw new Error(errVal.error || "Payment verification failed.");
-              }
-
-              // Success! Clear cart and record in customer profile if logged in
-              if (user?.email) {
-                const firstItem = checkoutList[0] || {};
-                orderService.placeOrder(user.email, {
-                  name: checkoutList.length > 1 ? `${firstItem.name} + ${checkoutList.length - 1} more items` : firstItem.name,
-                  image: firstItem.image,
-                  variant: firstItem.selectedSize ? `Size: ${firstItem.selectedSize}` : (firstItem.selectedColor || ""),
-                  quantity: checkoutList.reduce((acc, i) => acc + i.quantity, 0),
-                  price: firstItem.price || 0,
-                  subtotal: subtotal,
-                  discount: mrp - subtotal,
-                  shippingCharge: delivery,
-                  total: grandTotal,
-                  paymentStatus: "Paid",
-                  paymentMethod: "Razorpay (Online)",
-                  shippingAddress: {
-                    name: shippingData.shipping_name,
-                    phone: shippingData.shipping_phone,
-                    flat: shippingData.shipping_address,
-                    city: shippingData.shipping_city,
-                    pincode: shippingData.shipping_pincode,
-                  }
-                });
-              }
-
-              if (!checkoutItem) {
-                clearCart();
-              }
-              setPlaced(true);
-              window.scrollTo(0, 0);
-            } catch (err) {
-              setPaymentError(err.message || "Something went wrong during payment verification.");
-            } finally {
-              setLoading(false);
-            }
+        // Always save to shared order master dataset
+        const firstItem = checkoutList[0] || {};
+        await orderService.placeOrder(effectiveEmail, {
+          orderId: newPlacedId,
+          customerName: shippingName,
+          mobile: shippingPhone,
+          email: effectiveEmail,
+          address: shippingAddress,
+          city: shippingCity,
+          district: shippingDistrict,
+          pinCode: shippingPincode,
+          products: productsData,
+          name:
+            checkoutList.length > 1
+              ? `${firstItem.name} + ${checkoutList.length - 1} more items`
+              : firstItem.name,
+          image: firstItem.image,
+          subtotal: subtotal,
+          discount: discount,
+          deliveryCharge: delivery,
+          grandTotal: grandTotal,
+          paymentStatus: "Pending",
+          paymentMethod: "COD",
+          shippingAddress: {
+            name: shippingPayload.shipping_name,
+            phone: shippingPayload.shipping_phone,
+            flat: shippingPayload.shipping_address,
+            address: shippingPayload.shipping_address,
+            city: shippingPayload.shipping_city,
+            district: shippingDistrict,
+            pincode: shippingPayload.shipping_pincode,
           },
-          prefill: {
-            name: shippingData.shipping_name,
-            contact: shippingData.shipping_phone
-          },
-          theme: {
-            color: "#6657ec"
-          },
-          modal: {
-            ondismiss: () => {
-              setLoading(false);
-              setPaymentError("Checkout window was closed by the user.");
-            }
-          }
-        };
+        });
 
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+        if (!checkoutItem && clearCart) {
+          clearCart();
+        }
+        setPlaced(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
-        setPaymentError(err.message || "An error occurred while initiating payment.");
+        setPaymentError(err.message || "Failed to place COD order.");
+      } finally {
         setLoading(false);
       }
+      return;
+    }
+
+    // Razorpay Online Payment Flow
+    setLoading(true);
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      setPaymentError("Payment service is temporarily unavailable. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const createOrderRes = await apiFetch("/payment/order/create/", {
+        method: "POST",
+        body: JSON.stringify({
+          ...shippingPayload,
+          payment_method: "razorpay",
+          items: orderItems,
+        }),
+      });
+
+      if (!createOrderRes.ok) {
+        const errData = await createOrderRes.json().catch(() => ({}));
+        let errMsg = errData.error || errData.detail;
+        if (!errMsg && typeof errData === "object" && Object.keys(errData).length > 0) {
+          const firstKey = Object.keys(errData)[0];
+          const firstVal = errData[firstKey];
+          errMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+        }
+        throw new Error(errMsg || "Failed to create payment order.");
+      }
+
+      const orderInfo = await createOrderRes.json();
+
+      const options = {
+        key: orderInfo.razorpay_key_id,
+        amount: orderInfo.amount,
+        currency: orderInfo.currency || "INR",
+        name: "Moxie",
+        description: "Purchase of products from Moxie",
+        order_id: orderInfo.razorpay_order_id,
+        handler: async (response) => {
+          setLoading(true);
+          try {
+            const verifyRes = await apiFetch("/payment/verify/", {
+              method: "POST",
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              const errVal = await verifyRes.json().catch(() => ({}));
+              throw new Error(errVal.error || "Payment verification failed.");
+            }
+
+            const verifyData = await verifyRes.json().catch(() => ({}));
+            const newPlacedId = verifyData.order_number || verifyData.order_id || null;
+            setPlacedOrderId(newPlacedId);
+
+            const firstItem = checkoutList[0] || {};
+            await orderService.placeOrder(effectiveEmail, {
+              orderId: newPlacedId,
+              customerName: shippingName,
+              mobile: shippingPhone,
+              email: effectiveEmail,
+              address: shippingAddress,
+              city: shippingCity,
+              district: shippingDistrict,
+              pinCode: shippingPincode,
+              products: productsData,
+              name:
+                checkoutList.length > 1
+                  ? `${firstItem.name} + ${checkoutList.length - 1} more items`
+                  : firstItem.name,
+              image: firstItem.image,
+              subtotal: subtotal,
+              discount: discount,
+              shippingCharge: delivery,
+              grandTotal: grandTotal,
+              paymentStatus: "Success",
+              paymentMethod: "UPI",
+              shippingAddress: {
+                name: shippingPayload.shipping_name,
+                phone: shippingPayload.shipping_phone,
+                flat: shippingPayload.shipping_address,
+                address: shippingPayload.shipping_address,
+                city: shippingPayload.shipping_city,
+                district: shippingDistrict,
+                pincode: shippingPayload.shipping_pincode,
+              },
+            });
+
+            if (!checkoutItem && clearCart) {
+              clearCart();
+            }
+            setPlaced(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } catch (err) {
+            setPaymentError(err.message || "Something went wrong during payment verification.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: shippingPayload.shipping_name,
+          contact: shippingPayload.shipping_phone,
+          email: shippingPayload.customer_email,
+        },
+        theme: {
+          color: "#c9a35c",
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setPaymentError("Payment window was closed. You can retry anytime.");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (failResp) => {
+        setLoading(false);
+        setPaymentError(
+          failResp?.error?.description || "Payment failed. Please try a different payment method."
+        );
+      });
+      rzp.open();
+    } catch (err) {
+      setPaymentError(err.message || "An error occurred while initiating payment.");
+      setLoading(false);
     }
   };
 
+  // Order Confirmed State
   if (placed) {
     return (
-      <main className="order-success page-shell">
-        <div className="success-check">✓</div>
-        <span className="eyebrow">Order confirmed</span>
-        <h1>Thank you for shopping with Moxie!</h1>
-        <p>Your order has been placed successfully. Payment verified.</p>
-        <Link className="primary-btn" to="/products">
-          Continue shopping
-        </Link>
+      <main className="checkout-page-wrapper">
+        <div className="checkout-page-container">
+          <div className="order-success-card">
+            <div className="success-icon-badge">✓</div>
+            <span className="success-eyebrow">Order Confirmed</span>
+            <h1 className="success-title">Thank you for your purchase!</h1>
+            <p className="success-subtitle">
+              Your order has been placed successfully and payment verified. We'll send shipping updates to your email.
+            </p>
+            {placedOrderId && (
+              <div className="success-order-pill">
+                Order ID: <strong>{placedOrderId}</strong>
+              </div>
+            )}
+            <div className="success-actions-row">
+              <Link to="/products" className="success-btn primary">
+                CONTINUE SHOPPING
+              </Link>
+              <Link to="/orders" className="success-btn secondary">
+                VIEW MY ORDERS
+              </Link>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
 
+  // Empty checkout state
   if (!checkoutList.length) {
     return (
-      <main className="empty-state">
-        <div className="empty-icon">🛒</div>
-        <h1>Your cart is empty</h1>
-        <Link className="primary-btn" to="/products">
-          Explore products
-        </Link>
+      <main className="checkout-page-wrapper">
+        <div className="checkout-page-container">
+          <div className="checkout-empty-card">
+            <div className="empty-cart-icon-circle">🛒</div>
+            <h2 className="empty-cart-heading">Your cart is empty</h2>
+            <p className="empty-cart-text">Please add items to your cart before proceeding to checkout.</p>
+            <Link to="/products" className="empty-cart-cta-btn">
+              EXPLORE PRODUCTS
+            </Link>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="checkout-page page-shell">
-      <span className="eyebrow">Secure checkout</span>
-      <h1>Complete your order</h1>
-      <form className="checkout-layout" onSubmit={place}>
-        <div className="checkout-main">
-          <section className="checkout-card">
-            <h2>Delivery address</h2>
-            <div className="form-grid">
-              {[
-                ["name", "Full name"],
-                ["phone", "Phone number"],
-                ["address", "Address"],
-                ["city", "City"],
-                ["pincode", "PIN code"],
-              ].map(([id, label]) => (
-                <label key={id} className={id === "address" ? "full" : ""}>
-                  {label}
-                  <input name={id} placeholder={label} />
-                  {errors[id] && <small>{errors[id]}</small>}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className="checkout-card">
-            <h2>Payment method</h2>
-            <div className="payment-options">
-              {[
-                ["razorpay", "Razorpay (UPI / Card / NetBanking)"],
-                ["cod", "Cash on Delivery"],
-              ].map(([id, title]) => (
-                <label key={id} className={payment === id ? "selected" : ""}>
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={payment === id}
-                    onChange={() => setPayment(id)}
-                  />
-                  <b>{title}</b>
-                </label>
-              ))}
-            </div>
-            <p className="mock-note">
-              {payment === "razorpay" 
-                ? "Razorpay Test Mode is active. Do not make real payments." 
-                : "Cash on Delivery mock checkout."}
-            </p>
-          </section>
+    <main className="checkout-page-wrapper">
+      <div className="checkout-page-container">
+        {/* Header Breadcrumb */}
+        <div className="checkout-page-header">
+          <span className="checkout-eyebrow">Secure Checkout</span>
+          <h1 className="checkout-main-heading">Complete Your Order</h1>
         </div>
 
-        <aside className="order-summary">
-          <h2>Order summary</h2>
-          {checkoutList.map((i) => {
-            const fallback = getFallbackImage(i.category, i.name);
-            const itemImgSrc = i.image && !i.image.includes("ChatGPT_Image") ? i.image : fallback;
-            return (
-              <div className="summary-item" key={i.id}>
-                <img
-                  src={itemImgSrc}
-                  alt={i.name}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = fallback;
-                  }}
-                />
-                <span>
-                  {i.name}
-                  <small>
-                    {i.selectedColor}
-                    {i.selectedSize ? ` · Size ${i.selectedSize}` : ""} · Qty: {i.quantity}
-                  </small>
-                </span>
-                <b>₹{(i.price * i.quantity).toLocaleString("en-IN")}</b>
+        {paymentError && (
+          <div className="checkout-alert-error" role="alert">
+            <span>⚠️ {paymentError}</span>
+            <button
+              type="button"
+              className="alert-close-btn"
+              onClick={() => setPaymentError("")}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        <form className="checkout-layout-grid" onSubmit={handlePlaceOrder} noValidate>
+          {/* Left Column: Delivery & Payment Details */}
+          <div className="checkout-forms-column">
+            {/* Delivery Information Section */}
+            <section className="checkout-section-card">
+              <div className="section-card-header">
+                <span className="section-step-badge">1</span>
+                <h2 className="section-title">Delivery Information</h2>
               </div>
-            );
-          })}
-          <dl>
-            <div>
-              <dt>MRP</dt>
-              <dd>₹{mrp.toLocaleString("en-IN")}</dd>
+
+              <div className="checkout-form-grid">
+                <div className="form-field full-width">
+                  <label htmlFor="input-name">Full Name *</label>
+                  <input
+                    id="input-name"
+                    name="name"
+                    type="text"
+                    defaultValue={user?.name || ""}
+                    placeholder="e.g. John Doe"
+                    className={errors.name ? "input-error" : ""}
+                  />
+                  {errors.name && <span className="field-error-text">{errors.name}</span>}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="input-phone">Phone Number *</label>
+                  <input
+                    id="input-phone"
+                    name="phone"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="10-digit mobile number"
+                    className={errors.phone ? "input-error" : ""}
+                  />
+                  {errors.phone && <span className="field-error-text">{errors.phone}</span>}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="input-email">Email Address</label>
+                  <input
+                    id="input-email"
+                    name="email"
+                    type="email"
+                    defaultValue={user?.email || ""}
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+
+                <div className="form-field full-width">
+                  <label htmlFor="input-address">Street Address / Flat / Building *</label>
+                  <input
+                    id="input-address"
+                    name="address"
+                    type="text"
+                    placeholder="House / Flat No., Road, Landmark"
+                    className={errors.address ? "input-error" : ""}
+                  />
+                  {errors.address && <span className="field-error-text">{errors.address}</span>}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="input-city">City *</label>
+                  <input
+                    id="input-city"
+                    name="city"
+                    type="text"
+                    placeholder="City / Town"
+                    className={errors.city ? "input-error" : ""}
+                  />
+                  {errors.city && <span className="field-error-text">{errors.city}</span>}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="input-district">District *</label>
+                  <input
+                    id="input-district"
+                    name="district"
+                    type="text"
+                    placeholder="District name"
+                    className={errors.district ? "input-error" : ""}
+                  />
+                  {errors.district && <span className="field-error-text">{errors.district}</span>}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="input-pincode">PIN Code *</label>
+                  <input
+                    id="input-pincode"
+                    name="pincode"
+                    type="text"
+                    maxLength={6}
+                    placeholder="6-digit PIN"
+                    className={errors.pincode ? "input-error" : ""}
+                  />
+                  {errors.pincode && <span className="field-error-text">{errors.pincode}</span>}
+                </div>
+              </div>
+            </section>
+
+            {/* Payment Method Section */}
+            <section className="checkout-section-card">
+              <div className="section-card-header">
+                <span className="section-step-badge">2</span>
+                <h2 className="section-title">Payment Method</h2>
+              </div>
+
+              <div className="payment-selection-group">
+                {/* Razorpay Option */}
+                <label
+                  className={`payment-option-card ${paymentMethod === "razorpay" ? "selected" : ""}`}
+                >
+                  <div className="payment-radio-wrap">
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="razorpay"
+                      checked={paymentMethod === "razorpay"}
+                      onChange={() => setPaymentMethod("razorpay")}
+                    />
+                    <span className="payment-radio-custom" />
+                  </div>
+                  <div className="payment-option-info">
+                    <div className="payment-option-title-row">
+                      <span className="payment-title">Online Payment (Razorpay)</span>
+                      <span className="payment-badge-free">FREE DELIVERY</span>
+                    </div>
+                    <span className="payment-desc">
+                      UPI, Credit/Debit Cards, NetBanking, and Wallets
+                    </span>
+                  </div>
+                </label>
+
+                {/* Cash on Delivery Option */}
+                <label className={`payment-option-card ${paymentMethod === "cod" ? "selected" : ""}`}>
+                  <div className="payment-radio-wrap">
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cod"
+                      checked={paymentMethod === "cod"}
+                      onChange={() => setPaymentMethod("cod")}
+                    />
+                    <span className="payment-radio-custom" />
+                  </div>
+                  <div className="payment-option-info">
+                    <div className="payment-option-title-row">
+                      <span className="payment-title">Cash on Delivery (COD)</span>
+                      <span className="payment-badge-fee">+₹100 Fee</span>
+                    </div>
+                    <span className="payment-desc">
+                      Pay cash upon delivery at your doorstep
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="payment-security-note">
+                <span className="security-icon">🔒</span>
+                <span>
+                  {paymentMethod === "razorpay"
+                    ? "256-bit SSL encrypted checkout. Test sandbox mode active."
+                    : "Cash on delivery orders are verified before dispatch."}
+                </span>
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Order Summary */}
+          <aside className="checkout-summary-column">
+            <div className="checkout-summary-card">
+              <h2 className="summary-card-title">Order Summary</h2>
+
+              {/* Items List */}
+              <div className="checkout-items-list">
+                {checkoutList.map((item) => {
+                  const fallback = getFallbackImage(item.category, item.name);
+                  const itemImgSrc =
+                    item.image && !item.image.includes("ChatGPT_Image") ? item.image : fallback;
+                  const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+
+                  return (
+                    <div key={`${item.id}-${item.selectedSize}`} className="checkout-item-row">
+                      <div className="checkout-item-thumb">
+                        <img
+                          src={itemImgSrc}
+                          alt={item.name}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = fallback;
+                          }}
+                        />
+                      </div>
+                      <div className="checkout-item-details">
+                        <span className="checkout-item-name">{item.name}</span>
+                        <span className="checkout-item-variant">
+                          {[item.selectedColor, item.selectedSize ? `Size ${item.selectedSize}` : ""]
+                            .filter(Boolean)
+                            .join(" · ") || `Qty: ${item.quantity}`}
+                          {item.selectedSize || item.selectedColor ? ` · Qty: ${item.quantity}` : ""}
+                        </span>
+                      </div>
+                      <span className="checkout-item-price">
+                        ₹{itemTotal.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="checkout-price-breakdown">
+                <div className="summary-row">
+                  <span>Subtotal</span>
+                  <span>₹{(mrp > subtotal ? mrp : subtotal).toLocaleString("en-IN")}</span>
+                </div>
+
+                {discount > 0 && (
+                  <div className="summary-row discount">
+                    <span>Discount</span>
+                    <span className="green">−₹{discount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+
+                <div className="summary-row">
+                  <span>{paymentMethod === "cod" ? "COD Delivery Fee" : "Delivery"}</span>
+                  <span className={paymentMethod === "cod" ? "" : "green"}>
+                    {paymentMethod === "cod" ? "₹100" : "FREE"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="summary-divider" />
+
+              <div className="checkout-total-row">
+                <span className="total-label">Grand Total</span>
+                <span className="total-value">₹{grandTotal.toLocaleString("en-IN")}</span>
+              </div>
+
+              {/* Action Button */}
+              <button
+                type="submit"
+                className="checkout-submit-btn"
+                disabled={loading}
+              >
+                {loading
+                  ? "Processing..."
+                  : paymentMethod === "razorpay"
+                  ? `PAY ₹${grandTotal.toLocaleString("en-IN")}`
+                  : "PLACE ORDER (COD)"}
+              </button>
+
+              <p className="checkout-terms-note">
+                By placing this order you agree to Moxie's Terms of Service and Privacy Policy.
+              </p>
             </div>
-            <div>
-              <dt>Discount</dt>
-              <dd>−₹{(mrp - subtotal).toLocaleString("en-IN")}</dd>
-            </div>
-            <div>
-              <dt>{payment === "cod" ? "COD Promise Fee" : "Delivery"}</dt>
-              <dd style={{ color: payment === "cod" ? "#111" : "#16a34a" }}>
-                {payment === "cod" ? "₹100" : "FREE"}
-              </dd>
-            </div>
-            <div className="summary-total">
-              <dt>Total</dt>
-              <dd>₹{grandTotal.toLocaleString("en-IN")}</dd>
-            </div>
-          </dl>
-          <button className="primary-btn" disabled={loading}>
-            {loading ? "Processing..." : payment === "razorpay" ? "Pay now" : "Place mock order"}
-          </button>
-          {paymentError && (
-            <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "12px", textAlign: "center", fontWeight: "600" }}>
-              {paymentError}
-            </p>
-          )}
-        </aside>
-      </form>
+          </aside>
+        </form>
+      </div>
     </main>
   );
 }

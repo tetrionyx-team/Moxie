@@ -15,6 +15,7 @@
 }
 
 .register-card {
+  position: relative;
   width: 100%;
   max-width: 520px;
   padding: 44px 40px;
@@ -34,10 +35,10 @@
   font-size: 22px;
   font-weight: 850;
   letter-spacing: 0.26em;
-  background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 30%, #b38728 55%, #fbf5b7 80%, #aa771c 100%);
+  background: linear-gradient(135deg, #dfba73 0%, #c9a35c 50%, #9a7836 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: #c59b27;
+  color: #c9a35c;
   text-shadow: 0 1px 2px rgba(179, 135, 40, 0.12);
   margin: 0 0 10px 0;
   text-transform: uppercase;
@@ -124,6 +125,11 @@
   background: #ffffff;
   border-color: #111111;
   box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+}
+
+.register-input:focus + .input-icon,
+.input-icon-wrapper:focus-within .input-icon {
+  color: #c9a35c;
 }
 
 .register-input--error {
@@ -271,6 +277,132 @@
 .register-switch-btn:hover {
   color: #a88338;
   text-decoration: underline;
+}
+
+/* ============================================================
+   REGISTER SUCCESS POPUP OVERLAY
+   ============================================================ */
+.register-success-popup-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: registerPopupFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes registerPopupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.register-success-popup-card {
+  text-align: center;
+  padding: 24px;
+  max-width: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-success-popup-brand {
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: 0.28em;
+  background: linear-gradient(135deg, #dfba73 0%, #c9a35c 50%, #9a7836 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #c9a35c;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.register-success-popup-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbf7ee 0%, #f4eacc 100%);
+  border: 2px solid #dfba73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 24px rgba(201, 163, 92, 0.35);
+  animation: regCheckPulse 1.4s infinite alternate ease-in-out;
+}
+
+@keyframes regCheckPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 16px rgba(201, 163, 92, 0.3);
+  }
+  100% {
+    transform: scale(1.06);
+    box-shadow: 0 0 28px rgba(201, 163, 92, 0.55);
+  }
+}
+
+.register-success-popup-check-icon {
+  font-size: 32px;
+  color: #c9a35c;
+  stroke-width: 2.5;
+}
+
+.register-success-popup-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.2px;
+}
+
+.register-success-popup-desc {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 4px 0;
+  line-height: 1.45;
+}
+
+.register-success-popup-sub {
+  font-size: 13px;
+  color: #9a7836;
+  font-style: italic;
+  margin: 0 0 16px 0;
+}
+
+.register-success-popup-loader {
+  width: 120px;
+  height: 3px;
+  background: #f1ebd8;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.register-gold-progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #dfba73, #c9a35c, #9a7836);
+  border-radius: 99px;
+  animation: regGoldProgress 1.8s linear forwards;
+}
+
+@keyframes regGoldProgress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 @media (max-width: 600px) {

@@ -33,25 +33,92 @@
   line-height: 1.4;
 }
 
-/* 5 Metric Cards Grid matching Screenshot */
+/* 5 Metric Cards Responsive Grid */
 .order-stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Large Laptop / Desktop (1280px+) */
+@media (min-width: 1280px) {
+  .order-stats-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .order-stats-grid .order-stat-card {
+    grid-column: auto;
+  }
+}
+
+/* Compact Laptop / Medium Screens (1024px - 1279px): Balanced 3 + 2 layout */
+@media (max-width: 1279px) and (min-width: 1024px) {
+  .order-stats-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .order-stats-grid .order-stat-card:nth-child(1) {
+    grid-column: span 2;
+  }
+  .order-stats-grid .order-stat-card:nth-child(2) {
+    grid-column: span 2;
+  }
+  .order-stats-grid .order-stat-card:nth-child(3) {
+    grid-column: span 2;
+  }
+  .order-stats-grid .order-stat-card:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+  .order-stats-grid .order-stat-card:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+}
+
+/* Tablet (576px - 1023px): 2 cards per row + 5th card spans full row */
+@media (max-width: 1023px) and (min-width: 576px) {
+  .order-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .order-stats-grid .order-stat-card {
+    grid-column: auto;
+  }
+  .order-stats-grid .order-stat-card:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile (under 576px): 1 card per row */
+@media (max-width: 575px) {
+  .order-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .order-stats-grid .order-stat-card {
+    grid-column: auto;
+    padding: 12px 14px;
+  }
 }
 
 .order-stat-card {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #f1f5f9;
-  padding: 12px 12px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 84px;
+  height: 100%;
 }
 
 .order-stat-card:hover {
@@ -229,6 +296,93 @@
   outline: none;
   background-color: #f8fafc;
   cursor: pointer;
+}
+
+/* Calendar Date Picker Styling */
+.admin-date-picker-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 8px 0 10px;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-date-picker-wrap:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.admin-date-picker-icon {
+  font-size: 14px;
+  margin-right: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-date-input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  font-family: inherit !important;
+  cursor: pointer;
+  padding: 0 !important;
+  height: 100% !important;
+}
+
+.admin-date-clear-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 4px;
+  margin-left: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.admin-date-clear-btn:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+/* Export Excel Button */
+.admin-btn-export-excel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  background-color: #10b981;
+  color: #ffffff;
+  border: 1px solid #059669;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.admin-btn-export-excel:hover {
+  background-color: #059669;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.admin-btn-export-excel:active {
+  transform: translateY(1px);
 }
 
 /* Table Styling matching Screenshot */
@@ -750,6 +904,24 @@
   background-color: #182133;
   border-color: #2A3649;
   color: #F8FAFC;
+}
+
+[data-theme="dark"] .admin-date-picker-wrap {
+  background-color: #182133;
+  border-color: #2A3649;
+}
+
+[data-theme="dark"] .admin-date-input {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .admin-date-clear-btn {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .admin-date-clear-btn:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.2);
 }
 
 [data-theme="dark"] .order-table th {

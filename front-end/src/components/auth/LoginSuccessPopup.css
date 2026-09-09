@@ -1,0 +1,203 @@
+/* ============================================================
+   LoginSuccessPopup.css
+   MOXIE Global Luxury Login Success Popup Styles
+   ============================================================ */
+
+.moxie-login-success-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 999999;
+  box-sizing: border-box;
+  animation: moxieOverlayFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+.moxie-login-success-overlay.fade-out {
+  animation: moxieOverlayFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes moxieOverlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes moxieOverlayFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ── Popup Card ── */
+.moxie-login-success-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 26px;
+  border: 1px solid rgba(253, 177, 1, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(253, 177, 1, 0.2);
+  width: min(400px, calc(100vw - 32px));
+  padding: 34px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  animation: moxieCardScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.moxie-login-success-card.card-fade-out {
+  animation: moxieCardScaleOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes moxieCardScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes moxieCardScaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-8px);
+  }
+}
+
+/* ── MOXIE Brand Title ── */
+.moxie-success-brand {
+  font-size: 21px;
+  font-weight: 850;
+  letter-spacing: 0.28em;
+  color: #FDB101;
+  background: linear-gradient(135deg, #FDB101 0%, #e59f00 50%, #c28300 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(253, 177, 1, 0.15);
+}
+
+/* ── Gold Icon Badge with Glow ── */
+.moxie-success-icon-wrap {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fffcf5 0%, #fff2d1 100%);
+  border: 2px solid #FDB101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  box-shadow: 0 0 28px rgba(253, 177, 1, 0.4);
+  animation: moxieSparklePulse 1.4s infinite alternate ease-in-out;
+}
+
+@keyframes moxieSparklePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 18px rgba(253, 177, 1, 0.3);
+  }
+  100% {
+    transform: scale(1.06);
+    box-shadow: 0 0 32px rgba(253, 177, 1, 0.6);
+  }
+}
+
+.moxie-success-sparkle-icon {
+  font-size: 32px;
+  color: #FDB101;
+}
+
+/* ── Title & Message ── */
+.moxie-success-title {
+  font-size: 24px;
+  font-weight: 750;
+  color: #111111;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.moxie-success-message {
+  font-size: 15px;
+  font-weight: 500;
+  color: #475569;
+  margin: 0 0 20px 0;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* ── Animated Progress Bar (1.8s) ── */
+.moxie-success-progress-track {
+  width: 140px;
+  height: 3.5px;
+  background: #f1ebd8;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.moxie-success-progress-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #FDB101, #e59f00, #c28300);
+  border-radius: 99px;
+  animation: moxieProgressFill 1.8s linear forwards;
+}
+
+@keyframes moxieProgressFill {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 480px) {
+  .moxie-login-success-card {
+    padding: 28px 20px 24px;
+    border-radius: 22px;
+  }
+
+  .moxie-success-brand {
+    font-size: 19px;
+    margin-bottom: 14px;
+  }
+
+  .moxie-success-icon-wrap {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 14px;
+  }
+
+  .moxie-success-sparkle-icon {
+    font-size: 26px;
+  }
+
+  .moxie-success-title {
+    font-size: 21px;
+    margin-bottom: 6px;
+  }
+
+  .moxie-success-message {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+}

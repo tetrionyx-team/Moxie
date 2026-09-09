@@ -20,159 +20,272 @@ const getFallbackImage = (category, name) => {
   return defaultImg;
 };
 
-function Cart() {
-  const { cart, updateQuantity, removeFromCart, clearCart } = useContext(CartContext);
-  const { addToWishlist } = useContext(WishlistContext);
+export default function Cart() {
+  const { cart = [], updateQuantity, removeFromCart, clearCart } = useContext(CartContext) || {};
+  const { addToWishlist } = useContext(WishlistContext) || {};
   const toast = useToast();
 
-  const calculateSubtotal = () => {
-    return cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const subtotal = cart.reduce((acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  const mrp = cart.reduce((acc, item) => acc + (Number(item.oldPrice) || Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  const discount = Math.max(0, mrp - subtotal);
+  const totalItemsCount = cart.reduce((acc, item) => acc + (Number(item.quantity) || 1), 0);
+
+  const handleQtyChange = (item, nextQty) => {
+    if (nextQty < 1) return;
+    const maxStock = typeof item.stock === "number" && item.stock > 0 ? item.stock : 99;
+    if (nextQty > maxStock) {
+      if (toast) toast(`Maximum available quantity is ${maxStock}`);
+      return;
+    }
+    if (updateQuantity) {
+      updateQuantity(item.id, nextQty);
+    }
   };
 
-  const subtotal = calculateSubtotal();
-  const originalTotal = cart.reduce((acc, item) => acc + (item.oldPrice || item.price) * item.quantity, 0);
-  const discount = originalTotal - subtotal;
-  
-  // Free Shipping for everyone in Shopping Cart
-  const total = subtotal;
+  const handleMoveToWishlist = (item) => {
+    if (addToWishlist) {
+      addToWishlist(item);
+    }
+    if (removeFromCart) {
+      removeFromCart(item.id);
+    }
+    if (toast) {
+      toast("Saved to wishlist");
+    }
+  };
 
   return (
-    <div className="container py-5 cart-page-section">
-      <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-        <div>
-          <span className="text-muted text-uppercase fw-bold fs-8 tracking-wider">Your Shopping Bag</span>
-          <h1 className="cart-heading-title m-0 mt-1">Shopping Cart</h1>
+    <div className="cart-page-wrapper">
+      <div className="cart-page-container">
+        {/* Header Bar */}
+        <div className="cart-page-header">
+          <div className="cart-header-title-box">
+            <span className="cart-header-eyebrow">Your Bag</span>
+            <h1 className="cart-header-heading">
+              Shopping Cart{" "}
+              {totalItemsCount > 0 && <span className="cart-count-pill">({totalItemsCount})</span>}
+            </h1>
+          </div>
+          {cart.length > 0 && (
+            <button
+              type="button"
+              className="cart-clear-btn"
+              onClick={clearCart}
+              title="Remove all items"
+            >
+              Clear Cart
+            </button>
+          )}
         </div>
-        {cart.length > 0 && (
-          <button className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onClick={clearCart}>
-            Clear Bag
-          </button>
+
+        {cart.length > 0 ? (
+          <div className="cart-layout-grid">
+            {/* Left Column: Cart Item Cards */}
+            <div className="cart-items-column">
+              <div className="cart-items-card-list">
+                {cart.map((item) => {
+                  const fallback = getFallbackImage(item.category, item.name);
+                  const itemImgSrc = item.image && !item.image.includes("ChatGPT_Image") ? item.image : fallback;
+                  const itemSubtotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+                  const itemKey = `${item.id}-${item.selectedSize || "nosize"}-${item.selectedColor || "nocolor"}`;
+                  const maxStock = typeof item.stock === "number" && item.stock > 0 ? item.stock : 99;
+
+                  return (
+                    <article key={itemKey} className="cart-item-row">
+                      {/* Product Thumbnail */}
+                      <Link to={`/product/${item.id}`} className="cart-item-thumb-link">
+                        <div className="cart-item-thumb-box">
+                          <img
+                            src={itemImgSrc}
+                            alt={item.name}
+                            className="cart-item-thumb-img"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = fallback;
+                            }}
+                          />
+                        </div>
+                      </Link>
+
+                      {/* Product Details */}
+                      <div className="cart-item-meta-info">
+                        {item.category && (
+                          <span className="cart-item-category-label">
+                            {String(item.category).toUpperCase()}
+                          </span>
+                        )}
+                        <Link to={`/product/${item.id}`} className="cart-item-name-link">
+                          <h3 className="cart-item-name">{item.name}</h3>
+                        </Link>
+
+                        {/* Variants (Size / Color) */}
+                        <div className="cart-item-variants-row">
+                          {item.selectedColor && (
+                            <span className="cart-variant-chip">
+                              Color: <strong>{item.selectedColor}</strong>
+                            </span>
+                          )}
+                          {item.selectedSize && (
+                            <span className="cart-variant-chip">
+                              Size: <strong>{item.selectedSize}</strong>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Unit price */}
+                        <div className="cart-item-unit-price-box">
+                          <span className="cart-item-unit-price">
+                            ₹{Number(item.price || 0).toLocaleString("en-IN")}
+                          </span>
+                          {item.oldPrice && Number(item.oldPrice) > Number(item.price) && (
+                            <span className="cart-item-old-price">
+                              ₹{Number(item.oldPrice).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quantity & Item Total & Actions */}
+                      <div className="cart-item-controls-block">
+                        {/* Quantity Stepper */}
+                        <div className="cart-qty-stepper">
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            disabled={item.quantity <= 1}
+                            onClick={() => handleQtyChange(item, item.quantity - 1)}
+                            aria-label="Decrease quantity"
+                          >
+                            −
+                          </button>
+                          <span className="cart-qty-number">{item.quantity}</span>
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            disabled={item.quantity >= maxStock}
+                            onClick={() => handleQtyChange(item, item.quantity + 1)}
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Item Total Price */}
+                        <div className="cart-item-total-price">
+                          ₹{itemSubtotal.toLocaleString("en-IN")}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="cart-item-actions-row">
+                          <button
+                            type="button"
+                            className="cart-save-wishlist-btn"
+                            onClick={() => handleMoveToWishlist(item)}
+                            title="Save for later"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            className="cart-remove-item-btn"
+                            onClick={() => removeFromCart && removeFromCart(item.id)}
+                            aria-label={`Remove ${item.name} from cart`}
+                            title="Remove item"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column: Order Summary Panel */}
+            <aside className="cart-summary-column">
+              <div className="cart-summary-card">
+                <h2 className="cart-summary-title">Order Summary</h2>
+
+                <div className="cart-summary-breakdown">
+                  <div className="cart-summary-row">
+                    <span className="summary-label">Subtotal</span>
+                    <span className="summary-value">₹{mrp > subtotal ? mrp.toLocaleString("en-IN") : subtotal.toLocaleString("en-IN")}</span>
+                  </div>
+
+                  {discount > 0 && (
+                    <div className="cart-summary-row discount-row">
+                      <span className="summary-label">Discount</span>
+                      <span className="summary-value green">−₹{discount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
+
+                  <div className="cart-summary-row">
+                    <span className="summary-label">Shipping</span>
+                    <span className="summary-value green">FREE</span>
+                  </div>
+                </div>
+
+                <div className="cart-summary-divider" />
+
+                <div className="cart-summary-total-row">
+                  <span className="total-label">Grand Total</span>
+                  <span className="total-value">₹{subtotal.toLocaleString("en-IN")}</span>
+                </div>
+
+                {/* Primary CTA */}
+                <Link to="/checkout" className="cart-primary-checkout-btn">
+                  PROCEED TO CHECKOUT
+                </Link>
+
+                {/* Secondary CTA */}
+                <Link to="/products" className="cart-continue-shopping-link">
+                  CONTINUE SHOPPING
+                </Link>
+
+                {/* Trust Badges */}
+                <div className="cart-trust-badges">
+                  <div className="trust-badge-item">
+                    <span className="trust-icon">✓</span>
+                    <span>100% Authentic Products</span>
+                  </div>
+                  <div className="trust-badge-item">
+                    <span className="trust-icon">🔒</span>
+                    <span>Secure Encrypted Checkout</span>
+                  </div>
+                  <div className="trust-badge-item">
+                    <span className="trust-icon">📦</span>
+                    <span>Free Pan-India Delivery</span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        ) : (
+          /* Premium Empty Cart State */
+          <div className="cart-empty-state-card">
+            <div className="empty-cart-icon-circle">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </div>
+            <h2 className="empty-cart-heading">Your cart is empty</h2>
+            <p className="empty-cart-text">
+              Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
+            </p>
+            <Link to="/products" className="empty-cart-cta-btn">
+              CONTINUE SHOPPING
+            </Link>
+          </div>
         )}
       </div>
-
-      {cart.length > 0 ? (
-        <div className="row g-4">
-          {/* Cart items list */}
-          <div className="col-lg-8">
-            <div className="cart-items-wrapper p-4 bg-white rounded-4 border border-light shadow-sm">
-              {cart.map((item) => {
-                const fallback = getFallbackImage(item.category, item.name);
-                const itemImgSrc = item.image && !item.image.includes("ChatGPT_Image") ? item.image : fallback;
-                return (
-                  <div key={`${item.id}-${item.selectedSize}`} className="cart-item d-flex align-items-center justify-content-between py-3 border-bottom last-border-none">
-                    {/* Image & Product info */}
-                    <div className="d-flex align-items-center gap-3" style={{ flex: "1" }}>
-                      <div className="cart-item-img-container p-2 rounded-3 border border-light bg-light-subtle d-flex align-items-center justify-content-center">
-                        <img
-                          src={itemImgSrc}
-                          alt={item.name}
-                          className="img-fluid cart-item-image"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = fallback;
-                          }}
-                        />
-                      </div>
-                      <div className="cart-item-info">
-                        <Link to={`/products/${item.id}`} className="text-decoration-none text-dark">
-                          <h4 className="cart-item-title fw-bold m-0 mb-1">{item.name}</h4>
-                        </Link>
-                        <span className="cart-item-category text-muted text-uppercase d-block mb-1">{item.category}</span>
-                        {item.selectedSize && (
-                          <span className="badge bg-secondary-subtle text-secondary fw-bold">Size: {item.selectedSize}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quantity picker & calculations */}
-                    <div className="d-flex align-items-center justify-content-end gap-4" style={{ minWidth: "280px" }}>
-                      <div className="cart-item-qty d-flex align-items-center border rounded-pill" style={{ overflow: "hidden" }}>
-                        <button className="btn btn-link px-2.5 py-1 text-dark text-decoration-none fw-bold" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
-                        <span className="qty-value px-1.5 fw-bold text-dark">{item.quantity}</span>
-                        <button className="btn btn-link px-2.5 py-1 text-dark text-decoration-none fw-bold" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
-                      </div>
-
-                      <div className="cart-item-price-calc text-end">
-                        <span className="cart-item-price fw-bold text-dark d-block">Rs. {(item.price * item.quantity).toLocaleString("en-IN")}.00</span>
-                        <span className="cart-item-unit-price text-muted fs-8">Rs. {item.price.toLocaleString("en-IN")} each</span>
-                      </div>
-
-                      <button className="btn btn-link text-danger p-0 border-0" onClick={() => removeFromCart(item.id)} aria-label="Remove item">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          <line x1="10" y1="11" x2="10" y2="17"></line>
-                          <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                      </button>
-                      <button className="btn btn-link text-dark p-0 border-0 fs-8" onClick={()=>{addToWishlist(item);removeFromCart(item.id);toast("Moved to wishlist")}}>Save</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Checkout billing info */}
-          <div className="col-lg-4">
-            <div className="checkout-summary-panel p-4 bg-white rounded-4 border border-light shadow-sm">
-              <h3 className="summary-title fw-bold mb-4">Order Summary</h3>
-
-              <div className="summary-row d-flex justify-content-between mb-3">
-                <span className="text-muted">Subtotal</span>
-                <span className="fw-semibold text-dark">Rs. {originalTotal.toLocaleString("en-IN")}.00</span>
-              </div>
-
-              <div className="summary-row d-flex justify-content-between mb-3">
-                <span className="text-muted">Product discount</span>
-                <span className="fw-semibold text-success">− Rs. {discount.toLocaleString("en-IN")}.00</span>
-              </div>
-
-              <div className="summary-row d-flex justify-content-between mb-3">
-                <span className="text-muted">Shipping Fee</span>
-                <span className="fw-semibold text-dark">Rs. 0.00</span>
-              </div>
-
-              <hr className="my-4" />
-
-              <div className="summary-total d-flex justify-content-between mb-4">
-                <span className="fw-bold fs-5 text-dark">Total</span>
-                <span className="fw-bold fs-5 text-danger">Rs. {total.toLocaleString("en-IN")}.00</span>
-              </div>
-
-              <Link to="/checkout" className="btn btn-warning w-100 rounded-pill py-3 fw-bold checkout-btn mb-2">
-                PROCEED TO CHECKOUT
-              </Link>
-
-              <Link to="/products" className="btn btn-outline-dark w-100 rounded-pill py-3 fw-bold" style={{ textDecoration: "none" }}>
-                CONTINUE SHOPPING
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="cart-empty-state text-center py-5 bg-white rounded-4 border border-light shadow-sm">
-          <div className="cart-empty-icon mb-4 text-muted opacity-50">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-          </div>
-          <h3 className="fw-bold mb-2">Your Shopping Cart is Empty</h3>
-          <p className="text-muted mb-4 px-3 mx-auto" style={{ maxWidth: "400px" }}>
-            Add items you want to purchase to your bag. Browse our products and pick something special!
-          </p>
-          <Link
-            to="/products"
-            className="btn btn-warning rounded-pill px-4 py-2.5 fw-bold cart-continue-shopping-btn"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-      )}
     </div>
   );
 }
-
-export default Cart;

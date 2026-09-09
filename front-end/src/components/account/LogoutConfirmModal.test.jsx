@@ -32,7 +32,7 @@ describe("LogoutConfirmModal Component", () => {
     expect(handleConfirm).not.toHaveBeenCalled();
   });
 
-  test("clicking Yes triggers onConfirm", () => {
+  test("clicking Yes triggers onConfirm and displays farewell animation", () => {
     const handleClose = jest.fn();
     const handleConfirm = jest.fn();
 
@@ -42,6 +42,9 @@ describe("LogoutConfirmModal Component", () => {
     fireEvent.click(yesBtn);
 
     expect(handleConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Welcome Back Anytime")).toBeInTheDocument();
+    expect(screen.getByText("Thank you for being part of Moxie.")).toBeInTheDocument();
+    expect(screen.getByText("See you again soon.")).toBeInTheDocument();
   });
 
   test("clicking the close X button triggers onClose", () => {

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 import { AuthContext } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
+import { useModal } from "../../context/ModalContext";
 
 import { profileService } from "../../services/profileService";
 import { orderService } from "../../services/orderService";
@@ -24,6 +25,7 @@ import "../../components/Profile/Profile.css";
 export default function ProfilePage({ defaultTab = "profile" }) {
   const { user, logout } = useContext(AuthContext);
   const { storeSettings } = useData();
+  const { openLogin } = useModal() || {};
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,13 +53,13 @@ export default function ProfilePage({ defaultTab = "profile" }) {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Keep existing Main behavior:
-  // redirect home if no logged-in user exists.
+  // Redirect to home and prompt login if no authenticated user exists
   useEffect(() => {
     if (!user) {
+      if (openLogin) openLogin();
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, navigate, openLogin]);
 
   // Load user data dynamically
   useEffect(() => {

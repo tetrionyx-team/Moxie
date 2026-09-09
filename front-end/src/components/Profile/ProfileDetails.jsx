@@ -8,12 +8,14 @@ import {
   LuX,
   LuUpload,
 } from "react-icons/lu";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ProfileDetails({ profile, onUpdate }) {
+  const { user } = useAuth() || {};
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: profile?.name || "",
-    mobile: profile?.mobile || "",
+    name: profile?.name || user?.name || "",
+    mobile: profile?.mobile || user?.mobile || "",
     avatar: profile?.avatar || "",
   });
 
@@ -36,14 +38,14 @@ export default function ProfileDetails({ profile, onUpdate }) {
 
   // Sync formData when profile prop changes
   useEffect(() => {
-    if (profile && !isEditing) {
+    if ((profile || user) && !isEditing) {
       setFormData({
-        name: profile.name || "",
-        mobile: profile.mobile || "",
-        avatar: profile.avatar || "",
+        name: profile?.name || user?.name || "",
+        mobile: profile?.mobile || user?.mobile || "",
+        avatar: profile?.avatar || "",
       });
     }
-  }, [profile, isEditing]);
+  }, [profile, user, isEditing]);
 
   const getInitials = (name) => {
     if (!name) return "U";
@@ -168,9 +170,9 @@ export default function ProfileDetails({ profile, onUpdate }) {
     setIsEditing(false);
   };
 
-  const userName = profile?.name || "User";
-  const userEmail = profile?.email || "Not Provided";
-  const userPhone = profile?.mobile || "Not Provided";
+  const userName = profile?.name || user?.name || "User";
+  const userEmail = profile?.email || user?.email || "Not Provided";
+  const userPhone = profile?.mobile || user?.mobile || "Not Provided";
   const userJoined = profile?.joinedDate || "Member";
 
   const currentAvatarDisplay = previewUrl || (selectedBase64 !== null ? selectedBase64 : (formData.avatar || profile?.avatar || ""));

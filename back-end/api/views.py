@@ -18,6 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from django.middleware.csrf import get_token
+import requests as py_requests
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
@@ -151,23 +152,39 @@ class CustomerRegisterView(APIView):
             last_name = parts[1] if len(parts) > 1 else ''
 
         email = (data.get('email') or '').strip().lower()
+        mobile = (data.get('mobile') or data.get('phone') or '').strip()
         password = data.get('password', '')
         confirm_password = data.get('confirmPassword') or data.get('confirm_password')
+
+        if not name:
+            return Response({'error': 'Name is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not email or not password:
             return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-            return Response({'error': 'Please provide a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Please enter a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if confirm_password is not None and password != confirm_password:
-            return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not mobile:
+            return Response({'error': 'Mobile number is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        clean_mobile = re.sub(r'\D', '', mobile)
+        if len(clean_mobile) != 10:
+            return Response({'error': 'Please enter a valid 10-digit mobile number.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if len(password) < 6:
             return Response({'error': 'Password must be at least 6 characters.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if confirm_password is not None and password != confirm_password:
+            return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check duplicate email
         if User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).exists():
-            return Response({'error': 'Account already exists. Please sign in.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'An account already exists with this email. Please sign in.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check duplicate mobile
+        if CustomerProfile.objects.filter(mobile=clean_mobile).exists():
+            return Response({'error': 'An account already exists with this mobile number. Please sign in.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.create_user(
             username=email,
@@ -177,10 +194,8 @@ class CustomerRegisterView(APIView):
             last_name=last_name
         )
         profile, _ = CustomerProfile.objects.get_or_create(user=user)
-
-        user.backend = 'django.contrib.auth.backends.ModelBackend'
-        django_login(request, user)
-        request.session.set_expiry(0)
+        profile.mobile = clean_mobile
+        profile.save()
 
         try:
             Notification.objects.create(
@@ -189,7 +204,7 @@ class CustomerRegisterView(APIView):
                 sender_initial=(first_name[:1] or email[:1]).upper(),
                 sender_color="#10b981",
                 body=f"New customer registered: {email}",
-                full_body=f"Name: {first_name} {last_name}\nEmail: {email}\nRegistered at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
+                full_body=f"Name: {first_name} {last_name}\nEmail: {email}\nMobile: {clean_mobile}\nRegistered at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
                 category_badge="Customer",
                 department="User Management",
                 notification_type="registration",
@@ -203,17 +218,18 @@ class CustomerRegisterView(APIView):
         return Response({
             'success': True,
             'message': 'Account created successfully.',
-            'authenticated': True,
+            'authenticated': False,
             'user': {
                 'id': user.id,
                 'name': full_name,
                 'email': user.email,
+                'mobile': clean_mobile,
                 'is_staff': user.is_staff
             },
             'profile': {
                 'name': full_name,
                 'email': user.email,
-                'mobile': profile.mobile or '',
+                'mobile': clean_mobile,
                 'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
             }
         }, status=status.HTTP_201_CREATED)
@@ -230,45 +246,100 @@ class CustomerLoginView(APIView):
         if not email or not password:
             return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = None
         matched_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
+        if not matched_users:
+            return Response({'error': 'No account found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = None
         for u in matched_users:
             if u.check_password(password):
                 user = u
                 break
 
         if not user:
-            user = authenticate(request, username=email, password=password)
+            return Response({'error': 'Incorrect password. Please try again.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if user is not None:
-            if not user.is_active:
-                return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+        if not user.is_active:
+            return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
 
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            django_login(request, user)
-            request.session.set_expiry(0)
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        django_login(request, user)
+        request.session.set_expiry(0)
 
-            profile, _ = CustomerProfile.objects.get_or_create(user=user)
-            full_name = f"{user.first_name} {user.last_name}".strip() or user.username
-            return Response({
-                'success': True,
-                'message': 'Signed in successfully.',
-                'authenticated': True,
-                'user': {
-                    'id': user.id,
-                    'name': full_name,
-                    'email': user.email,
-                    'is_staff': user.is_staff
-                },
-                'profile': {
-                    'name': full_name,
-                    'email': user.email,
-                    'mobile': profile.mobile or '',
-                    'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
-                }
-            }, status=status.HTTP_200_OK)
+        profile, _ = CustomerProfile.objects.get_or_create(user=user)
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        return Response({
+            'success': True,
+            'message': 'Signed in successfully.',
+            'authenticated': True,
+            'user': {
+                'id': user.id,
+                'name': full_name,
+                'email': user.email,
+                'mobile': profile.mobile or '',
+                'is_staff': user.is_staff
+            },
+            'profile': {
+                'name': full_name,
+                'email': user.email,
+                'mobile': profile.mobile or '',
+                'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+            }
+        }, status=status.HTTP_200_OK)
 
-        return Response({'error': 'Invalid email address or password. Please try again.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class CustomerForgotPasswordView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
+        if not email:
+            return Response({'error': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+        if not user:
+            return Response({'error': 'No account found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            'success': True,
+            'message': 'Email verified.',
+            'email': user.email
+        }, status=status.HTTP_200_OK)
+
+
+class CustomerResetPasswordView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        password = request.data.get('password') or request.data.get('new_password') or request.data.get('newPassword') or ''
+        confirm_password = request.data.get('confirm_password') or request.data.get('confirmPassword')
+
+        if not email:
+            return Response({'error': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password:
+            return Response({'error': 'New password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(password) < 6:
+            return Response({'error': 'Password must be at least 6 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if confirm_password is not None and password != confirm_password:
+            return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+        if not user:
+            return Response({'error': 'No account found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.set_password(password)
+        user.save()
+
+        return Response({
+            'success': True,
+            'message': 'Password changed successfully.'
+        }, status=status.HTTP_200_OK)
 
 
 class CustomerLogoutView(APIView):
@@ -319,11 +390,20 @@ class CustomerGoogleLoginView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        token = (request.data.get('credential') or request.data.get('id_token') or request.data.get('token') or '').strip()
+        token = (
+            request.data.get('credential')
+            or request.data.get('id_token')
+            or request.data.get('access_token')
+            or request.data.get('token')
+            or ''
+        ).strip()
         if not token:
-            return Response({'error': 'Google ID token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Google authentication token is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        id_info = None
+
+        # 1. Try verifying as Google ID Token (JWT)
         try:
             id_info = google_id_token.verify_oauth2_token(
                 token,
@@ -334,14 +414,32 @@ class CustomerGoogleLoginView(APIView):
             try:
                 id_info = google_id_token.verify_oauth2_token(token, google_requests.Request())
             except Exception:
-                return Response({'error': 'Google authentication failed: invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
+                id_info = None
+
+        # 2. If JWT verification failed, try using it as OAuth2 Access Token via Google UserInfo API
+        if not id_info:
+            try:
+                resp = py_requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {token}'},
+                    timeout=8
+                )
+                if resp.status_code == 200:
+                    id_info = resp.json()
+            except Exception:
+                id_info = None
+
+        if not id_info:
+            return Response({'error': 'Google authentication failed: invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
 
         issuer = id_info.get('iss', '')
-        if issuer not in ['accounts.google.com', 'https://accounts.google.com']:
+        if issuer and issuer not in ['accounts.google.com', 'https://accounts.google.com']:
             return Response({'error': 'Invalid Google token issuer.'}, status=status.HTTP_400_BAD_REQUEST)
 
         email = (id_info.get('email') or '').strip().lower()
-        email_verified = id_info.get('email_verified', False)
+        email_verified = id_info.get('email_verified', True)
+        if isinstance(email_verified, str):
+            email_verified = email_verified.lower() == 'true'
 
         if not email:
             return Response({'error': 'No email address found in Google account.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -349,10 +447,10 @@ class CustomerGoogleLoginView(APIView):
         if not email_verified:
             return Response({'error': 'Your Google account email is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        sub = id_info.get('sub', '')
-        given_name = id_info.get('given_name', '').strip()
-        family_name = id_info.get('family_name', '').strip()
-        full_name = id_info.get('name', '').strip() or f"{given_name} {family_name}".strip()
+        sub = str(id_info.get('sub', '') or id_info.get('id', ''))
+        given_name = (id_info.get('given_name') or '').strip()
+        family_name = (id_info.get('family_name') or '').strip()
+        full_name = (id_info.get('name') or '').strip() or f"{given_name} {family_name}".strip()
 
         existing_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
         if len(existing_users) > 1:
@@ -550,8 +648,15 @@ class CategoryListView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+    def get(self, request, *args, **kwargs):
+        if request.path.startswith('/api/admin/'):
+            err = check_staff_api_permission(request, 'categories')
+            if err:
+                return err
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        if self.request.user.is_authenticated and self.request.user.is_staff and is_admin_2fa_verified(self.request):
             return Category.objects.all().order_by('-id')
         return Category.objects.filter(is_active=True).order_by('name')
 
@@ -631,8 +736,15 @@ class SubcategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProductListView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
 
+    def get(self, request, *args, **kwargs):
+        if request.path.startswith('/api/admin/'):
+            err = check_staff_api_permission(request, 'products')
+            if err:
+                return err
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        if self.request.user.is_authenticated and self.request.user.is_staff and is_admin_2fa_verified(self.request):
             return Product.objects.all().select_related('category', 'subcategory').prefetch_related('images', 'variants__images').order_by('-created_at')
         return Product.objects.filter(is_active=True).select_related('category', 'subcategory').prefetch_related('images', 'variants__images').order_by('-created_at')
 
@@ -700,8 +812,15 @@ class ProductVariantDetailView(APIView):
 class BannerListView(generics.ListCreateAPIView):
     serializer_class = BannerSerializer
 
+    def get(self, request, *args, **kwargs):
+        if request.path.startswith('/api/admin/'):
+            err = check_staff_api_permission(request, 'banners')
+            if err:
+                return err
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        if self.request.user.is_authenticated and self.request.user.is_staff and is_admin_2fa_verified(self.request):
             return Banner.objects.all().order_by('display_order', '-created_at')
         return Banner.objects.filter(is_active=True).order_by('display_order', '-created_at')
 
@@ -1319,7 +1438,7 @@ class CreateCodOrderView(APIView):
                     if v and v.stock is not None:
                         v.stock = max(0, v.stock - qty)
                         v.save(update_fields=['stock'])
-                    if p and p.stock is not None:
+                    elif p and p.stock is not None:
                         p.stock = max(0, p.stock - qty)
                         p.save(update_fields=['stock'])
 
@@ -1406,9 +1525,29 @@ class VerifyRazorpayPaymentView(APIView):
 
                 if stock_mgmt_enabled:
                     for item in order.items.all():
-                        if item.product:
+                        if item.variant:
+                            item.variant.stock = max(0, item.variant.stock - item.quantity)
+                            item.variant.save(update_fields=['stock'])
+                            if low_stock_enabled and 0 < item.variant.stock <= min_thresh:
+                                try:
+                                    Notification.objects.create(
+                                        title=f"Low Stock Alert: {item.product.name} ({item.variant.color_name})",
+                                        sender="Inventory System",
+                                        sender_initial="I",
+                                        sender_color="#f59e0b",
+                                        body=f"Stock for '{item.product.name} ({item.variant.color_name})' is low ({item.variant.stock} units remaining).",
+                                        full_body=f"Product: {item.product.name}\nVariant: {item.variant.color_name}\nCurrent Stock: {item.variant.stock} units\nThreshold: {min_thresh} units\nPlease restock soon.",
+                                        category_badge="Inventory",
+                                        department="Stock Control",
+                                        notification_type="low_stock",
+                                        product=item.product,
+                                        target_url="/admin/products/"
+                                    )
+                                except Exception:
+                                    pass
+                        elif item.product:
                             item.product.stock = max(0, item.product.stock - item.quantity)
-                            item.product.save()
+                            item.product.save(update_fields=['stock'])
                             if low_stock_enabled and 0 < item.product.stock <= min_thresh:
                                 try:
                                     Notification.objects.create(
@@ -1426,11 +1565,8 @@ class VerifyRazorpayPaymentView(APIView):
                                     )
                                 except Exception:
                                     pass
-                        if item.variant:
-                            item.variant.stock = max(0, item.variant.stock - item.quantity)
-                            item.variant.save()
                 order.stock_decremented = True
-                order.save()
+                order.save(update_fields=['stock_decremented'])
 
         return Response({
             'message': 'Payment signature verified successfully.',
@@ -1490,9 +1626,12 @@ class RazorpayWebhookView(APIView):
 
                                 if stock_mgmt_enabled:
                                     for item in order.items.all():
-                                        if item.product:
+                                        if item.variant:
+                                            item.variant.stock = max(0, item.variant.stock - item.quantity)
+                                            item.variant.save(update_fields=['stock'])
+                                        elif item.product:
                                             item.product.stock = max(0, item.product.stock - item.quantity)
-                                            item.product.save()
+                                            item.product.save(update_fields=['stock'])
                                             if low_stock_enabled and 0 < item.product.stock <= min_thresh:
                                                 try:
                                                     Notification.objects.create(
@@ -1510,11 +1649,8 @@ class RazorpayWebhookView(APIView):
                                                     )
                                                 except Exception:
                                                     pass
-                                        if item.variant:
-                                            item.variant.stock = max(0, item.variant.stock - item.quantity)
-                                            item.variant.save()
                                 order.stock_decremented = True
-                                order.save()
+                                order.save(update_fields=['stock_decremented'])
                 except Order.DoesNotExist:
                     pass
 
@@ -1627,7 +1763,9 @@ class AdminApiLoginView(APIView):
         if not user:
             user = authenticate(request, username=identifier, password=password)
 
-        if not user or not user.is_active:
+        # STRICT GATE: Only active Staff or Superuser accounts may proceed.
+        # Customer accounts, inactive staff, deleted staff, and wrong passwords are all rejected here.
+        if not user or not user.is_active or not (user.is_staff or user.is_superuser):
             # Increment failed attempts rate-limit counter (15 minutes TTL)
             cache.set(cache_key, failed_attempts + 1, timeout=900)
             return Response(
@@ -1635,13 +1773,7 @@ class AdminApiLoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        if not (user.is_staff or user.is_superuser):
-            return Response(
-                {'error': 'Access denied: Staff or administrator account required.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Clear brute-force failure count on valid password
+        # Clear brute-force failure count on valid staff password
         cache.delete(cache_key)
 
         target_email = (user.email or '').strip()
@@ -1686,8 +1818,12 @@ class AdminApiLoginView(APIView):
                 fail_silently=False
             )
         except Exception:
-            # Safe local fallback - allow dev without failing
-            pass
+            # When email sending fails, do not create unusable pending state or fake success
+            otp_obj.delete()
+            return Response(
+                {'error': 'Security verification email could not be delivered. Please ensure SMTP email server is configured properly or contact system administrator.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Set pending challenge state in secure session
         request.session['admin_pending_user_id'] = user.id
@@ -1725,10 +1861,10 @@ class AdminVerifyOtpView(APIView):
             user = User.objects.get(pk=pending_user_id, is_active=True)
             if not (user.is_staff or user.is_superuser):
                 request.session.flush()
-                return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
             request.session.flush()
-            return Response({'error': 'Admin account not found.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         otp_input = str(request.data.get('otp') or request.data.get('code') or '').strip()
         if not otp_input or len(otp_input) != 6 or not otp_input.isdigit():
@@ -1844,10 +1980,10 @@ class AdminResendOtpView(APIView):
             user = User.objects.get(pk=pending_user_id, is_active=True)
             if not (user.is_staff or user.is_superuser):
                 request.session.flush()
-                return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
             request.session.flush()
-            return Response({'error': 'Admin user not found.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         last_otp = AdminLoginOTP.objects.filter(user=user).order_by('-created_at').first()
 
@@ -1914,7 +2050,11 @@ class AdminResendOtpView(APIView):
                 fail_silently=False
             )
         except Exception:
-            pass
+            new_otp_obj.delete()
+            return Response(
+                {'error': 'Security verification email could not be delivered. Please verify SMTP email settings.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         masked = mask_admin_email(target_email)
 
@@ -2401,14 +2541,31 @@ class AdminOrdersView(APIView):
                 qs = qs.filter(created_at__gte=now - timedelta(days=7))
             elif date_filter == '30days':
                 qs = qs.filter(created_at__gte=now - timedelta(days=30))
+            else:
+                # Support exact date matching like 2026-09-08 or 08-09-2026
+                try:
+                    from datetime import datetime
+                    if '-' in date_filter:
+                        parts = date_filter.split('-')
+                        if len(parts[0]) == 4: # YYYY-MM-DD
+                            d_obj = datetime.strptime(date_filter, '%Y-%m-%d').date()
+                        else: # DD-MM-YYYY
+                            d_obj = datetime.strptime(date_filter, '%d-%m-%Y').date()
+                        qs = qs.filter(created_at__date=d_obj)
+                except Exception:
+                    pass
 
         if search_query:
             qs = qs.filter(
                 Q(shipping_name__icontains=search_query) |
                 Q(shipping_phone__icontains=search_query) |
                 Q(razorpay_order_id__icontains=search_query) |
+                Q(order_number__icontains=search_query) |
+                Q(shipping_city__icontains=search_query) |
+                Q(shipping_address__icontains=search_query) |
+                Q(items__product__name__icontains=search_query) |
                 Q(id__icontains=search_query)
-            )
+            ).distinct()
 
         if sort_option == 'oldest':
             qs = qs.order_by('created_at')
@@ -2424,20 +2581,37 @@ class AdminOrdersView(APIView):
 
         for o in qs:
             order_num = o.order_number or f"{store_prefix}-{o.id:04d}"
+            tracking_num = f"{store_prefix}TRK{o.id:04d}"
+            is_cod = not (o.razorpay_order_id and not str(o.razorpay_order_id).startswith('cod_'))
+            pay_method = 'COD' if is_cod else 'UPI'
             orders_list.append({
                 'id': o.id,
                 'orderId': order_num,
                 'order_number': order_num,
+                'trackingId': tracking_num,
+                'tracking_id': tracking_num,
                 'customer': {
                     'name': o.shipping_name,
                     'email': o.user.email if o.user and o.user.email else 'customer@example.com',
                     'phone': o.shipping_phone,
                     'initial': o.shipping_name[:1].upper() if o.shipping_name else 'C',
                 },
+                'shippingAddress': {
+                    'name': o.shipping_name,
+                    'phone': o.shipping_phone,
+                    'address': o.shipping_address,
+                    'city': o.shipping_city,
+                    'district': o.shipping_city,
+                    'pincode': o.shipping_pincode,
+                },
                 'date': o.created_at.strftime('%d %b %Y') if o.created_at else '',
+                'isoDate': o.created_at.strftime('%Y-%m-%d') if o.created_at else '',
+                'createdAt': o.created_at.isoformat() if o.created_at else '',
                 'fullDate': o.created_at.strftime('%b %d, %Y %I:%M %p') if o.created_at else '',
                 'itemsCount': o.items.count(),
                 'totalAmount': float(o.total_amount),
+                'grandTotal': float(o.total_amount),
+                'paymentMethod': pay_method,
                 'paymentStatus': o.payment_status,
                 'orderStatus': o.order_status,
                 'razorpayOrderId': o.razorpay_order_id or '',
@@ -2482,6 +2656,7 @@ class AdminOrderDetailView(APIView):
 
         store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
         order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
+        tracking_num = f"{store_prefix}TRK{order.id:04d}"
 
         items_list = []
         for it in order.items.all():
@@ -2497,8 +2672,10 @@ class AdminOrderDetailView(APIView):
 
             items_list.append({
                 'id': it.id,
+                'productId': it.product.id if it.product else None,
                 'productName': it.product.name if it.product else 'Product',
                 'colorName': it.color_name or (it.variant.color_name if it.variant else ''),
+                'color': it.color_name or (it.variant.color_name if it.variant else ''),
                 'size': it.size or '',
                 'quantity': it.quantity,
                 'price': float(it.price),
@@ -2513,14 +2690,21 @@ class AdminOrderDetailView(APIView):
         tax_tp = order.tax_type or 'GST'
         tax_inc = bool(order.tax_included)
 
+        is_cod = not (order.razorpay_order_id and not str(order.razorpay_order_id).startswith('cod_'))
+        pay_method = 'COD' if is_cod else 'UPI'
+
         order_detail = {
             'id': order.id,
             'orderId': order_num,
             'order_number': order_num,
+            'trackingId': tracking_num,
+            'tracking_id': tracking_num,
             'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
             'fullDate': order.created_at.strftime('%b %d, %Y %I:%M %p') if order.created_at else '',
+            'createdAt': order.created_at.isoformat() if order.created_at else '',
             'orderStatus': order.order_status,
             'paymentStatus': order.payment_status,
+            'paymentMethod': pay_method,
             'customer': {
                 'name': order.shipping_name,
                 'email': order.user.email if order.user and order.user.email else 'customer@example.com',
@@ -2532,20 +2716,24 @@ class AdminOrderDetailView(APIView):
                 'phone': order.shipping_phone,
                 'address': order.shipping_address,
                 'city': order.shipping_city,
+                'district': order.shipping_city,
                 'pincode': order.shipping_pincode,
             },
             'items': items_list,
+            'products': items_list,
             'pricing': {
                 'subtotal': subtotal,
+                'discount': 0.0,
                 'shipping': shipping_fee,
                 'tax': tax_amt,
                 'tax_rate': tax_rt,
                 'tax_type': tax_tp,
                 'tax_included': tax_inc,
                 'total': float(order.total_amount),
+                'grandTotal': float(order.total_amount),
             },
             'paymentInfo': {
-                'method': 'Razorpay' if order.razorpay_order_id and not str(order.razorpay_order_id).startswith('cod_') else 'COD',
+                'method': pay_method,
                 'status': order.payment_status,
                 'razorpayOrderId': order.razorpay_order_id or '—',
                 'razorpayPaymentId': order.razorpay_payment_id or '—',

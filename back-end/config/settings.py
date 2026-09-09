@@ -44,11 +44,21 @@ if env_file.exists():
 # SECURITY
 # ============================================================
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-moxie-backend-prod-key-2026')
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    os.environ.get('SECRET_KEY', 'django-insecure-moxie-backend-prod-key-2026')
+)
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DJANGO_DEBUG', os.environ.get('DEBUG', 'True')).lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '*').split(',') if h.strip()]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,::1')
+    ).split(',')
+    if host.strip()
+]
 
 
 # ============================================================
@@ -225,6 +235,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+frontend_url_env = os.environ.get('FRONTEND_URL', os.environ.get('FRONTEND_ORIGIN', '')).strip()
+
 csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins_env:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_origins_env.split(',') if o.strip()]
@@ -238,6 +250,9 @@ else:
         'http://127.0.0.1:8000',
     ]
 
+if frontend_url_env and frontend_url_env not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(frontend_url_env)
+
 
 # ============================================================
 # MEDIA FILES
@@ -246,18 +261,6 @@ else:
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
-
-
-# ============================================================
-# EMAIL
-# ============================================================
-
-MAILERS = {
-    'default': {
-        'BACKEND':
-        'django.core.mail.backends.console.EmailBackend',
-    },
-}
 
 
 # ============================================================
@@ -279,9 +282,13 @@ else:
         'http://127.0.0.1:8000',
     ]
 
+if frontend_url_env and frontend_url_env not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(frontend_url_env)
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.netlify\.app$",
 ]
+
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -321,6 +328,25 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', os.environ.get('REACT_APP_
 
 
 # ============================================================
+# EMAIL CONFIGURATION (SMTP / Transactional Emails)
+# ============================================================
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
+if EMAIL_USE_SSL:
+    EMAIL_USE_TLS = False
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@moxie.com')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))
+
+
+# ============================================================
 # RAZORPAY CONFIGURATION
 # ============================================================
 
@@ -338,3 +364,4 @@ RAZORPAY_WEBHOOK_SECRET = os.environ.get(
     'RAZORPAY_WEBHOOK_SECRET',
     'placeholder_webhook_secret'
 )
+

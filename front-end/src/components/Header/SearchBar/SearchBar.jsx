@@ -24,7 +24,24 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const suggestions = query
+  const isAllProductsQuery = (q) => {
+    const normalized = (q || "").trim().toLowerCase();
+    return (
+      normalized === "all product" ||
+      normalized === "all products" ||
+      normalized === "products" ||
+      normalized === "product"
+    );
+  };
+
+  const matchesAllProducts =
+    query &&
+    ("all products".includes(query) ||
+      "all product".includes(query) ||
+      "products".includes(query) ||
+      "product".includes(query));
+
+  const matchedProducts = query
     ? products
         .filter(
           (p) =>
@@ -34,19 +51,41 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
             (p.subcategory && p.subcategory.toLowerCase().includes(query)) ||
             (p.subcategory_name && p.subcategory_name.toLowerCase().includes(query))
         )
-        .slice(0, 6)
+        .slice(0, matchesAllProducts ? 5 : 6)
     : [];
+
+  const suggestions = [];
+  if (matchesAllProducts) {
+    suggestions.push({
+      id: "all-products",
+      name: "All Products",
+      category_name: "Catalog",
+      isAllProducts: true,
+    });
+  }
+  suggestions.push(...matchedProducts);
 
   const select = (p) => {
     if (setSearchQuery) setSearchQuery("");
     setIsOpen(false);
-    navigate(`/product/${p.id}`);
+    if (p.isAllProducts || p.id === "all-products") {
+      navigate("/products");
+    } else {
+      navigate(`/product/${p.id}`);
+    }
   };
 
   const submit = (e) => {
     e.preventDefault();
-    if (query) {
-      navigate(`/products?search=${encodeURIComponent(query)}`);
+    const normalized = (searchQuery || "").trim().toLowerCase();
+    if (!normalized) return;
+
+    if (isAllProductsQuery(normalized)) {
+      if (setSearchQuery) setSearchQuery("");
+      navigate("/products");
+    } else {
+      if (setSearchQuery) setSearchQuery("");
+      navigate(`/products?search=${encodeURIComponent(normalized)}`);
     }
     setIsOpen(false);
   };
@@ -108,8 +147,21 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => select(p)}
             >
-              {p.image && (
+              {p.image ? (
                 <img src={p.image} alt={p.name} className="suggestion-image" />
+              ) : (
+                <div
+                  className="suggestion-image suggestion-image-placeholder"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                  }}
+                >
+                  <HugeiconsIcon icon={Search01Icon} size={16} strokeWidth={2} />
+                </div>
               )}
               <div className="suggestion-details ms-3">
                 <h5 className="suggestion-title mb-0">{p.name}</h5>
@@ -117,9 +169,11 @@ export default function SearchBar({ searchQuery, setSearchQuery }) {
                   {p.category_name || p.category}
                 </span>
               </div>
-              <span className="suggestion-price ms-auto">
-                ₹{Number(p.price || 0).toLocaleString("en-IN")}
-              </span>
+              {!p.isAllProducts && p.price !== undefined && (
+                <span className="suggestion-price ms-auto">
+                  ₹{Number(p.price || 0).toLocaleString("en-IN")}
+                </span>
+              )}
             </div>
           ))}
           {!suggestions.length && (

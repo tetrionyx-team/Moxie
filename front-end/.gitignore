@@ -6,6 +6,8 @@
 
 # Ignore build directory
 /build/
+/dist/
+dist/
 
 # Miscellaneous test/temp files
 /coverage/
@@ -13,8 +15,15 @@
 .pnp.js
 *.log
 *.tmp
-.env*
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
 
 # OS specific files
 .DS_Store
 Thumbs.db
+

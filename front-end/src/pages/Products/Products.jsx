@@ -108,10 +108,30 @@ export default function Products() {
     return raw ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
   }, [searchParams]);
 
+  const isAllProductsSearch = useMemo(() => {
+    const term = (currentSearch || "").trim().toLowerCase();
+    return (
+      term === "all product" ||
+      term === "all products" ||
+      term === "products" ||
+      term === "product"
+    );
+  }, [currentSearch]);
+
+  const isAllCategory = useMemo(() => {
+    return (
+      !currentCategorySlug ||
+      currentCategorySlug === "all" ||
+      currentCategorySlug === "all-products" ||
+      currentCategorySlug === "all-product"
+    );
+  }, [currentCategorySlug]);
+
   const alias = ALIAS_MAP[currentCategorySlug];
 
   // Matched category object from API
   const activeCategoryObj = useMemo(() => {
+    if (isAllCategory) return null;
     if (alias) {
       return categories.find((c) => (c.slug || "").toLowerCase() === alias.categorySlug.toLowerCase()) || null;
     }
@@ -119,25 +139,64 @@ export default function Products() {
       return categories.find((c) => (c.slug || "").toLowerCase() === currentCategorySlug) || null;
     }
     return null;
-  }, [categories, currentCategorySlug, alias]);
+  }, [categories, currentCategorySlug, alias, isAllCategory]);
 
   // Determine dynamic price range across all products
   const { minAvailablePrice, maxAvailablePrice } = useMemo(() => {
     if (!products.length) return { minAvailablePrice: 0, maxAvailablePrice: 10000 };
     const prices = products.map((p) => Number(p.price || 0)).filter((p) => !isNaN(p) && p > 0);
     if (!prices.length) return { minAvailablePrice: 0, maxAvailablePrice: 10000 };
+    const minVal = Math.floor(Math.min(...prices) / 100) * 100;
+    const maxVal = Math.ceil(Math.max(...prices) / 100) * 100;
     return {
-      minAvailablePrice: Math.floor(Math.min(...prices) / 100) * 100,
-      maxAvailablePrice: Math.ceil(Math.max(...prices) / 100) * 100,
+      minAvailablePrice: minVal,
+      maxAvailablePrice: maxVal > minVal ? maxVal : minVal + 1000,
     };
   }, [products]);
 
-  // Local draft state for price slider to make interaction smooth
-  const [sliderPrice, setSliderPrice] = useState(currentMaxPrice || maxAvailablePrice || 10000);
+  // Live state for price slider (immediate client-side filtering)
+  const [sliderPrice, setSliderPrice] = useState(() => {
+    if (currentMaxPrice !== null && !isNaN(currentMaxPrice)) return currentMaxPrice;
+    return 10000;
+  });
 
+  // Sync if URL max_price changes externally
   useEffect(() => {
-    setSliderPrice(currentMaxPrice || maxAvailablePrice || 10000);
+    if (currentMaxPrice !== null && !isNaN(currentMaxPrice)) {
+      setSliderPrice(currentMaxPrice);
+    } else {
+      setSliderPrice(maxAvailablePrice);
+    }
   }, [currentMaxPrice, maxAvailablePrice]);
+
+  // Debounced URL sync for max_price to keep URL shareable without lagging drag
+  useEffect(() => {
+    if (sliderPrice === null || isNaN(sliderPrice) || maxAvailablePrice <= 0) return;
+    const timer = setTimeout(() => {
+      const nextParams = new URLSearchParams(searchParams);
+      if (sliderPrice < maxAvailablePrice) {
+        if (nextParams.get("max_price") !== String(sliderPrice)) {
+          nextParams.set("max_price", String(sliderPrice));
+          nextParams.delete("page");
+          navigate(
+            { pathname: location.pathname, search: `?${nextParams.toString()}` },
+            { replace: true }
+          );
+        }
+      } else {
+        if (nextParams.has("max_price")) {
+          nextParams.delete("max_price");
+          nextParams.delete("page");
+          navigate(
+            { pathname: location.pathname, search: nextParams.toString() ? `?${nextParams.toString()}` : "" },
+            { replace: true }
+          );
+        }
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [sliderPrice, maxAvailablePrice, searchParams, navigate, location.pathname]);
 
   // Collect all available subcategories, colors, and sizes across current active category or products
   const { availableSubcategories, availableColors, availableSizes } = useMemo(() => {
@@ -218,6 +277,8 @@ export default function Products() {
     // Filter by category / deals
     if (currentCategorySlug === "deals") {
       list = list.filter((p) => Number(p.discount || 0) > 0 || (Boolean(p.oldPrice) && Number(p.oldPrice) > Number(p.price)));
+    } else if (isAllCategory) {
+      // All products - no category filter applied
     } else if (alias) {
       const targetCat = alias.categorySlug.toLowerCase();
       const keywords = alias.keywords;
@@ -253,7 +314,7 @@ export default function Products() {
     }
 
     // Search query filter
-    if (currentSearch.trim()) {
+    if (currentSearch.trim() && !isAllProductsSearch) {
       const term = currentSearch.trim().toLowerCase();
       list = list.filter((p) => {
         const name = (p.name || "").toLowerCase();
@@ -284,12 +345,23 @@ export default function Products() {
       });
     }
 
-    // Price filter
-    if (currentMinPrice !== null) {
-      list = list.filter((p) => Number(p.price || 0) >= currentMinPrice);
+    // Price filter (live sliderPrice or query param)
+    if (sliderPrice !== null && !isNaN(sliderPrice) && sliderPrice < maxAvailablePrice) {
+      list = list.filter((p) => {
+        const rawPrice = Number(p.price || 0);
+        return !isNaN(rawPrice) && rawPrice <= sliderPrice;
+      });
+    } else if (currentMaxPrice !== null && !isNaN(currentMaxPrice)) {
+      list = list.filter((p) => {
+        const rawPrice = Number(p.price || 0);
+        return !isNaN(rawPrice) && rawPrice <= currentMaxPrice;
+      });
     }
-    if (currentMaxPrice !== null) {
-      list = list.filter((p) => Number(p.price || 0) <= currentMaxPrice);
+    if (currentMinPrice !== null && !isNaN(currentMinPrice)) {
+      list = list.filter((p) => {
+        const rawPrice = Number(p.price || 0);
+        return !isNaN(rawPrice) && rawPrice >= currentMinPrice;
+      });
     }
 
     // Availability filter
@@ -313,12 +385,16 @@ export default function Products() {
   }, [
     products,
     currentCategorySlug,
+    isAllCategory,
+    isAllProductsSearch,
     currentSubcategorySlug,
     currentSearch,
     selectedColors,
     selectedSizes,
     currentMinPrice,
     currentMaxPrice,
+    sliderPrice,
+    maxAvailablePrice,
     currentAvailability,
     currentSort,
     alias,
@@ -389,10 +465,11 @@ export default function Products() {
     updateQueryParams({ size: newSizes });
   }, [selectedSizes, updateQueryParams]);
 
-  const handlePriceApply = () => {
-    updateQueryParams({ max_price: sliderPrice });
-    setMobileDrawerOpen(false);
-  };
+  const handleClearPrice = useCallback((e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setSliderPrice(maxAvailablePrice);
+    updateQueryParams({ max_price: null, min_price: null });
+  }, [maxAvailablePrice, updateQueryParams]);
 
   const handleAvailabilityChange = (val) => {
     updateQueryParams({ availability: val === "all" ? null : val });
@@ -429,7 +506,7 @@ export default function Products() {
   const activeChips = useMemo(() => {
     const chips = [];
 
-    if (currentCategorySlug) {
+    if (currentCategorySlug && !isAllCategory) {
       const label = alias ? alias.title : activeCategoryObj ? activeCategoryObj.name : currentCategorySlug.toUpperCase();
       chips.push({
         id: "category",
@@ -463,12 +540,15 @@ export default function Products() {
       });
     });
 
-    if (currentMaxPrice !== null) {
-      chips.push({
-        id: "price",
-        label: `Up to ₹${currentMaxPrice.toLocaleString("en-IN")}`,
-        remove: () => updateQueryParams({ max_price: null, min_price: null }),
-      });
+    if ((sliderPrice < maxAvailablePrice && !isNaN(sliderPrice)) || currentMaxPrice !== null) {
+      const activeMax = sliderPrice < maxAvailablePrice ? sliderPrice : currentMaxPrice;
+      if (activeMax !== null && !isNaN(activeMax)) {
+        chips.push({
+          id: "price",
+          label: `Up to ₹${activeMax.toLocaleString("en-IN")}`,
+          remove: handleClearPrice,
+        });
+      }
     }
 
     if (currentAvailability && currentAvailability !== "all") {
@@ -479,7 +559,7 @@ export default function Products() {
       });
     }
 
-    if (currentSearch.trim()) {
+    if (currentSearch.trim() && !isAllProductsSearch) {
       chips.push({
         id: "search",
         label: `"${currentSearch}"`,
@@ -490,6 +570,8 @@ export default function Products() {
     return chips;
   }, [
     currentCategorySlug,
+    isAllCategory,
+    isAllProductsSearch,
     alias,
     activeCategoryObj,
     currentSubcategorySlug,
@@ -497,6 +579,9 @@ export default function Products() {
     selectedColors,
     selectedSizes,
     currentMaxPrice,
+    sliderPrice,
+    maxAvailablePrice,
+    handleClearPrice,
     currentAvailability,
     currentSearch,
     updateQueryParams,
@@ -508,6 +593,7 @@ export default function Products() {
   // Page Header Titles & Breadcrumbs
   const headingTitle = useMemo(() => {
     if (currentCategorySlug === "deals") return "Hot Deals";
+    if (isAllCategory) return "All Products";
     if (alias) return alias.title;
     if (activeCategoryObj && currentSubcategorySlug) {
       const sub = availableSubcategories.find((s) => s.slug === currentSubcategorySlug);
@@ -518,7 +604,7 @@ export default function Products() {
       return currentCategorySlug.charAt(0).toUpperCase() + currentCategorySlug.slice(1).replace(/-/g, " ");
     }
     return "All Products";
-  }, [currentCategorySlug, alias, activeCategoryObj, currentSubcategorySlug, availableSubcategories]);
+  }, [currentCategorySlug, isAllCategory, alias, activeCategoryObj, currentSubcategorySlug, availableSubcategories]);
 
   // Wishlist & Cart Actions on Product Cards
   const handleWishlistClick = (e, productItem) => {
@@ -578,7 +664,7 @@ export default function Products() {
       <div className="filter-group category-group">
         <h3 className="filter-group-title">Category</h3>
         <ul className="category-link-list">
-          <li className={!currentCategorySlug ? "active" : ""}>
+          <li className={isAllCategory ? "active" : ""}>
             <button
               type="button"
               className="category-link-btn"
@@ -592,8 +678,9 @@ export default function Products() {
           </li>
           {categories.map((c) => {
             const isCatActive =
-              currentCategorySlug === (c.slug || "").toLowerCase() ||
-              (alias && alias.categorySlug === (c.slug || "").toLowerCase());
+              !isAllCategory &&
+              (currentCategorySlug === (c.slug || "").toLowerCase() ||
+                (alias && alias.categorySlug === (c.slug || "").toLowerCase()));
             return (
               <li key={c.id || c.slug} className={isCatActive ? "active" : ""}>
                 <button
@@ -728,29 +815,56 @@ export default function Products() {
 
       {/* Price Filter */}
       <div className="filter-group">
-        <button
-          type="button"
-          className="filter-accordion-head"
-          onClick={() => toggleSection("price")}
-        >
-          <span>Price</span>
-          {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
-        </button>
+        <div className="filter-accordion-head-wrapper">
+          <button
+            type="button"
+            className="filter-accordion-head"
+            onClick={() => toggleSection("price")}
+          >
+            <span>Price</span>
+            {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
+          </button>
+          {sliderPrice < maxAvailablePrice && (
+            <button
+              type="button"
+              className="filter-price-clear-badge"
+              onClick={handleClearPrice}
+              title="Clear Price Filter"
+              aria-label="Clear Price Filter"
+            >
+              Clear
+            </button>
+          )}
+        </div>
         {openSections.price && (
           <div className="filter-price-box">
             <div className="price-display-row">
               <span>₹{minAvailablePrice.toLocaleString("en-IN")}</span>
-              <strong>₹{sliderPrice.toLocaleString("en-IN")}</strong>
+              <strong className="price-current-value">
+                ₹{sliderPrice.toLocaleString("en-IN")}
+              </strong>
             </div>
             <input
               type="range"
               min={minAvailablePrice}
               max={maxAvailablePrice}
-              step="100"
+              step={maxAvailablePrice - minAvailablePrice > 5000 ? "100" : "50"}
               value={sliderPrice}
               onChange={(e) => setSliderPrice(Number(e.target.value))}
               className="price-range-slider"
+              aria-label="Filter products by price"
             />
+            {sliderPrice < maxAvailablePrice && (
+              <div className="filter-price-clear-footer">
+                <button
+                  type="button"
+                  className="filter-price-clear-link"
+                  onClick={handleClearPrice}
+                >
+                  Clear Price
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -787,27 +901,19 @@ export default function Products() {
         )}
       </div>
 
-      {/* Apply & Reset Buttons */}
-      <div className="sidebar-action-buttons">
-        <button
-          type="button"
-          className="catalog-apply-btn"
-          onClick={handlePriceApply}
-        >
-          Apply
-        </button>
-        {activeChips.length > 0 && (
+      {/* Reset All Filters Button (when any filter is active) */}
+      {activeChips.length > 0 && (
+        <div className="sidebar-action-buttons">
           <button
             type="button"
-            className="catalog-reset-icon-btn"
+            className="catalog-clear-all-btn"
             onClick={handleClearAllFilters}
-            title="Reset all filters"
-            aria-label="Reset all filters"
           >
             <FiTrash2 />
+            <span>Clear All Filters ({activeChips.length})</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 

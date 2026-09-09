@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Cancel01Icon,
@@ -8,8 +8,8 @@ import {
   ViewOffSlashIcon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
+import { LuPhone, LuCheck } from "react-icons/lu";
 import { useAuth } from "../../context/AuthContext";
-import { useToast } from "../../context/ToastContext";
 import "./SignInModal.css";
 
 /**
@@ -38,25 +38,40 @@ const GoogleIcon = () => (
 
 /**
  * SignInModal
- * Premium Customer Authentication Modal for Moxie (Login & Register).
+ * Premium Customer Authentication Modal for Moxie.
  */
 function SignInModal({ onClose, initialMode = "login" }) {
-  const { login, register, googleLogin } = useAuth();
-  const showToast = useToast();
+  const {
+    login,
+    register,
+    verifyEmail,
+    resetPassword,
+    signInWithGoogle,
+  } = useAuth();
 
-  const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot' | 'reset'
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Success Popups
+  const [showRegisterSuccess, setShowRegisterSuccess] = useState(false);
+  const [showResetSuccess, setShowResetSuccess] = useState(false);
 
   const googleBtnRef = useRef(null);
 
@@ -80,81 +95,53 @@ function SignInModal({ onClose, initialMode = "login" }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  /* ── Handle Google ID token response ── */
-  const handleGoogleCredentialResponse = useCallback(
-    async (response) => {
-      if (!response?.credential) {
-        setGlobalError("Google sign-in was cancelled or failed.");
-        return;
-      }
-      setIsGoogleLoading(true);
-      setGlobalError("");
-      try {
-        await googleLogin(response.credential);
-        showToast("✓ Signed in with Google! Welcome to Moxie.");
-        onClose();
-      } catch (err) {
-        setGlobalError(err.message || "Google sign-in failed. Please try again.");
-      } finally {
-        setIsGoogleLoading(false);
-      }
-    },
-    [googleLogin, onClose, showToast]
-  );
-
-  /* ── Initialize Google Identity Services ── */
-  useEffect(() => {
-    const clientId =
-      process.env.REACT_APP_GOOGLE_CLIENT_ID ||
-      "916379236525-sample.apps.googleusercontent.com";
-
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleCredentialResponse,
-          auto_select: false,
-        });
-      } catch {
-        // Safe fallback
-      }
-    }
-  }, [handleGoogleCredentialResponse]);
-
-  /* ── Trigger Google prompt or popup ── */
-  const handleGoogleClick = () => {
+  /* ── Handle Shared Firebase Google Sign-In ── */
+  const handleGoogleClick = async () => {
     setGlobalError("");
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // If one-tap is suppressed or not supported, try standard prompt
-          }
-        });
-      } catch {
-        setGlobalError("Google Identity Services not ready. Please use email sign-in.");
-      }
-    } else {
-      setGlobalError("Google Identity Services is loading. Please try again in a moment.");
+    setGlobalSuccess("");
+    setIsGoogleLoading(true);
+
+    try {
+      await signInWithGoogle();
+      // LoginSuccessPopup (Welcome to Moxie / Welcome Back) is handled globally via AuthContext
+      setTimeout(() => {
+        onClose();
+      }, 1800);
+    } catch (err) {
+      setGlobalError(err.message || "Google sign-in was cancelled or failed.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
   /* ── Form Validation ── */
   const validate = () => {
     const errs = {};
+
     if (mode === "register") {
       if (!name.trim()) {
         errs.name = "Name is required.";
       }
     }
 
-    if (!email.trim()) {
-      errs.email = "Email address is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = "Please enter a valid email address.";
+    if (mode === "login" || mode === "register" || mode === "forgot") {
+      if (!email.trim()) {
+        errs.email = "Email address is required.";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        errs.email = "Please enter a valid email address.";
+      }
     }
 
-    if (mode !== "forgot") {
+    if (mode === "register" || mode === "google-complete") {
+      const cleanMobile = mobile.trim().replace(/\D/g, "");
+      if (!mobile.trim()) {
+        errs.mobile = "Mobile number is required.";
+      } else if (cleanMobile.length !== 10 || !/^\d{10}$/.test(mobile.trim())) {
+        errs.mobile = "Please enter a valid 10-digit mobile number.";
+      }
+    }
+
+    if (mode === "login" || mode === "register") {
       if (!password) {
         errs.password = "Password is required.";
       } else if (password.length < 6) {
@@ -167,6 +154,19 @@ function SignInModal({ onClose, initialMode = "login" }) {
         errs.confirmPassword = "Confirm password is required.";
       } else if (password !== confirmPassword) {
         errs.confirmPassword = "Passwords do not match.";
+      }
+    }
+
+    if (mode === "reset") {
+      if (!newPassword) {
+        errs.newPassword = "New password is required.";
+      } else if (newPassword.length < 6) {
+        errs.newPassword = "Password must be at least 6 characters.";
+      }
+      if (!confirmNewPassword) {
+        errs.confirmNewPassword = "Confirm password is required.";
+      } else if (newPassword !== confirmNewPassword) {
+        errs.confirmNewPassword = "Passwords do not match.";
       }
     }
 
@@ -190,23 +190,50 @@ function SignInModal({ onClose, initialMode = "login" }) {
 
     try {
       if (mode === "login") {
-        await login(email.trim(), password);
-        showToast("✓ Signed in successfully! Welcome back.");
-        onClose();
+        const res = await login(email.trim(), password);
+        if (res?.success) {
+          setTimeout(() => {
+            onClose();
+          }, 1800);
+        }
       } else if (mode === "register") {
         await register({
           name: name.trim(),
           email: email.trim(),
+          mobile: mobile.trim(),
           password,
           confirmPassword,
         });
-        showToast("✓ Account created! Welcome to Moxie.");
-        onClose();
+
+        // Show animated success popup
+        setShowRegisterSuccess(true);
+        setTimeout(() => {
+          setShowRegisterSuccess(false);
+          setPassword("");
+          setConfirmPassword("");
+          setMode("login");
+        }, 1900);
       } else if (mode === "forgot") {
-        setGlobalSuccess("If an account exists with this email, password reset instructions have been sent.");
+        await verifyEmail(email.trim());
+        setGlobalSuccess("Email verified.");
+        setTimeout(() => {
+          setGlobalSuccess("");
+          setMode("reset");
+        }, 600);
+      } else if (mode === "reset") {
+        await resetPassword(email.trim(), newPassword, confirmNewPassword);
+        setShowResetSuccess(true);
+        setTimeout(() => {
+          setShowResetSuccess(false);
+          setNewPassword("");
+          setConfirmNewPassword("");
+          setPassword("");
+          setMode("login");
+        }, 1900);
       }
     } catch (err) {
-      setGlobalError(err.message || "Authentication failed. Please check your credentials.");
+      const errMsg = err.message || "Authentication failed. Please check your credentials.";
+      setGlobalError(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -218,6 +245,10 @@ function SignInModal({ onClose, initialMode = "login" }) {
     setErrors({});
     setGlobalError("");
     setGlobalSuccess("");
+    if (newMode === "login" || newMode === "register") {
+      setNewPassword("");
+      setConfirmNewPassword("");
+    }
   };
 
   return (
@@ -226,7 +257,13 @@ function SignInModal({ onClose, initialMode = "login" }) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={mode === "register" ? "Create Account dialog" : "Sign in dialog"}
+      aria-label={
+        mode === "register"
+          ? "Create Account dialog"
+          : mode === "forgot" || mode === "reset"
+          ? "Reset Password dialog"
+          : "Sign in dialog"
+      }
     >
       <div
         className="login-modal auth-modal"
@@ -243,22 +280,65 @@ function SignInModal({ onClose, initialMode = "login" }) {
           <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
         </button>
 
+        {/* ── 1. ACCOUNT CREATED SUCCESS POPUP OVERLAY ── */}
+        {showRegisterSuccess && (
+          <div className="auth-success-popup-overlay">
+            <div className="auth-success-popup-card">
+              <div className="auth-success-popup-brand">MOXIE</div>
+              <div className="auth-success-popup-icon-wrap">
+                <LuCheck className="auth-success-popup-check-icon" />
+              </div>
+              <h3 className="auth-success-popup-title">Welcome to Moxie</h3>
+              <p className="auth-success-popup-desc">
+                Your account has been created successfully.
+              </p>
+              <p className="auth-success-popup-sub">
+                Your style journey starts here.
+              </p>
+              <div className="auth-success-popup-loader">
+                <span className="auth-gold-progress-bar"></span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 2. PASSWORD CHANGED SUCCESS POPUP OVERLAY ── */}
+        {showResetSuccess && (
+          <div className="auth-success-popup-overlay">
+            <div className="auth-success-popup-card">
+              <div className="auth-success-popup-brand">MOXIE</div>
+              <div className="auth-success-popup-icon-wrap">
+                <LuCheck className="auth-success-popup-check-icon" />
+              </div>
+              <h3 className="auth-success-popup-title">Password Changed Successfully</h3>
+              <p className="auth-success-popup-desc">
+                Your password has been updated. Please sign in with your new password.
+              </p>
+              <div className="auth-success-popup-loader">
+                <span className="auth-gold-progress-bar"></span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Brand Header */}
         <div className="auth-modal-header">
-          <div className="auth-brand-title">
-            MOXIE
-          </div>
+          <div className="auth-brand-title">MOXIE</div>
 
           <h2 className="auth-modal-heading">
             {mode === "login" && "Welcome Back"}
             {mode === "register" && "Create Your Account"}
-            {mode === "forgot" && "Reset Password"}
+            {mode === "google-complete" && "Complete Your Profile"}
+            {mode === "forgot" && "Forgot Password"}
+            {mode === "reset" && "Set New Password"}
           </h2>
 
           <p className="auth-modal-subtext">
             {mode === "login" && "Sign in to continue to your Moxie account."}
             {mode === "register" && "Join Moxie and start shopping."}
-            {mode === "forgot" && "Enter your email to receive password reset instructions."}
+            {mode === "google-complete" && "Please enter your 10-digit mobile number to complete your registration."}
+            {mode === "forgot" && "Enter your registered email address to verify your account."}
+            {mode === "reset" && "Create a new password for your account."}
           </p>
         </div>
 
@@ -277,8 +357,8 @@ function SignInModal({ onClose, initialMode = "login" }) {
         {/* Authentication Form */}
         <form onSubmit={handleSubmit} noValidate className="auth-form">
 
-          {/* Name Field (Register Mode Only) */}
-          {mode === "register" && (
+          {/* 1. Name Field (Register Mode & Google Complete) */}
+          {(mode === "register" || mode === "google-complete") && (
             <div className="auth-field-group">
               <label htmlFor="auth-name" className="auth-label">
                 Name<span className="auth-required">*</span>
@@ -306,35 +386,73 @@ function SignInModal({ onClose, initialMode = "login" }) {
             </div>
           )}
 
-          {/* Email Address Field */}
-          <div className="auth-field-group">
-            <label htmlFor="auth-email" className="auth-label">
-              Email Address<span className="auth-required">*</span>
-            </label>
-            <div className="auth-input-wrapper">
-              <span className="auth-input-icon">
-                <HugeiconsIcon icon={Mail01Icon} size={19} strokeWidth={1.8} />
-              </span>
-              <input
-                id="auth-email"
-                type="email"
-                name="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors({ ...errors, email: "" });
-                }}
-                className={`auth-input${errors.email ? " auth-input--error" : ""}`}
-                autoComplete="email"
-                disabled={isSubmitting}
-              />
+          {/* 2. Email Address Field (Login, Register, Forgot, Google Complete) */}
+          {mode !== "reset" && (
+            <div className="auth-field-group">
+              <label htmlFor="auth-email" className="auth-label">
+                Email Address<span className="auth-required">*</span>
+              </label>
+              <div className="auth-input-wrapper">
+                <span className="auth-input-icon">
+                  <HugeiconsIcon icon={Mail01Icon} size={19} strokeWidth={1.8} />
+                </span>
+                <input
+                  id="auth-email"
+                  type="email"
+                  name="email"
+                  placeholder={
+                    mode === "forgot"
+                      ? "Enter your registered email"
+                      : "Enter your email address"
+                  }
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors({ ...errors, email: "" });
+                  }}
+                  className={`auth-input${errors.email ? " auth-input--error" : ""}`}
+                  autoComplete="email"
+                  disabled={isSubmitting || mode === "google-complete"}
+                />
+              </div>
+              {errors.email && <p className="field-error">{errors.email}</p>}
             </div>
-            {errors.email && <p className="field-error">{errors.email}</p>}
-          </div>
+          )}
 
-          {/* Password Field (Login & Register Mode) */}
-          {mode !== "forgot" && (
+          {/* 3. Mobile Number Field (Register Mode & Google Complete) */}
+          {(mode === "register" || mode === "google-complete") && (
+            <div className="auth-field-group">
+              <label htmlFor="auth-mobile" className="auth-label">
+                Mobile Number<span className="auth-required">*</span>
+              </label>
+              <div className="auth-input-wrapper">
+                <span className="auth-input-icon">
+                  <LuPhone size={19} strokeWidth={1.8} />
+                </span>
+                <input
+                  id="auth-mobile"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  name="mobile"
+                  placeholder="Enter your 10-digit mobile number"
+                  value={mobile}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setMobile(val);
+                    if (errors.mobile) setErrors({ ...errors, mobile: "" });
+                  }}
+                  className={`auth-input${errors.mobile ? " auth-input--error" : ""}`}
+                  autoComplete="tel"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {errors.mobile && <p className="field-error">{errors.mobile}</p>}
+            </div>
+          )}
+
+          {/* 4. Password Field (Login & Register Mode) */}
+          {(mode === "login" || mode === "register") && (
             <div className="auth-field-group">
               <div className="auth-label-row">
                 <label htmlFor="auth-password" className="auth-label">
@@ -386,7 +504,7 @@ function SignInModal({ onClose, initialMode = "login" }) {
             </div>
           )}
 
-          {/* Confirm Password Field (Register Mode Only) */}
+          {/* 5. Confirm Password Field (Register Mode Only) */}
           {mode === "register" && (
             <div className="auth-field-group">
               <label htmlFor="auth-confirm-password" className="auth-label">
@@ -428,6 +546,89 @@ function SignInModal({ onClose, initialMode = "login" }) {
             </div>
           )}
 
+          {/* 6. Step 2: New Password & Confirm New Password (Reset Mode) */}
+          {mode === "reset" && (
+            <>
+              <div className="auth-field-group">
+                <label htmlFor="auth-new-password" className="auth-label">
+                  New Password<span className="auth-required">*</span>
+                </label>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">
+                    <HugeiconsIcon icon={SquareLock02Icon} size={19} strokeWidth={1.8} />
+                  </span>
+                  <input
+                    id="auth-new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (errors.newPassword) setErrors({ ...errors, newPassword: "" });
+                    }}
+                    className={`auth-input${errors.newPassword ? " auth-input--error" : ""}`}
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="auth-eye-btn"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    <HugeiconsIcon
+                      icon={showNewPassword ? ViewIcon : ViewOffSlashIcon}
+                      size={19}
+                      strokeWidth={1.8}
+                    />
+                  </button>
+                </div>
+                {errors.newPassword && <p className="field-error">{errors.newPassword}</p>}
+              </div>
+
+              <div className="auth-field-group">
+                <label htmlFor="auth-confirm-new-password" className="auth-label">
+                  Confirm New Password<span className="auth-required">*</span>
+                </label>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">
+                    <HugeiconsIcon icon={SquareLock02Icon} size={19} strokeWidth={1.8} />
+                  </span>
+                  <input
+                    id="auth-confirm-new-password"
+                    type={showConfirmNewPassword ? "text" : "password"}
+                    name="confirmNewPassword"
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => {
+                      setConfirmNewPassword(e.target.value);
+                      if (errors.confirmNewPassword) setErrors({ ...errors, confirmNewPassword: "" });
+                    }}
+                    className={`auth-input${errors.confirmNewPassword ? " auth-input--error" : ""}`}
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="auth-eye-btn"
+                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    aria-label={showConfirmNewPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    <HugeiconsIcon
+                      icon={showConfirmNewPassword ? ViewIcon : ViewOffSlashIcon}
+                      size={19}
+                      strokeWidth={1.8}
+                    />
+                  </button>
+                </div>
+                {errors.confirmNewPassword && <p className="field-error">{errors.confirmNewPassword}</p>}
+              </div>
+            </>
+          )}
+
           {/* Primary Action Button */}
           <button
             id="auth-submit-btn"
@@ -441,16 +642,20 @@ function SignInModal({ onClose, initialMode = "login" }) {
               <span>SIGN IN</span>
             ) : mode === "register" ? (
               <span>CREATE ACCOUNT</span>
+            ) : mode === "google-complete" ? (
+              <span>COMPLETE ACCOUNT</span>
+            ) : mode === "forgot" ? (
+              <span>VERIFY EMAIL</span>
             ) : (
-              <span>SEND RESET LINK</span>
+              <span>UPDATE PASSWORD</span>
             )}
           </button>
 
           {/* Divider & Google Sign-In */}
-          {mode !== "forgot" && (
+          {(mode === "login" || mode === "register") && (
             <>
               <div className="auth-divider">
-                <span>OR CONTINUE WITH</span>
+                <span>OR</span>
               </div>
 
               <button
@@ -463,11 +668,7 @@ function SignInModal({ onClose, initialMode = "login" }) {
               >
                 <GoogleIcon />
                 <span>
-                  {isGoogleLoading
-                    ? "Connecting to Google..."
-                    : mode === "login"
-                    ? "Sign in with Google"
-                    : "Sign up with Google"}
+                  {isGoogleLoading ? "Connecting..." : "Continue with Google"}
                 </span>
               </button>
             </>
@@ -501,7 +702,20 @@ function SignInModal({ onClose, initialMode = "login" }) {
               </span>
             )}
 
-            {mode === "forgot" && (
+            {mode === "google-complete" && (
+              <span>
+                Want to use another account?
+                <button
+                  type="button"
+                  className="auth-switch-btn"
+                  onClick={() => switchMode("login")}
+                >
+                  Back to Sign In
+                </button>
+              </span>
+            )}
+
+            {(mode === "forgot" || mode === "reset") && (
               <span>
                 Remembered your password?
                 <button
@@ -522,4 +736,3 @@ function SignInModal({ onClose, initialMode = "login" }) {
 }
 
 export default SignInModal;
-

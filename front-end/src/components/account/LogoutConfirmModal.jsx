@@ -1,11 +1,20 @@
-import React, { useEffect } from "react";
-import { LuLogOut, LuX } from "react-icons/lu";
+import React, { useEffect, useState } from "react";
+import { LuLogOut, LuX, LuSparkles } from "react-icons/lu";
 import "./LogoutConfirmModal.css";
 
 export default function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
+  const [isFarewell, setIsFarewell] = useState(false);
+
+  // Reset farewell state whenever modal closes or opens
+  useEffect(() => {
+    if (!isOpen) {
+      setIsFarewell(false);
+    }
+  }, [isOpen]);
+
   // Handle ESC key press
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isFarewell) return;
 
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
@@ -15,7 +24,7 @@ export default function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isFarewell, onClose]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -28,64 +37,101 @@ export default function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
     }
   }, [isOpen]);
 
+  const handleYesLogout = () => {
+    setIsFarewell(true);
+    if (onConfirm) onConfirm();
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 2200);
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="logout-modal-backdrop"
-      onClick={onClose}
+      className={`logout-modal-backdrop ${isFarewell ? "logout-modal-backdrop--farewell" : ""}`}
+      onClick={isFarewell ? undefined : onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="logout-modal-title"
       aria-describedby="logout-modal-desc"
     >
-      <div
-        className="logout-modal-card"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top Right Close Button */}
-        <button
-          type="button"
-          className="logout-modal-close-btn"
-          onClick={onClose}
-          aria-label="Close modal"
+      {isFarewell ? (
+        /* ── UNIQUE MOXIE FAREWELL ANIMATION SCREEN ── */
+        <div className="logout-farewell-card" onClick={(e) => e.stopPropagation()}>
+          <div className="logout-farewell-brand">MOXIE</div>
+          <div className="logout-farewell-gold-line"></div>
+
+          <div className="logout-farewell-icon-box">
+            <LuSparkles className="logout-farewell-sparkle-icon" />
+          </div>
+
+          <h2 className="logout-farewell-heading">
+            Welcome Back Anytime
+          </h2>
+
+          <p className="logout-farewell-text">
+            Thank you for being part of Moxie.
+          </p>
+
+          <p className="logout-farewell-subtext">
+            See you again soon.
+          </p>
+
+          <div className="logout-farewell-progress-wrap">
+            <span className="logout-farewell-progress-bar"></span>
+          </div>
+        </div>
+      ) : (
+        /* ── CONFIRMATION MODAL CARD ── */
+        <div
+          className="logout-modal-card"
+          onClick={(e) => e.stopPropagation()}
         >
-          <LuX aria-hidden="true" />
-        </button>
-
-        {/* Circular Gold Icon */}
-        <div className="logout-modal-icon-wrap" aria-hidden="true">
-          <LuLogOut />
-        </div>
-
-        {/* Modal Title */}
-        <h3 id="logout-modal-title" className="logout-modal-title">
-          Confirm Logout
-        </h3>
-
-        {/* Modal Message */}
-        <p id="logout-modal-desc" className="logout-modal-desc">
-          Are you sure you want to logout from this account?
-        </p>
-
-        {/* Actions */}
-        <div className="logout-modal-actions">
+          {/* Top Right Close Button */}
           <button
             type="button"
-            className="logout-modal-btn logout-modal-btn-no"
+            className="logout-modal-close-btn"
             onClick={onClose}
+            aria-label="Close modal"
           >
-            No, Stay Logged In
+            <LuX aria-hidden="true" />
           </button>
-          <button
-            type="button"
-            className="logout-modal-btn logout-modal-btn-yes"
-            onClick={onConfirm}
-          >
-            Yes, Logout
-          </button>
+
+          {/* Circular Gold Icon */}
+          <div className="logout-modal-icon-wrap" aria-hidden="true">
+            <LuLogOut />
+          </div>
+
+          {/* Modal Title */}
+          <h3 id="logout-modal-title" className="logout-modal-title">
+            Confirm Logout
+          </h3>
+
+          {/* Modal Message */}
+          <p id="logout-modal-desc" className="logout-modal-desc">
+            Are you sure you want to logout from this account?
+          </p>
+
+          {/* Actions */}
+          <div className="logout-modal-actions">
+            <button
+              type="button"
+              className="logout-modal-btn logout-modal-btn-no"
+              onClick={onClose}
+            >
+              No, Stay Logged In
+            </button>
+            <button
+              type="button"
+              className="logout-modal-btn logout-modal-btn-yes"
+              onClick={handleYesLogout}
+            >
+              Yes, Logout
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

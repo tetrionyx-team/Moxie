@@ -38,11 +38,11 @@
   flex: 1;
   max-width: 200px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(253, 177, 1, 0.45), rgba(184, 134, 11, 0.5));
+  background: linear-gradient(90deg, transparent, rgba(201, 163, 92, 0.45), rgba(184, 134, 11, 0.5));
 }
 
 .editorial-line.right {
-  background: linear-gradient(90deg, rgba(184, 134, 11, 0.5), rgba(253, 177, 1, 0.45), transparent);
+  background: linear-gradient(90deg, rgba(184, 134, 11, 0.5), rgba(201, 163, 92, 0.45), transparent);
 }
 
 .editorial-title-main {
@@ -61,7 +61,7 @@
   font-style: italic;
   font-size: 48px;
   font-weight: 400;
-  color: #fdb101;
+  color: #c9a35c;
   margin: -6px 0 0 0;
   letter-spacing: 0.04em;
   line-height: 1.1;

@@ -21,13 +21,20 @@ env/
 # Frontend generated files
 front-end/node_modules/
 front-end/build/
+front-end/dist/
 node_modules/
 build/
+dist/
+staticfiles/
+back-end/staticfiles/
 
 # Environment files
 .env
 .env.*
 !.env.example
+front-end/.env
+front-end/.env.*
+!front-end/.env.example
 back-end/.env
 back-end/.env.*
 !back-end/.env.example

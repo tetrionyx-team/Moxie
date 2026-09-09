@@ -34,7 +34,6 @@ export default function MyOrders({
     return keys;
   });
 
-  // Siva settings logic
   const allowCancellation =
     storeSettings?.allow_order_cancellation !== false;
 
@@ -42,11 +41,13 @@ export default function MyOrders({
     storeSettings?.enable_order_tracking !== false;
 
   const getStatusBadgeClass = (status) => {
-    switch (status?.toLowerCase()) {
+    const s = (status || "").toLowerCase().trim();
+    switch (s) {
       case "placed":
-        return "status-placed";
       case "confirmed":
         return "status-confirmed";
+      case "processing":
+        return "status-placed";
       case "packed":
         return "status-packed";
       case "shipped":
@@ -58,19 +59,32 @@ export default function MyOrders({
       case "cancelled":
         return "status-cancelled";
       default:
-        return "";
+        return "status-confirmed";
     }
+  };
+
+  const getPaymentBadgeText = (order) => {
+    const method = (order.paymentMethod || "").toUpperCase();
+    const status = (order.paymentStatus || "").toLowerCase();
+
+    if (method === "COD" || method.includes("CASH")) {
+      if (status === "paid") return "Cash on Delivery • Paid";
+      return "Cash on Delivery • Payment on Delivery";
+    }
+    if (status === "failed") return "UPI • Payment Failed";
+    if (status === "pending") return "UPI • Payment Pending";
+    return "UPI • Payment Successful";
   };
 
   const handleReorder = (order) => {
     alert(
-      `Reordered "${order.name}". Item details have been updated in your cart.`
+      `Reordered "${order.name || order.productName || 'Moxie Product'}". Item details have been updated in your cart.`
     );
   };
 
   const handleReturnExchange = (order) => {
     alert(
-      `Return request submitted for Order #${order.id}. Our logistics partner will contact you shortly.`
+      `Return request submitted for Order #${order.orderId || order.id}. Our logistics partner will contact you shortly.`
     );
   };
 
@@ -133,43 +147,45 @@ export default function MyOrders({
 
       <div className="orders-list">
         {orders.map((order) => {
-          const statusLower =
-            order.status?.toLowerCase() || "";
+          const currentStatus = order.orderStatus || order.status || "Confirmed";
+          const statusLower = currentStatus.toLowerCase();
+          const displayOrderId = order.orderId || order.order_number || order.id || "MOX-0001";
+          const orderTotal = Number(order.grandTotal || order.total || order.totalAmount || 0);
 
           const isCancellable = [
             "placed",
             "confirmed",
+            "processing",
             "packed",
           ].includes(statusLower);
 
-          const isReturnable =
-            statusLower === "delivered";
+          const isReturnable = statusLower === "delivered";
 
           return (
             <article
-              key={order.id}
+              key={order.id || displayOrderId}
               className="order-item-card"
-              aria-label={`Order #${order.id}`}
+              aria-label={`Order #${displayOrderId}`}
             >
               {/* Order Header */}
               <div className="order-card-header">
                 <div className="order-id-block">
                   <span className="order-id-title">
-                    Order #{order.id}
+                    Order #{displayOrderId}
                   </span>
 
                   <span className="order-date-text">
-                    Placed on: {order.date}
+                    Placed on: {order.orderDate || order.date}
                   </span>
                 </div>
 
                 <div className="order-status-block">
                   <span
                     className={`order-status-badge ${getStatusBadgeClass(
-                      order.status
+                      currentStatus
                     )}`}
                   >
-                    {order.status}
+                    {currentStatus}
                   </span>
                 </div>
               </div>
@@ -179,8 +195,8 @@ export default function MyOrders({
                 <div className="order-product-left">
                   <div className="order-img-wrap">
                     <img
-                      src={order.image}
-                      alt={order.name || "Product"}
+                      src={order.image || (order.products && order.products[0]?.image)}
+                      alt={order.name || (order.products && order.products[0]?.productName) || "Product"}
                       className="order-body-img"
                       loading="lazy"
                     />
@@ -188,7 +204,7 @@ export default function MyOrders({
 
                   <div className="order-body-info">
                     <h3 className="order-product-name">
-                      {order.name}
+                      {order.name || (order.products && order.products[0]?.productName) || "Moxie Item"}
                     </h3>
 
                     {order.variant && (
@@ -199,18 +215,22 @@ export default function MyOrders({
 
                     <div className="order-product-meta-row">
                       <span className="order-meta-qty">
-                        Qty: {order.quantity}
+                        Qty: {order.quantity || (order.products ? order.products.reduce((s, p) => s + (p.quantity || 1), 0) : 1)}
                       </span>
 
-                      <span className="order-meta-dot">
-                        •
-                      </span>
+                      {order.price && (
+                        <>
+                          <span className="order-meta-dot">•</span>
+                          <span className="order-meta-price">
+                            Price: ₹{Number(order.price).toLocaleString("en-IN")}
+                          </span>
+                        </>
+                      )}
+
+                      <span className="order-meta-dot">•</span>
 
                       <span className="order-meta-price">
-                        Price: ₹
-                        {Number(
-                          order.price || 0
-                        ).toLocaleString("en-IN")}
+                        {getPaymentBadgeText(order)}
                       </span>
                     </div>
                   </div>
@@ -222,10 +242,7 @@ export default function MyOrders({
                   </span>
 
                   <span className="order-total-amount">
-                    ₹
-                    {Number(
-                      order.total || 0
-                    ).toLocaleString("en-IN")}
+                    ₹{orderTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>
@@ -236,78 +253,64 @@ export default function MyOrders({
                   <button
                     type="button"
                     className="order-action-btn order-btn-secondary"
-                    onClick={() =>
-                      onViewDetails(order)
-                    }
+                    onClick={() => onViewDetails(order)}
                   >
                     <LuFileText
                       className="order-btn-icon"
                       aria-hidden="true"
                     />
-
                     <span>View Details</span>
                   </button>
 
-                  {/* Tracking controlled by admin setting */}
-                  {enableTracking &&
-                    statusLower !== "cancelled" && (
-                      <button
-                        type="button"
-                        className="order-action-btn order-btn-secondary"
-                        onClick={() =>
-                          onTrackOrder(order)
+                  {/* Tracking */}
+                  {enableTracking && statusLower !== "cancelled" && (
+                    <button
+                      type="button"
+                      className="order-action-btn order-btn-secondary"
+                      onClick={() => onTrackOrder(order)}
+                    >
+                      <LuTruck
+                        className="order-btn-icon"
+                        aria-hidden="true"
+                      />
+                      <span>Track Order</span>
+                    </button>
+                  )}
+
+                  {/* Cancellation */}
+                  {allowCancellation && isCancellable && (
+                    <button
+                      type="button"
+                      className="order-action-btn order-btn-cancel"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to cancel Order #${displayOrderId}?`
+                          )
+                        ) {
+                          onCancelOrder(order.id || displayOrderId);
                         }
-                      >
-                        <LuTruck
-                          className="order-btn-icon"
-                          aria-hidden="true"
-                        />
-
-                        <span>Track Order</span>
-                      </button>
-                    )}
-
-                  {/* Cancellation controlled by admin setting */}
-                  {allowCancellation &&
-                    isCancellable && (
-                      <button
-                        type="button"
-                        className="order-action-btn order-btn-cancel"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Are you sure you want to cancel Order #${order.id}?`
-                            )
-                          ) {
-                            onCancelOrder(order.id);
-                          }
-                        }}
-                      >
-                        <LuCircleX
-                          className="order-btn-icon"
-                          aria-hidden="true"
-                        />
-
-                        <span>Cancel Order</span>
-                      </button>
-                    )}
+                      }}
+                    >
+                      <LuCircleX
+                        className="order-btn-icon"
+                        aria-hidden="true"
+                      />
+                      <span>Cancel Order</span>
+                    </button>
+                  )}
 
                   {isReturnable && (
                     <button
                       type="button"
                       className="order-action-btn order-btn-secondary"
-                      onClick={() =>
-                        handleReturnExchange(order)
-                      }
+                      onClick={() => handleReturnExchange(order)}
                     >
                       <LuRefreshCcw
                         className="order-btn-icon"
                         aria-hidden="true"
                       />
-
-                      <span>
-                        Return / Exchange
-                      </span>
+                      <span>Return / Exchange</span>
                     </button>
                   )}
 
@@ -344,15 +347,12 @@ export default function MyOrders({
                   <button
                     type="button"
                     className="order-action-btn order-btn-primary"
-                    onClick={() =>
-                      handleReorder(order)
-                    }
+                    onClick={() => handleReorder(order)}
                   >
                     <LuRotateCcw
                       className="order-btn-icon"
                       aria-hidden="true"
                     />
-
                     <span>Reorder</span>
                   </button>
                 </div>

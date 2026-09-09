@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -8,9 +8,9 @@ import {
   ViewOffSlashIcon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
+import { LuPhone, LuCheck } from "react-icons/lu";
 import { useAuth } from "../../context/AuthContext";
 import { useModal } from "../../context/ModalContext";
-import { useToast } from "../../context/ToastContext";
 import "./Register.css";
 
 const GoogleIcon = () => (
@@ -35,14 +35,14 @@ const GoogleIcon = () => (
 );
 
 export default function Register() {
-  const { register, googleLogin } = useAuth();
+  const { register, signInWithGoogle } = useAuth();
   const { openLogin } = useModal();
-  const showToast = useToast();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
     email: "",
+    mobile: "",
     password: "",
     confirmPassword: "",
   });
@@ -52,50 +52,32 @@ export default function Register() {
   const [globalError, setGlobalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-  /* ── Handle Google ID token response ── */
-  const handleGoogleCredentialResponse = useCallback(
-    async (response) => {
-      if (!response?.credential) {
-        setGlobalError("Google sign-up was cancelled or failed.");
-        return;
-      }
-      setIsGoogleLoading(true);
-      setGlobalError("");
-      try {
-        await googleLogin(response.credential);
-        showToast("✓ Signed in with Google! Welcome to Moxie.");
+  /* ── Handle Shared Firebase Google Sign-In / Sign-Up ── */
+  const handleGoogleClick = async () => {
+    setGlobalError("");
+    setIsGoogleLoading(true);
+
+    try {
+      await signInWithGoogle();
+      // Google registration creates customer directly & triggers Welcome to Moxie popup
+      setTimeout(() => {
         navigate("/");
-      } catch (err) {
-        setGlobalError(err.message || "Google sign-up failed. Please try again.");
-      } finally {
-        setIsGoogleLoading(false);
-      }
-    },
-    [googleLogin, navigate, showToast]
-  );
-
-  /* ── Initialize Google Identity Services ── */
-  useEffect(() => {
-    const clientId =
-      process.env.REACT_APP_GOOGLE_CLIENT_ID ||
-      "916379236525-sample.apps.googleusercontent.com";
-
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleCredentialResponse,
-          auto_select: false,
-        });
-      } catch {
-        // Safe fallback
-      }
+      }, 1800);
+    } catch (err) {
+      setGlobalError(err.message || "Google sign-in was cancelled or failed.");
+    } finally {
+      setIsGoogleLoading(false);
     }
-  }, [handleGoogleCredentialResponse]);
+  };
 
   const update = (field) => (e) => {
-    setForm({ ...form, [field]: e.target.value });
+    let value = e.target.value;
+    if (field === "mobile") {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
+    setForm({ ...form, [field]: value });
     if (errors[field]) {
       setErrors({ ...errors, [field]: "" });
     }
@@ -109,6 +91,14 @@ export default function Register() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       errs.email = "Please enter a valid email address.";
     }
+
+    const cleanMobile = form.mobile.trim().replace(/\D/g, "");
+    if (!form.mobile.trim()) {
+      errs.mobile = "Mobile number is required.";
+    } else if (cleanMobile.length !== 10 || !/^\d{10}$/.test(form.mobile.trim())) {
+      errs.mobile = "Please enter a valid 10-digit mobile number.";
+    }
+
     if (!form.password) {
       errs.password = "Password is required.";
     } else if (form.password.length < 6) {
@@ -125,6 +115,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGlobalError("");
+
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -136,28 +127,22 @@ export default function Register() {
       await register({
         name: form.name.trim(),
         email: form.email.trim(),
+        mobile: form.mobile.trim(),
         password: form.password,
         confirmPassword: form.confirmPassword,
       });
-      showToast("✓ Account created! Welcome to Moxie.");
-      navigate("/");
+
+      // Show animated success popup ("Welcome to Moxie: Your account has been created successfully.")
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+        openLogin(); // First create, then login!
+        navigate("/");
+      }, 1900);
     } catch (err) {
       setGlobalError(err.message || "Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleGoogleClick = () => {
-    setGlobalError("");
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.prompt();
-      } catch {
-        setGlobalError("Google Sign-In is loading. Please try again.");
-      }
-    } else {
-      setGlobalError("Google Identity Services is loading. Please try again.");
     }
   };
 
@@ -169,6 +154,28 @@ export default function Register() {
   return (
     <main className="register-section">
       <div className="register-card">
+        {/* Animated MOXIE Gold Success Popup */}
+        {showSuccessPopup && (
+          <div className="register-success-popup-overlay">
+            <div className="register-success-popup-card">
+              <div className="register-success-popup-brand">MOXIE</div>
+              <div className="register-success-popup-icon-wrap">
+                <LuCheck className="register-success-popup-check-icon" />
+              </div>
+              <h3 className="register-success-popup-title">Welcome to Moxie</h3>
+              <p className="register-success-popup-desc">
+                Your account has been created successfully.
+              </p>
+              <p className="register-success-popup-sub">
+                Your style journey starts here.
+              </p>
+              <div className="register-success-popup-loader">
+                <span className="register-gold-progress-bar"></span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="register-header">
           <div className="register-brand-title">MOXIE</div>
           <h1 className="register-title">Create Your Account</h1>
@@ -182,7 +189,7 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} noValidate className="register-form">
-          {/* Name */}
+          {/* 1. Name */}
           <div className="form-group">
             <label htmlFor="reg-name" className="form-label">
               Name<span className="form-required">*</span>
@@ -206,7 +213,7 @@ export default function Register() {
             {errors.name && <p className="register-field-error">{errors.name}</p>}
           </div>
 
-          {/* Email */}
+          {/* 2. Email */}
           <div className="form-group">
             <label htmlFor="reg-email" className="form-label">
               Email Address<span className="form-required">*</span>
@@ -230,7 +237,33 @@ export default function Register() {
             {errors.email && <p className="register-field-error">{errors.email}</p>}
           </div>
 
-          {/* Password */}
+          {/* 3. Mobile Number */}
+          <div className="form-group">
+            <label htmlFor="reg-mobile" className="form-label">
+              Mobile Number<span className="form-required">*</span>
+            </label>
+            <div className="input-icon-wrapper">
+              <span className="input-icon">
+                <LuPhone size={19} strokeWidth={1.8} />
+              </span>
+              <input
+                id="reg-mobile"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                name="mobile"
+                placeholder="Enter your 10-digit mobile number"
+                value={form.mobile}
+                onChange={update("mobile")}
+                className={`register-input${errors.mobile ? " register-input--error" : ""}`}
+                autoComplete="tel"
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.mobile && <p className="register-field-error">{errors.mobile}</p>}
+          </div>
+
+          {/* 4. Password */}
           <div className="form-group">
             <label htmlFor="reg-password" className="form-label">
               Password<span className="form-required">*</span>
@@ -267,7 +300,7 @@ export default function Register() {
             {errors.password && <p className="register-field-error">{errors.password}</p>}
           </div>
 
-          {/* Confirm Password */}
+          {/* 5. Confirm Password */}
           <div className="form-group">
             <label htmlFor="reg-confirm-password" className="form-label">
               Confirm Password<span className="form-required">*</span>
@@ -316,12 +349,11 @@ export default function Register() {
             {isSubmitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
           </button>
 
-          {/* Divider */}
+          {/* Divider & Google Button */}
           <div className="register-divider">
-            <span>OR CONTINUE WITH</span>
+            <span>OR</span>
           </div>
 
-          {/* Google Button */}
           <button
             id="register-google-btn"
             type="button"
@@ -330,7 +362,9 @@ export default function Register() {
             disabled={isSubmitting || isGoogleLoading}
           >
             <GoogleIcon />
-            <span>Sign up with Google</span>
+            <span>
+              {isGoogleLoading ? "Connecting..." : "Continue with Google"}
+            </span>
           </button>
 
           {/* Switch to Sign In */}

@@ -34,7 +34,7 @@
 .style-essentials-subtitle {
   font-size: 12px;
   font-weight: 800;
-  color: #fdb101;
+  color: #c9a35c;
   text-transform: uppercase;
   letter-spacing: 2px;
   margin-bottom: 6px;
@@ -54,7 +54,7 @@
 .style-essentials-line {
   width: 55px;
   height: 3.5px;
-  background-color: #fdb101;
+  background-color: #c9a35c;
   border-radius: 999px;
   margin-top: 12px;
 }
@@ -76,7 +76,7 @@
 }
 
 .style-essentials-view-all:hover {
-  color: #fdb101;
+  color: #c9a35c;
   transform: translateY(-50%) translateX(3px);
 }
 
@@ -197,7 +197,7 @@
 }
 
 .style-wishlist-btn:focus-visible {
-  outline: 2px solid #fdb101;
+  outline: 2px solid #c9a35c;
   outline-offset: 2px;
 }
 
@@ -357,8 +357,8 @@
 }
 
 .style-add-cart-btn:hover:not(:disabled) {
-  background: #fdb101;
-  color: #000000;
+  background: #c9a35c;
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
@@ -368,7 +368,7 @@
 }
 
 .style-add-cart-btn:focus-visible {
-  outline: 2px solid #fdb101;
+  outline: 2px solid #c9a35c;
   outline-offset: 3px;
 }
 

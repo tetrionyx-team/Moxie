@@ -35,10 +35,31 @@ export const profileService = {
       // Ignore
     }
 
+    // Check if user exists in moxie_users or moxie_current_user
+    let fallbackName = email.split("@")[0].toUpperCase();
+    let fallbackMobile = "";
+
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("moxie_current_user") || "null");
+      if (currentUser && currentUser.email && currentUser.email.toLowerCase() === email.toLowerCase()) {
+        if (currentUser.name) fallbackName = currentUser.name;
+        if (currentUser.mobile) fallbackMobile = currentUser.mobile;
+      } else {
+        const users = JSON.parse(localStorage.getItem("moxie_users") || "[]");
+        const found = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        if (found) {
+          if (found.name) fallbackName = found.name;
+          if (found.mobile) fallbackMobile = found.mobile;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+
     const defaultProfile = {
-      name: email.split("@")[0].toUpperCase(),
+      name: fallbackName,
       email: email,
-      mobile: "",
+      mobile: fallbackMobile,
       avatar: DEFAULT_AVATAR,
       joinedDate: new Date().toLocaleDateString("en-IN", {
         year: "numeric",

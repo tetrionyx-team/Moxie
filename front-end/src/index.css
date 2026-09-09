@@ -1,5 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
+:root {
+  --moxie-bg: #ffffff;
+  --moxie-bg-secondary: #fafbfc;
+  --moxie-surface: #ffffff;
+  --moxie-text: #111827;
+  --moxie-text-muted: #64748b;
+  --moxie-border: #e5e7eb;
+  --moxie-border-light: rgba(0, 0, 0, 0.08);
+  --moxie-gold: #c9a35c;
+  --moxie-gold-hover: #b8924b;
+  --moxie-gold-tint: rgba(201, 163, 92, 0.10);
+  --moxie-gold-tint-hover: rgba(201, 163, 92, 0.16);
+  --moxie-gold-border: rgba(201, 163, 92, 0.35);
+  --moxie-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --moxie-shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --moxie-shadow-lg: 0 14px 35px rgba(0, 0, 0, 0.12);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,7 +28,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #fafbfc;
+  background-color: var(--moxie-bg-secondary);
+  color: var(--moxie-text);
 }
 
 /* Clear focus outlines to keep UI clean and consistent */
@@ -29,7 +48,7 @@ button, input, select {
 }
 
 .eyebrow {
-  color: #a36f00;
+  color: var(--moxie-gold);
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 2px;
@@ -45,18 +64,30 @@ button, input, select {
   padding: 12px 20px;
   font-weight: 800;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .primary-btn {
-  background: #fdb101;
-  color: #111;
+  background: #111111;
+  color: #ffffff;
   border: 0;
+}
+
+.primary-btn:hover {
+  background: var(--moxie-gold);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .secondary-btn {
   background: #fff;
   color: #111;
   border: 1px solid #ccc;
+}
+
+.secondary-btn:hover {
+  border-color: var(--moxie-gold);
+  color: var(--moxie-gold);
 }
 
 .section-heading {
@@ -85,7 +116,7 @@ button, input, select {
 }
 
 .section-heading > a:hover {
-  color: #fdb101;
+  color: var(--moxie-gold);
   transform: translateX(3px);
 }
 
@@ -118,6 +149,12 @@ button, input, select {
     flex: 0 0 180px;
   }
 }
+@media(max-width:767px){
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media(max-width:520px){
   .page-shell{width:min(100% - 24px,1180px)}
   .shelf-grid {

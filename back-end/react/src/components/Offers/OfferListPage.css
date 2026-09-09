@@ -73,6 +73,12 @@
   margin-bottom: 16px;
 }
 
+@media (max-width: 1300px) {
+  .offer-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .offer-stat-card {
   background: #ffffff;
   border-radius: 14px;

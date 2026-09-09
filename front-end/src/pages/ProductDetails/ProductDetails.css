@@ -74,8 +74,9 @@
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  position: sticky;
-  top: 100px;
+  position: static;
+  height: auto;
+  overflow: visible;
 }
 
 /* Vertical Thumbnails (Desktop) */

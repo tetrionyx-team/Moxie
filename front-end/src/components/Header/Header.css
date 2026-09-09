@@ -1,3 +1,7 @@
+/* ==========================================================================
+   MOXIE HEADER STYLES (DESKTOP & MOBILE RESPONSIVE)
+   ========================================================================== */
+
 .site-header {
   width: 100%;
   background-color: #ffffff;
@@ -7,6 +11,9 @@
   padding: 0;
 }
 
+/* ==========================================================================
+   DESKTOP HEADER (>= 768px)
+   ========================================================================== */
 .main-header-wrapper {
   width: 100%;
   background-color: #ffffff;
@@ -21,40 +28,145 @@
   gap: 30px;
 }
 
-@media (max-width: 991px) {
-  .header {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    row-gap: 14px;
-    column-gap: 16px;
-    align-items: center;
-    padding: 12px 0;
-    min-height: auto;
-  }
-
-  .header > :nth-child(1) {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .header > :nth-child(2) {
-    grid-column: 1 / span 2;
-    grid-row: 2;
-    width: 100%;
-  }
-
-  .header > :nth-child(3) {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
+/* Strictly hide mobile header bar on desktop viewports */
+@media (min-width: 768px) {
+  .mobile-header-bar {
+    display: none !important;
   }
 }
 
-@media (max-width: 480px) {
-  .header {
-    row-gap: 10px;
-    column-gap: 10px;
-    padding: 10px 0;
+/* ==========================================================================
+   MOBILE TOP HEADER (< 768px) — CLEAN PREMIUM ROW
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* Hide Desktop Nav Header and Desktop Category Bar */
+  .desktop-header-wrapper {
+    display: none !important;
+  }
+
+  .bottom-items {
+    display: none !important;
+  }
+
+  /* Compact Mobile Header Bar */
+  .mobile-header-bar {
+    display: block;
+    width: 100%;
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    position: sticky;
+    top: 0;
+    z-index: 150;
+  }
+
+  .mobile-header-inner {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: relative;
+  }
+
+  .mobile-header-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-header-logo img {
+    height: 34px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-header-icon-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #111827;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-header-icon-btn:active {
+    transform: scale(0.92);
+    color: #c9a35c;
+    background: rgba(201, 163, 92, 0.1);
+  }
+
+  .mobile-header-icon-btn.active {
+    color: #c9a35c;
+    background: rgba(201, 163, 92, 0.12);
+  }
+
+  .mobile-header-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: #c9a35c;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Expandable Search Container */
+  .mobile-expandable-search {
+    padding: 8px 16px 12px;
+    background: #ffffff;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+    animation: expandMobileSearch 0.22s ease-out;
+  }
+
+  .mobile-expandable-search .search-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .mobile-expandable-search .search-container {
+    height: 42px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+@keyframes expandMobileSearch {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

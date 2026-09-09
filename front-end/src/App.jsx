@@ -16,6 +16,7 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import SignInModal from "./components/auth/SignInModal";
 import WhatsAppButton from "./components/WhatsAppButton/WhatsAppButton";
 import CartDrawer from "./components/CartDrawer/CartDrawer";
+import MobileBottomNav from "./components/MobileBottomNav/MobileBottomNav";
 
 import MaintenancePage from "./pages/Maintenance/MaintenancePage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
@@ -194,6 +195,11 @@ function App() {
           element={<AdminRedirect target="login" />}
         />
 
+        <Route
+          path="/admin/*"
+          element={<AdminRedirect target="dashboard" />}
+        />
+
         {/* Standalone maintenance route */}
         <Route path="/maintenance" element={<MaintenancePage settings={storeSettings} />} />
 
@@ -205,6 +211,9 @@ function App() {
 
       {/* Mini Cart Drawer */}
       {!isAdminRoute && <CartDrawer />}
+
+      {/* Mobile Bottom Tab Navigation */}
+      {!isAdminRoute && <MobileBottomNav />}
 
       {/* Global WhatsApp button (hidden during Brand Intro as part of appContent) */}
       {!isAdminRoute && <WhatsAppButton />}
