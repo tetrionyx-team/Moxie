@@ -287,7 +287,9 @@ if frontend_url_env and frontend_url_env not in CORS_ALLOWED_ORIGINS:
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.netlify\.app$",
+    r"^https://.*\.onrender\.com$",
 ]
+
 
 
 CORS_ALLOW_CREDENTIALS = True
