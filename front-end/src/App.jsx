@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useLocation, useParams } from "react-router-dom";
+import { Routes, Route, useLocation, useParams, Navigate } from "react-router-dom";
 
 import Header from "./components/Header/Header";
 import Home from "./pages/Home/Home";
@@ -34,13 +34,17 @@ const ProductsSelector = () => {
 
 const AdminRedirect = ({ target }) => {
   useEffect(() => {
-    const dest =
-      target === "login"
-        ? `${BACKEND_URL}/admin/login/`
-        : `${BACKEND_URL}/admin/`;
+    const rawBackend = (BACKEND_URL || "").replace(/\/api\/?$/, "");
+    let dest = `${rawBackend}/admin/login/`;
+    if (target === "dashboard") {
+      dest = `${rawBackend}/admin/`;
+    } else if (target === "login") {
+      dest = `${rawBackend}/admin/login/`;
+    }
 
     window.location.href = dest;
   }, [target]);
+
 
   return (
     <div
@@ -182,12 +186,7 @@ function App() {
         {/* Admin redirect routes */}
         <Route
           path="/admin"
-          element={<AdminRedirect target="dashboard" />}
-        />
-
-        <Route
-          path="/admin/dashboard"
-          element={<AdminRedirect target="dashboard" />}
+          element={<Navigate to="/admin/login" replace />}
         />
 
         <Route
@@ -196,9 +195,15 @@ function App() {
         />
 
         <Route
+          path="/admin/dashboard"
+          element={<AdminRedirect target="dashboard" />}
+        />
+
+        <Route
           path="/admin/*"
           element={<AdminRedirect target="dashboard" />}
         />
+
 
         {/* Standalone maintenance route */}
         <Route path="/maintenance" element={<MaintenancePage settings={storeSettings} />} />

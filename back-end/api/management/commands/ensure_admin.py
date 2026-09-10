@@ -17,14 +17,25 @@ class Command(BaseCommand):
         email = os.environ.get('ADMIN_EMAIL', '').strip()
         password = os.environ.get('ADMIN_PASSWORD', '').strip()
 
+        if not username and email:
+            username = email.split('@')[0]
+
         if not username or not password:
             self.stdout.write(
                 self.style.WARNING(
-                    "[ensure_admin] ADMIN_USERNAME or ADMIN_PASSWORD environment variable is not set. "
+                    "[ensure_admin] ADMIN_USERNAME and ADMIN_PASSWORD environment variables are required. "
                     "Skipping superuser creation/update."
                 )
             )
             return
+
+        if not email:
+            self.stdout.write(
+                self.style.WARNING(
+                    "[ensure_admin] WARNING: ADMIN_EMAIL is not set. "
+                    "Two-factor authentication (2FA) OTP code delivery requires a valid email address on the staff account."
+                )
+            )
 
         User = get_user_model()
 
@@ -57,10 +68,11 @@ class Command(BaseCommand):
         profile.save()
 
         action = "Created new" if created else "Updated existing"
-        masked_email = user.email if user.email else "(none)"
+        masked_email = user.email if user.email else "(NO EMAIL SET - 2FA will require email)"
         self.stdout.write(
             self.style.SUCCESS(
                 f"[ensure_admin] {action} superuser account '{user.username}' "
                 f"[email: {masked_email}, is_staff=True, is_superuser=True, is_active=True]."
             )
         )
+
