@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.management.color import no_style
 from django.contrib.admin.models import LogEntry
 
-from products.models import Product, ProductImage, ProductVariant, VariantImage, Review
+from products.models import Product, ProductImage, ProductVariant, VariantImage, Review, FeaturedProduct
 from categories.models import Category, Subcategory
 from banners.models import Banner
 from api.models import (
@@ -52,6 +52,7 @@ class Command(BaseCommand):
             OrderStatusHistory,
             OrderItem,
             Order,
+            FeaturedProduct,
             VariantImage,
             ProductVariant,
             ProductImage,
@@ -76,6 +77,7 @@ class Command(BaseCommand):
             'ProductImages': ProductImage.objects.count(),
             'ProductVariants': ProductVariant.objects.count(),
             'VariantImages': VariantImage.objects.count(),
+            'FeaturedProducts': FeaturedProduct.objects.count(),
             'Categories': Category.objects.count(),
             'Subcategories': Subcategory.objects.count(),
             'Banners': Banner.objects.count(),
@@ -102,7 +104,7 @@ class Command(BaseCommand):
         if not media_root or not os.path.exists(media_root):
             return []
 
-        dynamic_dirs = ['products', 'variant_products', 'banners', 'reviews', 'categories', 'offers']
+        dynamic_dirs = ['products', 'variant_products', 'featured_products', 'banners', 'reviews', 'categories', 'offers']
         found_files = []
 
         for d in dynamic_dirs:
@@ -216,6 +218,7 @@ class Command(BaseCommand):
                 Order.objects.all().delete()
 
                 # 2. Products, Variants & Images
+                FeaturedProduct.objects.all().delete()
                 VariantImage.objects.all().delete()
                 ProductImage.objects.all().delete()
                 ProductVariant.objects.all().delete()

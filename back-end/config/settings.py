@@ -262,6 +262,8 @@ if csrf_origins_env:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_origins_env.split(',') if o.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = [
+        'https://moxie-jri0.onrender.com',
+        'https://moxie-backend-hexm.onrender.com',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',
@@ -294,6 +296,7 @@ if cors_origins_env:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins_env.split(',') if o.strip()]
 else:
     CORS_ALLOWED_ORIGINS = [
+        'https://moxie-jri0.onrender.com',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',
@@ -309,8 +312,6 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.netlify\.app$",
     r"^https://.*\.onrender\.com$",
 ]
-
-
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -395,10 +396,8 @@ WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID', ''
 
 
 # ============================================================
-# CORS CONFIGURATION
+# CORS HEADERS
 # ============================================================
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
