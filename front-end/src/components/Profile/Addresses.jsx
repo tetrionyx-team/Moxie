@@ -12,10 +12,13 @@ import {
   LuHouse,
   LuBuilding2,
   LuMap,
-  LuTag,
+  LuCrown,
+  LuZap,
+  LuChevronRight,
+  LuPackage,
 } from "react-icons/lu";
 
-// Custom Road icon for Street / Area / Locality field matching the design
+// Custom Road icon for Street / Area / Locality field matching the MOXIE luxury design
 const RoadIcon = () => (
   <svg
     width="18"
@@ -46,13 +49,25 @@ export default function Addresses({
   const [editingAddress, setEditingAddress] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg, type = "success") => {
+    setToastMessage({ text: msg, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
+    alternate_mobile_number: "",
     flat: "",
     area: "",
+    landmark: "",
     city: "",
+    district: "",
     state: "",
     pincode: "",
     type: "Home",
@@ -60,21 +75,54 @@ export default function Addresses({
   });
 
   const states = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Delhi", "Goa", "Gujarat",
-    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
-    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
-    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
-    "Uttarakhand", "West Bengal",
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chandigarh",
+    "Chhattisgarh",
+    "Delhi",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
   ];
+
+  // Dynamic statistics
+  const savedCount = addresses.length;
+  const defaultAddress = addresses.find((a) => a.isDefault || a.is_default);
+  const defaultCount = defaultAddress ? 1 : 0;
 
   const handleOpenAddModal = () => {
     setEditingAddress(null);
     setFormData({
       name: "",
       phone: "",
+      alternate_mobile_number: "",
       flat: "",
       area: "",
+      landmark: "",
       city: "",
+      district: "",
       state: "",
       pincode: "",
       type: "Home",
@@ -87,15 +135,18 @@ export default function Addresses({
   const handleOpenEditModal = (addr) => {
     setEditingAddress(addr);
     setFormData({
-      name: addr.name || "",
-      phone: addr.phone || "",
-      flat: addr.flat || "",
-      area: addr.area || "",
+      name: addr.name || addr.full_name || "",
+      phone: addr.phone || addr.mobile_number || "",
+      alternate_mobile_number: addr.alternate_mobile_number || "",
+      flat: addr.flat || addr.address_line_1 || "",
+      area: addr.area || addr.address_line_2 || "",
+      landmark: addr.landmark || "",
       city: addr.city || "",
+      district: addr.district || addr.city || "",
       state: addr.state || "",
       pincode: addr.pincode || "",
-      type: addr.type || "Home",
-      isDefault: Boolean(addr.isDefault),
+      type: addr.type || addr.address_type || "Home",
+      isDefault: Boolean(addr.isDefault || addr.is_default),
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -121,25 +172,34 @@ export default function Addresses({
       errors.phone = "Mobile Number is required.";
     } else {
       const cleanPhone = formData.phone.replace(/[^0-9]/g, "");
-      if (cleanPhone.length < 10) {
+      if (cleanPhone.length !== 10) {
         errors.phone = "Please enter a valid 10-digit mobile number.";
       }
     }
+    if (formData.alternate_mobile_number && formData.alternate_mobile_number.trim()) {
+      const cleanAlt = formData.alternate_mobile_number.replace(/[^0-9]/g, "");
+      if (cleanAlt.length !== 10) {
+        errors.alternate_mobile_number = "Alternate number must be 10 digits.";
+      }
+    }
     if (!formData.flat.trim()) {
-      errors.flat = "House / Flat / Building is required.";
+      errors.flat = "House / Flat / Building / Address Line 1 is required.";
     }
     if (!formData.city.trim()) {
       errors.city = "City is required.";
+    }
+    if (!formData.district.trim() && !formData.city.trim()) {
+      errors.district = "District is required.";
     }
     if (!formData.state.trim()) {
       errors.state = "State is required.";
     }
     if (!formData.pincode.trim()) {
-      errors.pincode = "Pincode is required.";
+      errors.pincode = "PIN Code is required.";
     } else {
       const cleanPin = formData.pincode.replace(/[^0-9]/g, "");
       if (cleanPin.length !== 6) {
-        errors.pincode = "Pincode must be a 6-digit number.";
+        errors.pincode = "PIN Code must be a 6-digit number.";
       }
     }
 
@@ -149,36 +209,100 @@ export default function Addresses({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm() || submitting) return;
 
-    if (editingAddress) {
-      if (onUpdateAddress) {
-        await onUpdateAddress(editingAddress.id, formData);
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        full_name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        mobile_number: formData.phone.trim(),
+        alternate_mobile_number: formData.alternate_mobile_number?.trim() || "",
+        flat: formData.flat.trim(),
+        address_line_1: formData.flat.trim(),
+        area: formData.area.trim(),
+        address_line_2: formData.area.trim(),
+        landmark: formData.landmark.trim(),
+        city: formData.city.trim(),
+        district: (formData.district.trim() || formData.city.trim()),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+        type: formData.type || "Home",
+        address_type: formData.type || "Home",
+        isDefault: Boolean(formData.isDefault),
+        is_default: Boolean(formData.isDefault),
+      };
+
+      if (editingAddress) {
+        if (onUpdateAddress) {
+          await onUpdateAddress(editingAddress.id, payload);
+        }
+        showToast("Address updated successfully.");
+      } else {
+        if (onAddAddress) {
+          await onAddAddress(payload);
+        }
+        showToast("Address saved successfully.");
       }
-    } else {
-      if (onAddAddress) {
-        await onAddAddress(formData);
+      setIsModalOpen(false);
+    } catch (err) {
+      showToast(err.message || "Failed to save address.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSetDefaultClick = async (addrId) => {
+    if (onSetDefault) {
+      try {
+        await onSetDefault(addrId);
+        showToast("Default address updated.");
+      } catch (err) {
+        showToast(err.message || "Failed to update default address.", "error");
       }
     }
-
-    setIsModalOpen(false);
   };
 
   const confirmDelete = async () => {
     if (deleteTargetId && onDeleteAddress) {
-      await onDeleteAddress(deleteTargetId);
-      setDeleteTargetId(null);
+      try {
+        await onDeleteAddress(deleteTargetId);
+        setDeleteTargetId(null);
+        showToast("Address deleted successfully.");
+      } catch (err) {
+        showToast(err.message || "Failed to delete address.", "error");
+      }
     }
   };
 
   return (
     <div className="addresses-container">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className={`address-toast ${toastMessage.type === "error" ? "toast-error" : "toast-success"}`}
+          role="status"
+        >
+          <span>{toastMessage.type === "error" ? "⚠️" : "✓"}</span>
+          <span>{toastMessage.text}</span>
+          <button
+            type="button"
+            className="toast-close-btn"
+            onClick={() => setToastMessage(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* 1. Header */}
       <div className="addresses-header-wrap">
-        <div>
-          <h2 className="addresses-page-title">My Addresses</h2>
+        <div className="addresses-title-block">
+          <span className="addresses-eyebrow">MY ACCOUNT</span>
+          <h1 className="addresses-page-title">My Addresses</h1>
           <p className="addresses-page-subtitle">
-            Manage your saved delivery addresses.
+            Manage your saved delivery addresses for a faster, smoother checkout experience.
           </p>
         </div>
         <button
@@ -191,7 +315,54 @@ export default function Addresses({
         </button>
       </div>
 
-      {/* 2. Content */}
+      {/* 2. Dynamic Summary Cards (Values from real API data) */}
+      <div className="addresses-summary-grid">
+        {/* Card 1: Saved Addresses Count */}
+        <div className="summary-stat-card">
+          <div className="stat-icon-circle gold">
+            <LuMapPin />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value-row">
+              <span className="stat-number">{savedCount}</span>
+            </div>
+            <span className="stat-label">Saved Addresses</span>
+            <span className="stat-desc">Keep track of your delivery locations</span>
+          </div>
+        </div>
+
+        {/* Card 2: Default Address Status */}
+        <div className="summary-stat-card">
+          <div className="stat-icon-circle gold">
+            <LuCrown />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value-row">
+              <span className="stat-number">{defaultCount}</span>
+            </div>
+            <span className="stat-label">Default Address</span>
+            <span className="stat-desc">
+              {defaultAddress ? "Used for faster checkout" : "No default address"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Faster Checkout Info */}
+        <div className="summary-stat-card informational">
+          <div className="stat-icon-circle gold">
+            <LuZap />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label prominent">Faster Checkout</span>
+            <span className="stat-desc">Save time on every order</span>
+          </div>
+          <div className="stat-arrow-circle" aria-hidden="true">
+            <LuChevronRight />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Address Content Grid / Empty State */}
       {addresses.length === 0 ? (
         /* Empty State */
         <div className="addresses-empty-state">
@@ -200,7 +371,7 @@ export default function Addresses({
           </div>
           <h3 className="addresses-empty-title">No saved addresses</h3>
           <p className="addresses-empty-subtitle">
-            Add a delivery address to make checkout faster.
+            Add your first delivery address for a faster checkout experience.
           </p>
           <button
             type="button"
@@ -212,72 +383,78 @@ export default function Addresses({
           </button>
         </div>
       ) : (
-        /* Address Grid */
+        /* Dynamic Address Grid */
         <div className="addresses-grid">
           {addresses.map((addr) => {
-            const labelType = (addr.type || "HOME").toUpperCase();
-            const locationLine2 = [addr.city, addr.state]
-              .filter(Boolean)
-              .join(", ");
+            const labelType = (addr.type || addr.address_type || "Home").toUpperCase();
+            const displayName = addr.name || addr.full_name || "Customer";
+            const displayPhone = addr.phone || addr.mobile_number || "";
+            const line1 = addr.flat || addr.address_line_1 || "";
+            const line2 = addr.area || addr.address_line_2 || "";
+            const landmark = addr.landmark || "";
+            const isDefault = Boolean(addr.isDefault || addr.is_default);
+
+            const cityPart = addr.city || "";
+            const statePart = addr.state || "";
+            const pinPart = addr.pincode || "";
+
+            const locationLine2 = [cityPart, statePart].filter(Boolean).join(", ");
             const fullLocation = locationLine2
-              ? `${locationLine2}${addr.pincode ? ` - ${addr.pincode}` : ""}`
-              : addr.pincode || "";
+              ? `${locationLine2}${pinPart ? ` ${pinPart}` : ""}`
+              : pinPart;
 
             return (
               <article
                 key={addr.id}
-                className={`address-item-card ${addr.isDefault ? "is-default" : ""}`}
-                aria-label={`Address for ${addr.name}`}
+                className={`address-item-card ${isDefault ? "is-default" : ""}`}
+                aria-label={`Address for ${displayName}`}
               >
-                {/* Card Header: Label & Default Badge */}
+                {/* Card Header: Type Badge & Default Badge */}
                 <div className="address-card-header">
-                  <span className="address-type-pill">
+                  <span className={`address-type-pill ${labelType.toLowerCase()}`}>
                     <LuMapPin className="address-type-icon" aria-hidden="true" />
-                    <span>{labelType === "WORK" ? "Work" : labelType === "OTHER" ? "Other" : "Home"}</span>
+                    <span>
+                      {labelType === "WORK" ? "Work" : labelType === "OTHER" ? "Other" : "Home"}
+                    </span>
                   </span>
 
-                  {addr.isDefault && (
+                  {isDefault && (
                     <span className="address-default-badge">
-                      <LuCheck className="badge-check-icon" aria-hidden="true" />
-                      <span>DEFAULT</span>
+                      <LuCrown className="badge-crown-icon" aria-hidden="true" />
+                      <span>Default</span>
                     </span>
                   )}
                 </div>
 
                 {/* Card Body */}
                 <div className="address-card-body">
-                  <h3 className="address-user-name">{addr.name}</h3>
-                  {addr.phone && <p className="address-user-phone">{addr.phone}</p>}
-
-                  <p className="address-location-text">
-                    {addr.flat && (
-                      <>
-                        {addr.flat}
-                        <br />
-                      </>
-                    )}
-                    {addr.area && (
-                      <>
-                        {addr.area}
-                        <br />
-                      </>
-                    )}
-                    {fullLocation}
-                  </p>
-                </div>
-
-                {/* Card Actions */}
-                <div className="address-actions-row">
-                  {!addr.isDefault && onSetDefault && (
-                    <button
-                      type="button"
-                      className="address-action-btn address-btn-default"
-                      onClick={() => onSetDefault(addr.id)}
-                    >
-                      <span>Set as Default</span>
-                    </button>
+                  <h3 className="address-user-name">{displayName}</h3>
+                  {displayPhone && (
+                    <p className="address-user-phone">
+                      {displayPhone.startsWith("+91") ? displayPhone : `+91 ${displayPhone}`}
+                    </p>
                   )}
 
+                  <div className="address-location-box">
+                    <div className="address-loc-pin-icon" aria-hidden="true">
+                      <LuMapPin />
+                    </div>
+                    <div className="address-location-text">
+                      {line1 && (
+                        <span>
+                          {line1}
+                          {line2 ? `, ${line2}` : ""}
+                        </span>
+                      )}
+                      {!line1 && line2 && <span>{line2}</span>}
+                      {landmark && <span className="address-landmark-text">Landmark: {landmark}</span>}
+                      <span>{fullLocation}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Actions Row */}
+                <div className="address-actions-row">
                   <button
                     type="button"
                     className="address-action-btn address-btn-edit"
@@ -295,6 +472,23 @@ export default function Addresses({
                     <LuTrash2 className="order-btn-icon" aria-hidden="true" />
                     <span>Delete</span>
                   </button>
+
+                  {isDefault ? (
+                    <div className="address-default-indicator-pill">
+                      <LuCheck className="order-btn-icon" aria-hidden="true" />
+                      <span>Default Address</span>
+                    </div>
+                  ) : (
+                    onSetDefault && (
+                      <button
+                        type="button"
+                        className="address-action-btn address-btn-default"
+                        onClick={() => handleSetDefaultClick(addr.id)}
+                      >
+                        <span>Set as Default</span>
+                      </button>
+                    )
+                  )}
                 </div>
               </article>
             );
@@ -302,9 +496,47 @@ export default function Addresses({
         </div>
       )}
 
-      {/* Add / Edit Address Modal */}
+      {/* 4. Bottom Promo / Value Banner */}
+      <div className="addresses-bottom-banner">
+        <div className="banner-left-visual">
+          <div className="banner-package-icon-wrap" aria-hidden="true">
+            <LuPackage />
+          </div>
+          <div className="banner-text-block">
+            <span className="banner-eyebrow">
+              A SMALL STEP FOR A SMOOTHER SHOPPING EXPERIENCE
+            </span>
+            <h3 className="banner-heading">Add and manage your addresses</h3>
+            <p className="banner-desc">
+              Save your delivery addresses to enjoy a faster, more seamless checkout experience
+              across all your favorite styles on MOXIE.
+            </p>
+          </div>
+        </div>
+        <div className="banner-right-action">
+          <button
+            type="button"
+            className="banner-add-btn"
+            onClick={handleOpenAddModal}
+          >
+            <LuPlus className="btn-icon" aria-hidden="true" />
+            <span>Add New Address</span>
+          </button>
+          <div className="banner-script-quote">
+            <span className="script-text">Good Style Travels Far ♡</span>
+            <span className="script-sub">SHOP MORE. WORRY LESS.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Add / Edit Address Modal */}
       {isModalOpen && (
-        <div className="address-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="address-modal-title">
+        <div
+          className="address-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="address-modal-title"
+        >
           <div className="address-modal-container address-modal-card-premium">
             {/* Modal Header */}
             <div className="address-modal-header-premium">
@@ -319,7 +551,7 @@ export default function Addresses({
                   <p className="address-modal-subtitle-premium">
                     {editingAddress
                       ? "Update your delivery address details."
-                      : "Add your delivery address details."}
+                      : "Save your delivery address for a faster checkout."}
                   </p>
                 </div>
               </div>
@@ -351,7 +583,7 @@ export default function Addresses({
                       className={`address-field-input ${formErrors.name ? "has-error" : ""}`}
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="e.g. Amit Kumar"
+                      placeholder="e.g. Harish Raja"
                       required
                     />
                     {formErrors.name && (
@@ -373,10 +605,11 @@ export default function Addresses({
                       id="addressPhone"
                       type="tel"
                       name="phone"
+                      maxLength={10}
                       className={`address-field-input ${formErrors.phone ? "has-error" : ""}`}
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="+91 98765 43210"
+                      placeholder="10-digit mobile number"
                       required
                     />
                     {formErrors.phone && (
@@ -385,7 +618,7 @@ export default function Addresses({
                   </div>
                 </div>
 
-                {/* 3. House / Flat / Building */}
+                {/* 3. House / Flat / Building / Address Line 1 */}
                 <div className="address-field-card">
                   <div className="address-field-icon-box" aria-hidden="true">
                     <LuHouse />
@@ -401,7 +634,7 @@ export default function Addresses({
                       className={`address-field-input ${formErrors.flat ? "has-error" : ""}`}
                       value={formData.flat}
                       onChange={handleChange}
-                      placeholder="e.g. Flat 402, Building C"
+                      placeholder="e.g. 12, Sunshine Apartments"
                       required
                     />
                     {formErrors.flat && (
@@ -417,24 +650,42 @@ export default function Addresses({
                   </div>
                   <div className="address-field-content">
                     <label className="address-field-label" htmlFor="addressArea">
-                      STREET / AREA / LOCALITY <span className="text-danger">*</span>
+                      STREET / AREA / LOCALITY
                     </label>
                     <input
                       id="addressArea"
                       type="text"
                       name="area"
-                      className={`address-field-input ${formErrors.area ? "has-error" : ""}`}
+                      className="address-field-input"
                       value={formData.area}
                       onChange={handleChange}
-                      placeholder="e.g. Opposite Town Park"
+                      placeholder="e.g. MG Road, Near Central Mall"
                     />
-                    {formErrors.area && (
-                      <span className="profile-form-error">{formErrors.area}</span>
-                    )}
                   </div>
                 </div>
 
-                {/* 5. City */}
+                {/* 5. Landmark */}
+                <div className="address-field-card">
+                  <div className="address-field-icon-box" aria-hidden="true">
+                    <LuMapPin />
+                  </div>
+                  <div className="address-field-content">
+                    <label className="address-field-label" htmlFor="addressLandmark">
+                      LANDMARK
+                    </label>
+                    <input
+                      id="addressLandmark"
+                      type="text"
+                      name="landmark"
+                      className="address-field-input"
+                      value={formData.landmark}
+                      onChange={handleChange}
+                      placeholder="e.g. Opposite Town Hall"
+                    />
+                  </div>
+                </div>
+
+                {/* 6. City */}
                 <div className="address-field-card">
                   <div className="address-field-icon-box" aria-hidden="true">
                     <LuBuilding2 />
@@ -450,7 +701,7 @@ export default function Addresses({
                       className={`address-field-input ${formErrors.city ? "has-error" : ""}`}
                       value={formData.city}
                       onChange={handleChange}
-                      placeholder="e.g. Chandigarh"
+                      placeholder="e.g. Chennai"
                       required
                     />
                     {formErrors.city && (
@@ -459,7 +710,32 @@ export default function Addresses({
                   </div>
                 </div>
 
-                {/* 6. State */}
+                {/* 7. District */}
+                <div className="address-field-card">
+                  <div className="address-field-icon-box" aria-hidden="true">
+                    <LuBuilding2 />
+                  </div>
+                  <div className="address-field-content">
+                    <label className="address-field-label" htmlFor="addressDistrict">
+                      DISTRICT <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="addressDistrict"
+                      type="text"
+                      name="district"
+                      className={`address-field-input ${formErrors.district ? "has-error" : ""}`}
+                      value={formData.district}
+                      onChange={handleChange}
+                      placeholder="e.g. Chennai District"
+                      required
+                    />
+                    {formErrors.district && (
+                      <span className="profile-form-error">{formErrors.district}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 8. State */}
                 <div className="address-field-card">
                   <div className="address-field-icon-box" aria-hidden="true">
                     <LuMap />
@@ -491,14 +767,14 @@ export default function Addresses({
                   </div>
                 </div>
 
-                {/* 7. Pincode */}
+                {/* 9. PIN Code */}
                 <div className="address-field-card">
                   <div className="address-field-icon-box" aria-hidden="true">
                     <LuMapPin />
                   </div>
                   <div className="address-field-content">
                     <label className="address-field-label" htmlFor="addressPincode">
-                      PINCODE <span className="text-danger">*</span>
+                      PIN CODE <span className="text-danger">*</span>
                     </label>
                     <input
                       id="addressPincode"
@@ -508,37 +784,12 @@ export default function Addresses({
                       value={formData.pincode}
                       onChange={handleChange}
                       maxLength="6"
-                      placeholder="160017"
+                      placeholder="6-digit PIN"
                       required
                     />
                     {formErrors.pincode && (
                       <span className="profile-form-error">{formErrors.pincode}</span>
                     )}
-                  </div>
-                </div>
-
-                {/* 8. Address Type */}
-                <div className="address-field-card">
-                  <div className="address-field-icon-box" aria-hidden="true">
-                    <LuTag />
-                  </div>
-                  <div className="address-field-content">
-                    <label className="address-field-label" htmlFor="addressType">
-                      ADDRESS TYPE
-                    </label>
-                    <div className="address-select-wrap">
-                      <select
-                        id="addressType"
-                        name="type"
-                        className="address-field-select"
-                        value={formData.type}
-                        onChange={handleChange}
-                      >
-                        <option value="Home">Home (All-day delivery)</option>
-                        <option value="Work">Work (Delivery 9 AM - 5 PM)</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -554,7 +805,10 @@ export default function Addresses({
                   disabled={editingAddress?.isDefault && addresses.length > 1}
                   className="address-default-input-hidden"
                 />
-                <div className={`address-custom-checkbox ${formData.isDefault ? "is-checked" : ""}`} aria-hidden="true">
+                <div
+                  className={`address-custom-checkbox ${formData.isDefault ? "is-checked" : ""}`}
+                  aria-hidden="true"
+                >
                   {formData.isDefault && <LuCheck />}
                 </div>
                 <div className="address-default-card-text">
@@ -562,7 +816,7 @@ export default function Addresses({
                     Set as my default delivery address
                   </span>
                   <span className="address-default-card-desc">
-                    This address will be used by default at checkout.
+                    This address will be automatically selected during checkout.
                   </span>
                 </div>
               </label>
@@ -573,11 +827,18 @@ export default function Addresses({
                   type="button"
                   className="address-modal-btn-cancel"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={submitting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="address-modal-btn-submit">
-                  {editingAddress ? (
+                <button
+                  type="submit"
+                  className="address-modal-btn-submit"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <span>Saving...</span>
+                  ) : editingAddress ? (
                     <>
                       <LuPencil className="btn-icon" aria-hidden="true" />
                       <span>Update Address</span>
@@ -595,9 +856,14 @@ export default function Addresses({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* 6. Delete Confirmation Modal */}
       {deleteTargetId && (
-        <div className="address-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-address-title">
+        <div
+          className="address-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-address-title"
+        >
           <div className="address-modal-container address-delete-modal-container">
             <div className="address-delete-icon-wrap" aria-hidden="true">
               <LuTriangleAlert />
@@ -606,7 +872,7 @@ export default function Addresses({
               Delete this address?
             </h3>
             <p className="address-delete-desc">
-              This action cannot be undone.
+              This address will be removed from your saved addresses. This action cannot be undone.
             </p>
             <div className="address-delete-actions">
               <button

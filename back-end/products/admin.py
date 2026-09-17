@@ -1,23 +1,26 @@
 from django.contrib import admin
+from api.permissions_utils import StaffPermissionAdminMixin
+from .models import Product, ProductImage, Review, FeaturedProduct
 
-from .models import Product, ProductImage, Review
 
-
-class ProductImageInline(admin.TabularInline):
+class ProductImageInline(StaffPermissionAdminMixin, admin.TabularInline):
     model = ProductImage
     extra = 1
     max_num = 3
+    required_module = 'products'
 
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'products'
     list_display = (
         'name',
         'category',
         'subcategory',
         'price',
         'discount_price',
+        'shipping_charge',
         'stock',
         'is_active',
         'created_at',
@@ -50,6 +53,7 @@ class ProductAdmin(admin.ModelAdmin):
             try:
                 obj = self.get_object(request, object_id)
                 if obj:
+                    p_images = [{'id': img.id, 'url': img.image.url, 'is_primary': img.is_primary} for img in obj.images.all()]
                     initial_data = {
                         'name': obj.name,
                         'category': obj.category_id,
@@ -57,7 +61,12 @@ class ProductAdmin(admin.ModelAdmin):
                         'description': obj.description,
                         'price': str(obj.price),
                         'discount_price': str(obj.discount_price) if obj.discount_price else '',
+                        'shipping_charge': str(obj.shipping_charge) if obj.shipping_charge is not None else '0.00',
                         'stock': obj.stock,
+                        'video': obj.video.url if obj.video else None,
+                        'video_name': obj.video.name.split('/')[-1] if obj.video else '',
+                        'images': p_images,
+                        'existing_images': p_images,
                     }
                     extra_context['initial_data_json'] = json.dumps(initial_data, cls=DjangoJSONEncoder)
 
@@ -73,9 +82,29 @@ class ProductAdmin(admin.ModelAdmin):
                             'stock': v.stock,
                             'sizes': v.sizes if isinstance(v.sizes, list) else [],
                             'is_active': v.is_active,
+                            'video': v.video.url if v.video else None,
+                            'video_name': v.video.name.split('/')[-1] if v.video else '',
                             'images': images,
                             'existing_images': images,
                         })
+
+                    if not variants:
+                        variants.append({
+                            'id': None,
+                            'temp_id': 'v-default',
+                            'color_name': 'Default',
+                            'color_code': '#000000',
+                            'price': str(obj.price),
+                            'discount_price': str(obj.discount_price) if obj.discount_price else '',
+                            'stock': obj.stock,
+                            'sizes': [],
+                            'is_active': True,
+                            'video': obj.video.url if obj.video else None,
+                            'video_name': obj.video.name.split('/')[-1] if obj.video else '',
+                            'images': p_images,
+                            'existing_images': p_images,
+                        })
+
                     extra_context['existing_variants_json'] = json.dumps(variants, cls=DjangoJSONEncoder)
             except Exception:
                 pass
@@ -99,37 +128,104 @@ class ProductAdmin(admin.ModelAdmin):
         super().save_related(request, form, formsets, change)
         product = form.instance
         import json
+        import os
+        from django.db import transaction
         from .models import ProductVariant, VariantImage, ProductImage
 
+        ALLOWED_VIDEO_EXTS = ('.mp4', '.webm')
+        MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB
+
+        # 1. Handle Main Product Video
+        remove_p_vid = request.POST.get('remove_product_video')
+        if remove_p_vid in ['1', 'true', True]:
+            if product.video:
+                product.video = None
+                product.save(update_fields=['video'])
+
+        if 'product_video' in request.FILES:
+            p_vid = request.FILES['product_video']
+            ext = os.path.splitext(p_vid.name)[1].lower()
+            if ext in ALLOWED_VIDEO_EXTS and p_vid.size <= MAX_VIDEO_SIZE:
+                product.video = p_vid
+                product.save(update_fields=['video'])
+
+        # 2. Handle Main Product Images (if submitted directly)
+        deleted_p_img_ids = request.POST.getlist('deleted_product_image_ids')
+        if deleted_p_img_ids:
+            ProductImage.objects.filter(product=product, id__in=deleted_p_img_ids).delete()
+
+        p_prim_id = request.POST.get('product_primary_image_id')
+        if p_prim_id and str(p_prim_id).isdigit():
+            product.images.all().update(is_primary=False)
+            product.images.filter(id=int(p_prim_id)).update(is_primary=True)
+
+        p_f_idx = 0
+        while True:
+            key = f"product_img_{p_f_idx}"
+            if key in request.FILES:
+                up_file = request.FILES[key]
+                is_p_prim = (not p_prim_id and p_f_idx == 0 and not product.images.filter(is_primary=True).exists())
+                ProductImage.objects.create(
+                    product=product,
+                    image=up_file,
+                    is_primary=is_p_prim
+                )
+                p_f_idx += 1
+            else:
+                break
+
+        # 3. Handle Variants & Variant Media
         variant_payload = request.POST.get('variant_payload_json')
         if variant_payload:
             try:
-                variants_data = json.loads(variant_payload)
-                if isinstance(variants_data, list):
-                    submitted_variant_ids = []
+                with transaction.atomic():
+                    variants_data = json.loads(variant_payload)
+                    if isinstance(variants_data, list):
+                        submitted_variant_ids = []
 
-                    for v_idx, v_data in enumerate(variants_data):
-                        v_id = v_data.get('id')
-                        price_val = v_data.get('price') or product.price or 0
-                        disc_val = v_data.get('discount_price') or None
-                        if disc_val == '':
-                            disc_val = None
-                        stock_val = int(v_data.get('stock') or 0)
-                        sizes_val = v_data.get('sizes') or []
+                        for v_idx, v_data in enumerate(variants_data):
+                            v_id = v_data.get('id')
+                            price_val = v_data.get('price') or product.price or 0
+                            disc_val = v_data.get('discount_price') or None
+                            if disc_val == '' or disc_val is None:
+                                disc_val = None
+                            else:
+                                try:
+                                    from decimal import Decimal
+                                    if Decimal(str(disc_val)) <= 0 or Decimal(str(disc_val)) >= Decimal(str(price_val)):
+                                        disc_val = None
+                                except Exception:
+                                    disc_val = None
+                            stock_val = int(v_data.get('stock') or 0)
+                            sizes_val = v_data.get('sizes') or []
 
-                        if v_id and str(v_id).isdigit():
-                            try:
-                                variant_obj = ProductVariant.objects.get(id=int(v_id), product=product)
-                                variant_obj.color_name = v_data.get('color_name') or 'Default'
-                                variant_obj.color_code = v_data.get('color_code') or '#000000'
-                                variant_obj.price = price_val
-                                variant_obj.discount_price = disc_val
-                                variant_obj.stock = stock_val
-                                variant_obj.sizes = sizes_val
-                                variant_obj.is_active = bool(v_data.get('is_active', True))
-                                variant_obj.save()
-                            except ProductVariant.DoesNotExist:
-                                variant_obj = ProductVariant.objects.create(
+                            if v_id and str(v_id).isdigit():
+                                try:
+                                    variant_obj = ProductVariant.objects.get(id=int(v_id), product=product)
+                                    variant_obj.color_name = v_data.get('color_name') or 'Default'
+                                    variant_obj.color_code = v_data.get('color_code') or '#000000'
+                                    variant_obj.price = price_val
+                                    variant_obj.discount_price = disc_val
+                                    variant_obj.stock = stock_val
+                                    variant_obj.sizes = sizes_val
+                                    variant_obj.is_active = bool(v_data.get('is_active', True))
+                                    variant_obj._suppress_notification = True
+                                    variant_obj.save()
+                                except ProductVariant.DoesNotExist:
+                                    variant_obj = ProductVariant(
+                                        product=product,
+                                        color_name=v_data.get('color_name') or 'Default',
+                                        color_code=v_data.get('color_code') or '#000000',
+                                        price=price_val,
+                                        discount_price=disc_val,
+                                        stock=stock_val,
+                                        sizes=sizes_val,
+                                        is_active=bool(v_data.get('is_active', True))
+                                    )
+                                    variant_obj._suppress_notification = True
+                                    variant_obj.save()
+                            else:
+                                variant_obj = ProductVariant(
                                     product=product,
                                     color_name=v_data.get('color_name') or 'Default',
                                     color_code=v_data.get('color_code') or '#000000',
@@ -139,55 +235,71 @@ class ProductAdmin(admin.ModelAdmin):
                                     sizes=sizes_val,
                                     is_active=bool(v_data.get('is_active', True))
                                 )
-                        else:
-                            variant_obj = ProductVariant.objects.create(
-                                product=product,
-                                color_name=v_data.get('color_name') or 'Default',
-                                color_code=v_data.get('color_code') or '#000000',
-                                price=price_val,
-                                discount_price=disc_val,
-                                stock=stock_val,
-                                sizes=sizes_val,
-                                is_active=bool(v_data.get('is_active', True))
-                            )
+                                variant_obj._suppress_notification = True
+                                variant_obj.save()
 
-                        submitted_variant_ids.append(variant_obj.id)
+                            submitted_variant_ids.append(variant_obj.id)
 
-                        # Handle deleted images
-                        deleted_img_ids = v_data.get('deleted_image_ids') or []
-                        if deleted_img_ids:
-                            VariantImage.objects.filter(variant=variant_obj, id__in=deleted_img_ids).delete()
+                            # Handle Variant Video
+                            if v_data.get('remove_video'):
+                                variant_obj.video = None
+                                variant_obj.save(update_fields=['video'])
 
-                        primary_img_id = v_data.get('primary_image_id')
-                        primary_img_index = v_data.get('primary_image_index', 0)
+                            var_vid_key = f"variant_video_{v_idx}"
+                            if var_vid_key in request.FILES:
+                                v_vid_file = request.FILES[var_vid_key]
+                                ext = os.path.splitext(v_vid_file.name)[1].lower()
+                                if ext in ALLOWED_VIDEO_EXTS and v_vid_file.size <= MAX_VIDEO_SIZE:
+                                    variant_obj.video = v_vid_file
+                                    variant_obj.save(update_fields=['video'])
 
-                        # Save new uploaded images
-                        uploaded_files = []
-                        f_idx = 0
-                        while True:
-                            key = f"variant_img_{v_idx}_{f_idx}"
-                            if key in request.FILES:
-                                uploaded_files.append(request.FILES[key])
-                                f_idx += 1
-                            else:
-                                break
+                            # Handle deleted images
+                            deleted_img_ids = v_data.get('deleted_image_ids') or []
+                            if deleted_img_ids:
+                                VariantImage.objects.filter(variant=variant_obj, id__in=deleted_img_ids).delete()
 
-                        for u_idx, up_file in enumerate(uploaded_files):
-                            is_prim = (not primary_img_id and primary_img_index == u_idx) or (u_idx == 0 and not variant_obj.images.filter(is_primary=True).exists())
-                            VariantImage.objects.create(
-                                variant=variant_obj,
-                                image=up_file,
-                                is_primary=is_prim
-                            )
-                            if not ProductImage.objects.filter(product=product).exists() or is_prim:
-                                ProductImage.objects.create(
-                                    product=product,
+                            primary_img_id = v_data.get('primary_image_id')
+                            primary_img_index = v_data.get('primary_image_index', 0)
+
+                            # Handle primary image on existing images
+                            if primary_img_id:
+                                variant_obj.images.all().update(is_primary=False)
+                                variant_obj.images.filter(id=primary_img_id).update(is_primary=True)
+
+                            # Save new uploaded images
+                            uploaded_files = []
+                            f_idx = 0
+                            while True:
+                                key = f"variant_img_{v_idx}_{f_idx}"
+                                if key in request.FILES:
+                                    uploaded_files.append(request.FILES[key])
+                                    f_idx += 1
+                                else:
+                                    break
+
+                            for u_idx, up_file in enumerate(uploaded_files):
+                                is_prim = (not primary_img_id and primary_img_index == u_idx) or (u_idx == 0 and not variant_obj.images.filter(is_primary=True).exists())
+                                VariantImage.objects.create(
+                                    variant=variant_obj,
                                     image=up_file,
                                     is_primary=is_prim
                                 )
 
-                    if change and submitted_variant_ids:
-                        ProductVariant.objects.filter(product=product).exclude(id__in=submitted_variant_ids).delete()
+                        if change and submitted_variant_ids:
+                            ProductVariant.objects.filter(product=product).exclude(id__in=submitted_variant_ids).delete()
+
+                        # Recalculate and synchronize product stock/prices
+                        first_var = product.variants.first()
+                        if first_var:
+                            product.price = first_var.price
+                            product.discount_price = first_var.discount_price
+                            product.stock = sum(v.stock for v in product.variants.all())
+                            product.is_active = product.variants.filter(is_active=True).exists()
+                            try:
+                                product._suppress_notification = True
+                                product.save(update_fields=['price', 'discount_price', 'stock', 'is_active'])
+                            finally:
+                                product._suppress_notification = False
 
             except Exception as e:
                 import logging
@@ -195,7 +307,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
+class ReviewAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'reviews'
     list_display = (
         'name',
         'rating',
@@ -212,4 +325,29 @@ class ReviewAdmin(admin.ModelAdmin):
         'name',
         'text',
     )
+
+
+@admin.register(FeaturedProduct)
+class FeaturedProductAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'featured_products'
+    list_display = (
+        'product',
+        'feature_type',
+        'badge_text',
+        'sort_order',
+        'is_active',
+        'start_date',
+        'end_date',
+        'created_at',
+    )
+    list_filter = (
+        'feature_type',
+        'is_active',
+    )
+    search_fields = (
+        'product__name',
+        'badge_text',
+    )
+    ordering = ('sort_order', '-created_at')
+
 

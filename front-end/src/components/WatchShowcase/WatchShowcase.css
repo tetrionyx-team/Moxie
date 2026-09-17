@@ -1,0 +1,605 @@
+/* ===================================================
+   MOXIE — PREMIUM LIMITED-TIME PROMOTIONAL SHOWCASE
+   Palette:
+   - Deep Navy: #071426
+   - Rich Gold: #C99B45 / #D5AD62
+   - Light Gold / Pedestal: #F5E5C8 / #D8B775
+   - Cream Canvas: #FBF7EF / #F7F1E7
+   - Struck Grey: #717F94
+   =================================================== */
+
+.moxie-featured-picks-section {
+  background: #fbf7ef;
+  background: linear-gradient(180deg, #fbf7ef 0%, #f7f1e7 100%);
+  padding: 44px 20px 54px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.moxie-featured-picks-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Section Header */
+.moxie-picks-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+.moxie-picks-pill {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d5ad62;
+  background: #071426;
+  border: 1px solid rgba(213, 173, 98, 0.35);
+  padding: 5px 16px;
+  border-radius: 30px;
+  box-shadow: 0 3px 12px rgba(7, 20, 38, 0.14);
+  margin-bottom: 10px;
+}
+
+.moxie-picks-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #071426;
+  letter-spacing: -0.5px;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
+
+.moxie-picks-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ===================================================
+   FLOATING SHOWCASE GRID (NO BIG OUTER BOX/CARD)
+   =================================================== */
+.moxie-picks-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 28px;
+  margin: 0 auto;
+}
+
+/* Centering layouts for 1, 2, 3, or 4 products */
+.moxie-picks-grid.count-1 .moxie-promo-item {
+  max-width: 330px;
+}
+
+.moxie-picks-grid.count-2 .moxie-promo-item {
+  max-width: 320px;
+}
+
+.moxie-picks-grid.count-3 .moxie-promo-item {
+  max-width: 300px;
+}
+
+.moxie-picks-grid.count-4 .moxie-promo-item {
+  max-width: 280px;
+}
+
+/* Individual Promotional Item Showcase (Transparent Outer Container, Shorter & Compact) */
+.moxie-promo-item {
+  width: 100%;
+  max-width: 310px;
+  flex: 1 1 270px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.moxie-promo-item:focus-visible {
+  outline: 2px solid #c99b45;
+  outline-offset: 4px;
+  border-radius: 14px;
+}
+
+/* 1. TOP BADGES ROW (Tighter Spacing) */
+.moxie-promo-badges {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.moxie-promo-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.moxie-promo-badge.feature-badge {
+  background: #071426;
+  color: #d5ad62;
+  border: 1px solid rgba(213, 173, 98, 0.35);
+  box-shadow: 0 3px 10px rgba(7, 20, 38, 0.12);
+}
+
+.moxie-promo-badge.discount-badge {
+  background: #d5ad62;
+  background: linear-gradient(135deg, #e4c585 0%, #d5ad62 100%);
+  color: #071426;
+  border: 1px solid rgba(213, 173, 98, 0.4);
+  box-shadow: 0 3px 10px rgba(213, 173, 98, 0.25);
+  margin-left: auto;
+}
+
+/* 2. COMPACT LUXURY PRODUCT STAGE WITH GLOW & PEDESTAL */
+.moxie-promo-stage {
+  width: 100%;
+  min-height: 220px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+  background: transparent;
+}
+
+/* Soft Radial Glow behind product */
+.moxie-promo-stage::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(201, 155, 69, 0.14) 0%,
+    rgba(201, 155, 69, 0.04) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Decorative Sparkles */
+.moxie-stage-sparkle {
+  position: absolute;
+  color: #d5ad62;
+  pointer-events: none;
+  z-index: 1;
+  line-height: 1;
+}
+
+.sparkle-top-left {
+  top: 18px;
+  left: 12%;
+  font-size: 18px;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 5px rgba(213, 173, 98, 0.5));
+}
+
+.sparkle-mid-left {
+  top: 48px;
+  left: 5%;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.sparkle-top-right {
+  top: -4px;
+  right: 8%;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.sparkle-mid-right {
+  top: 58px;
+  right: 6%;
+  font-size: 20px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(213, 173, 98, 0.6));
+}
+
+/* Product Image (Slightly shorter & compact, centered, pointer on desktop) */
+.moxie-promo-img {
+  width: 100%;
+  max-width: 180px;
+  max-height: 215px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  z-index: 3;
+  cursor: pointer;
+  filter: drop-shadow(0 10px 16px rgba(7, 20, 38, 0.12));
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+/* 3D Gold Luxury Stage Pedestal Disc Base */
+.moxie-promo-pedestal {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 170px;
+  height: 22px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pedestal-top-disc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    #fff5e1 0%,
+    #f4dfb5 35%,
+    #d8b674 75%,
+    #b38d42 100%
+  );
+  border: 1px solid rgba(213, 173, 98, 0.6);
+  box-shadow: 0 6px 16px rgba(201, 155, 69, 0.25), 0 2px 6px rgba(7, 20, 38, 0.1);
+}
+
+.pedestal-rim-glow {
+  position: absolute;
+  bottom: -3px;
+  left: 10%;
+  right: 10%;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(7, 20, 38, 0.1);
+  filter: blur(3px);
+}
+
+/* 3. PRODUCT NAME */
+.moxie-promo-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #c99b45;
+  text-align: center;
+  margin: 6px 0 2px 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 180ms ease;
+}
+
+/* 4. PRICING */
+.moxie-promo-pricing {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.moxie-promo-price-current {
+  font-size: 24px;
+  font-weight: 800;
+  color: #071426;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.moxie-promo-price-original {
+  font-size: 16px;
+  font-weight: 500;
+  color: #717f94;
+  text-decoration: line-through;
+  line-height: 1;
+}
+
+/* 5. PREMIUM COUNTDOWN CONTAINER (No Extra Bottom Space) */
+.moxie-promo-countdown-box {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(213, 173, 98, 0.5);
+  border-radius: 14px;
+  padding: 10px 12px 11px;
+  margin-bottom: 0;
+  box-shadow: 0 3px 14px rgba(201, 155, 69, 0.08);
+  box-sizing: border-box;
+}
+
+.moxie-promo-countdown-box.ends-soon {
+  border-color: rgba(213, 173, 98, 0.85);
+  box-shadow: 0 4px 18px rgba(201, 155, 69, 0.15);
+}
+
+.moxie-countdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.countdown-decor-line {
+  height: 1px;
+  width: 24px;
+  background: linear-gradient(90deg, transparent 0%, #d5ad62 100%);
+}
+
+.moxie-countdown-header .countdown-decor-line:last-child {
+  background: linear-gradient(90deg, #d5ad62 0%, transparent 100%);
+}
+
+.countdown-hourglass-icon {
+  font-size: 11px;
+}
+
+.countdown-header-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #071426;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.moxie-countdown-cells {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.countdown-cell {
+  background: #071426;
+  border-radius: 10px;
+  padding: 4px 3px 3px;
+  min-width: 52px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(7, 20, 38, 0.18);
+  box-sizing: border-box;
+}
+
+.countdown-digit {
+  font-size: 18px;
+  font-weight: 800;
+  color: #d5ad62;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.countdown-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #d5ad62;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.countdown-colon {
+  font-size: 16px;
+  font-weight: 800;
+  color: #d5ad62;
+  padding: 0 1px;
+  line-height: 1;
+}
+
+/* Hover & Active States on Desktop */
+@media (hover: hover) and (pointer: fine) {
+  .moxie-promo-item:hover .moxie-promo-img {
+    transform: translateY(-3px) scale(1.035);
+    filter: drop-shadow(0 14px 20px rgba(7, 20, 38, 0.18));
+  }
+
+  .moxie-promo-item:hover .moxie-promo-name {
+    color: #071426;
+  }
+}
+
+.moxie-promo-item:active {
+  opacity: 0.95;
+  transform: scale(0.99);
+}
+
+/* Skeleton Loading State */
+.skeleton-item {
+  pointer-events: none;
+}
+
+.skeleton-box {
+  background: rgba(7, 20, 38, 0.06);
+  border-radius: 14px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-line {
+  background: rgba(7, 20, 38, 0.08);
+  border-radius: 6px;
+  margin: 0 auto;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-title {
+  width: 65%;
+  height: 18px;
+  margin-bottom: 8px;
+}
+
+.skeleton-price {
+  width: 40%;
+  height: 20px;
+  margin-bottom: 10px;
+}
+
+.skeleton-timer {
+  width: 100%;
+  height: 56px;
+  border-radius: 14px;
+  margin-bottom: 0;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* ===================================================
+   RESPONSIVE BREAKPOINTS
+   =================================================== */
+@media (max-width: 1024px) {
+  .moxie-featured-picks-section {
+    padding: 38px 18px 48px;
+  }
+
+  .moxie-picks-title {
+    font-size: 28px;
+  }
+
+  .moxie-picks-grid {
+    gap: 20px;
+  }
+
+  .moxie-promo-img {
+    max-width: 165px;
+    max-height: 195px;
+  }
+}
+
+@media (max-width: 768px) {
+  .moxie-featured-picks-section {
+    padding: 32px 16px 40px;
+  }
+
+  .moxie-picks-header {
+    margin-bottom: 18px;
+    padding: 0 8px;
+  }
+
+  .moxie-picks-title {
+    font-size: clamp(22px, 5.5vw, 26px);
+  }
+
+  .moxie-picks-subtitle {
+    font-size: 13px;
+  }
+
+  .moxie-picks-grid {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+  }
+
+  .moxie-promo-item {
+    width: 100%;
+    max-width: 290px;
+    margin: 0 auto;
+  }
+
+  .moxie-promo-stage {
+    min-height: 190px;
+  }
+
+  .moxie-promo-img {
+    max-width: 150px;
+    max-height: 180px;
+  }
+
+  .moxie-promo-pedestal {
+    width: 145px;
+    height: 18px;
+  }
+
+  .moxie-promo-name {
+    font-size: 18px;
+  }
+
+  .moxie-promo-price-current {
+    font-size: 22px;
+  }
+
+  .moxie-promo-price-original {
+    font-size: 15px;
+  }
+
+  .moxie-promo-countdown-box {
+    padding: 8px 10px 10px;
+    border-radius: 12px;
+  }
+
+  .countdown-cell {
+    min-width: 46px;
+    padding: 4px 3px 3px;
+    border-radius: 8px;
+  }
+
+  .countdown-digit {
+    font-size: clamp(15px, 4vw, 18px);
+  }
+
+  .countdown-label {
+    font-size: 7.5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .moxie-promo-item {
+    max-width: 270px;
+  }
+
+  .countdown-cell {
+    min-width: 40px;
+    padding: 3px 2px 3px;
+  }
+
+  .countdown-digit {
+    font-size: 14px;
+  }
+
+  .countdown-label {
+    font-size: 7px;
+  }
+}

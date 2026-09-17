@@ -45,17 +45,61 @@ const saveStoredMasterOrders = (orders) => {
   } catch {}
 };
 
+const getOrderStatusHint = (status) => {
+  const s = (status || 'CONFIRMED').toUpperCase().replace(/\s+/g, '_');
+  if (s === 'CONFIRMED') return 'Order confirmed. Start preparing the order.';
+  if (s === 'PROCESSING') return 'Order is being prepared.';
+  if (s === 'PACKED') return 'Order is packed and ready to ship.';
+  if (s === 'SHIPPED') return 'Order has been handed over to the courier.';
+  if (s === 'IN_TRANSIT') return 'Order is moving through the courier network.';
+  if (s === 'OUT_FOR_DELIVERY') return 'Order is out for delivery to the customer.';
+  if (s === 'DELIVERED') return 'Order delivered successfully.';
+  if (s === 'CANCELLED') return 'Order has been cancelled.';
+  return `Current order state: ${status}`;
+};
+
+const formatShippedDate = (isoStr) => {
+  if (!isoStr) return '15 Sep 2026';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const pad = (n) => String(n).padStart(2, '0');
+    let h = d.getHours();
+    const m = pad(d.getMinutes());
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}, ${pad(h)}:${m} ${ampm}`;
+  } catch {
+    return isoStr;
+  }
+};
+
 export default function OrderPage() {
   const djangoContext = window.DJANGO_CONTEXT || {};
+  const initialMasterOrders = useMemo(() => {
+    const stored = getStoredMasterOrders();
+    if (stored && stored.length > 0) return stored;
+    return djangoContext.ordersList || [];
+  }, []);
 
-  const [orders, setOrders] = useState([]);
-  const [stats, setStats] = useState({
-    total_orders: 0,
-    pending_orders: 0,
-    shipped_orders: 0,
-    delivered_orders: 0,
-    cancelled_orders: 0,
-    total_revenue: 0,
+  const [orders, setOrders] = useState(initialMasterOrders);
+  const [stats, setStats] = useState(() => {
+    const all = initialMasterOrders;
+    return {
+      total_orders: djangoContext.totalOrders || all.length,
+      pending_orders: djangoContext.pendingOrders || all.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.order_status || o.status || '').toLowerCase().trim())).length,
+      shipped_orders: djangoContext.shippedOrders || all.filter(o => ['shipped', 'in_transit', 'in transit', 'out for delivery', 'out_for_delivery'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
+      delivered_orders: djangoContext.deliveredOrders || all.filter(o => (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim() === 'delivered').length,
+      cancelled_orders: djangoContext.cancelledOrders || all.filter(o => ['cancelled', 'canceled'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
+      total_revenue: djangoContext.totalRevenue || all.reduce((acc, o) => {
+        const pStatus = (o.paymentStatus || o.payment_status || '').toLowerCase();
+        if (pStatus === 'paid' || pStatus === 'success') {
+          return acc + (Number(o.grandTotal || o.total || o.totalAmount || o.total_amount) || 0);
+        }
+        return acc;
+      }, 0),
+    };
   });
 
   const [loading, setLoading] = useState(false);
@@ -76,6 +120,17 @@ export default function OrderPage() {
   const [updatePaymentStatus, setUpdatePaymentStatus] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
+
+  // Shipment & Tracking & OCR States
+  const [courierName, setCourierName] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState('');
+  const [savingShipment, setSavingShipment] = useState(false);
+  const [shipmentMessage, setShipmentMessage] = useState('');
+  const [retryingWa, setRetryingWa] = useState(false);
+  const [showTrackingConfirmModal, setShowTrackingConfirmModal] = useState(false);
 
   const dateInputRef = useRef(null);
 
@@ -107,21 +162,30 @@ export default function OrderPage() {
     // Merge with master localStorage dataset
     let masterList = getStoredMasterOrders();
 
-    // If API returned orders, sync into master if missing
+    // If API returned orders, sync into master and update existing records with live DB status
     if (apiList.length > 0) {
       const masterMap = new Map();
       masterList.forEach(o => masterMap.set(String(o.id || o.orderId), o));
       apiList.forEach(apiO => {
         const key = String(apiO.id || apiO.orderId);
-        if (!masterMap.has(key)) {
-          masterMap.set(key, {
-            ...apiO,
-            orderStatus: apiO.orderStatus || 'Confirmed',
-            paymentMethod: apiO.paymentMethod || (apiO.razorpayOrderId && !apiO.razorpayOrderId.startsWith('cod_') ? 'UPI' : 'COD'),
-          });
-        }
+        const existing = masterMap.get(key) || {};
+        masterMap.set(key, {
+          ...existing,
+          ...apiO,
+          orderStatus: apiO.orderStatus || apiO.order_status || existing.orderStatus || 'Confirmed',
+          order_status: apiO.order_status || apiO.orderStatus || existing.order_status || 'Confirmed',
+          shippingStatus: apiO.shippingStatus || apiO.shipping_status || existing.shippingStatus || apiO.orderStatus,
+          shipping_status: apiO.shipping_status || apiO.shippingStatus || existing.shipping_status || apiO.orderStatus,
+          paymentStatus: apiO.paymentStatus || apiO.payment_status || existing.paymentStatus || 'Pending',
+          paymentMethod: apiO.paymentMethod || existing.paymentMethod || (apiO.razorpayOrderId && !apiO.razorpayOrderId.startsWith('cod_') ? 'UPI' : 'COD'),
+          tracking_number: apiO.tracking_number || apiO.tracking_id || apiO.trackingId || existing.tracking_number || '',
+          tracking_locked: Boolean(apiO.tracking_locked || apiO.tracking_number || apiO.tracking_id || apiO.trackingId || existing.tracking_locked),
+        });
       });
       masterList = Array.from(masterMap.values());
+      try {
+        localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(masterList));
+      } catch (e) {}
     }
 
     // Filter master list according to active UI filters
@@ -134,7 +198,7 @@ export default function OrderPage() {
         const nameMatch = (o.customerName || o.customer?.name || o.shipping_name || '').toLowerCase().includes(q);
         const phoneMatch = (o.mobile || o.customer?.phone || o.shipping_phone || '').includes(q);
         const emailMatch = (o.email || o.customer?.email || '').toLowerCase().includes(q);
-        const trackMatch = (o.trackingId || o.tracking_id || '').toLowerCase().includes(q);
+        const trackMatch = (o.tracking_number || o.trackingId || o.tracking_id || '').toLowerCase().includes(q);
         const prodMatch = (o.products || []).some(p => (p.productName || p.name || '').toLowerCase().includes(q)) || (o.name || '').toLowerCase().includes(q);
         return idMatch || nameMatch || phoneMatch || emailMatch || trackMatch || prodMatch;
       });
@@ -142,14 +206,14 @@ export default function OrderPage() {
 
     if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(o => {
-        const s = (o.orderStatus || o.status || '').toLowerCase().trim();
+        const s = (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim();
         return s === statusFilter.toLowerCase().trim();
       });
     }
 
     if (paymentFilter && paymentFilter !== 'all') {
       filtered = filtered.filter(o => {
-        const p = (o.paymentStatus || '').toLowerCase().trim();
+        const p = (o.paymentStatus || o.payment_status || '').toLowerCase().trim();
         return p === paymentFilter.toLowerCase().trim();
       });
     }
@@ -172,9 +236,9 @@ export default function OrderPage() {
     if (sortOption === 'oldest') {
       filtered.sort((a, b) => new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date));
     } else if (sortOption === 'highest') {
-      filtered.sort((a, b) => (Number(b.grandTotal || b.total || b.totalAmount) || 0) - (Number(a.grandTotal || a.total || a.totalAmount) || 0));
+      filtered.sort((a, b) => (Number(b.grandTotal || b.total || b.totalAmount || b.total_amount) || 0) - (Number(a.grandTotal || a.total || a.totalAmount || a.total_amount) || 0));
     } else if (sortOption === 'lowest') {
-      filtered.sort((a, b) => (Number(a.grandTotal || a.total || a.totalAmount) || 0) - (Number(b.grandTotal || b.total || b.totalAmount) || 0));
+      filtered.sort((a, b) => (Number(a.grandTotal || a.total || a.totalAmount || a.total_amount) || 0) - (Number(b.grandTotal || b.total || b.totalAmount || b.total_amount) || 0));
     } else {
       filtered.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
     }
@@ -183,14 +247,14 @@ export default function OrderPage() {
     const all = masterList.length > 0 ? masterList : (apiList.length > 0 ? apiList : djangoContext.ordersList || []);
     const calculatedStats = {
       total_orders: all.length,
-      pending_orders: all.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.status || '').toLowerCase().trim())).length,
-      shipped_orders: all.filter(o => ['shipped', 'out for delivery'].includes((o.orderStatus || o.status || '').toLowerCase().trim())).length,
-      delivered_orders: all.filter(o => (o.orderStatus || o.status || '').toLowerCase().trim() === 'delivered').length,
-      cancelled_orders: all.filter(o => (o.orderStatus || o.status || '').toLowerCase().trim() === 'cancelled').length,
+      pending_orders: all.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.order_status || o.status || '').toLowerCase().trim())).length,
+      shipped_orders: all.filter(o => ['shipped', 'in_transit', 'in transit', 'out for delivery', 'out_for_delivery'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
+      delivered_orders: all.filter(o => (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim() === 'delivered').length,
+      cancelled_orders: all.filter(o => ['cancelled', 'canceled'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
       total_revenue: all.reduce((acc, o) => {
-        const pStatus = (o.paymentStatus || '').toLowerCase();
+        const pStatus = (o.paymentStatus || o.payment_status || '').toLowerCase();
         if (pStatus === 'paid' || pStatus === 'success') {
-          return acc + (Number(o.grandTotal || o.total || o.totalAmount) || 0);
+          return acc + (Number(o.grandTotal || o.total || o.totalAmount || o.total_amount) || 0);
         }
         return acc;
       }, 0),
@@ -218,6 +282,9 @@ export default function OrderPage() {
     setSelectedOrder(orderItem);
     setOrderDetailLoading(true);
     setUpdateMessage('');
+    setOcrMessage('');
+    setShipmentMessage('');
+    setReceiptFile(null);
 
     // Check master dataset first for rich product details
     const master = getStoredMasterOrders();
@@ -231,23 +298,190 @@ export default function OrderPage() {
         const data = await res.json();
         const mergedDetail = { ...foundLocal, ...data };
         setSelectedOrderDetail(mergedDetail);
-        setUpdateOrderStatus(mergedDetail.orderStatus || mergedDetail.status || 'Confirmed');
-        setUpdatePaymentStatus(mergedDetail.paymentStatus || 'Pending');
+        setUpdateOrderStatus(mergedDetail.orderStatus || mergedDetail.order_status || mergedDetail.status || 'Confirmed');
+        setUpdatePaymentStatus(mergedDetail.paymentStatus || mergedDetail.payment_status || 'Pending');
+        setCourierName(mergedDetail.courier_name || mergedDetail.courierPartner || '');
+        const currentTrk = mergedDetail.tracking_number || mergedDetail.trackingId || mergedDetail.tracking_id || '';
+        setTrackingNumber(currentTrk);
+        setShowTrackingConfirmModal(false);
         setOrderDetailLoading(false);
         return;
       }
-    } catch {}
+    } catch (err) {
+      console.error("API admin order detail fetch error:", err);
+    }
 
     if (foundLocal) {
       setSelectedOrderDetail(foundLocal);
-      setUpdateOrderStatus(foundLocal.orderStatus || foundLocal.status || 'Confirmed');
-      setUpdatePaymentStatus(foundLocal.paymentStatus || 'Pending');
+      setUpdateOrderStatus(foundLocal.orderStatus || foundLocal.order_status || foundLocal.status || 'Confirmed');
+      setUpdatePaymentStatus(foundLocal.paymentStatus || foundLocal.payment_status || 'Pending');
+      setCourierName(foundLocal.courier_name || foundLocal.courierPartner || '');
+      const currentTrk = foundLocal.tracking_number || foundLocal.trackingId || foundLocal.tracking_id || '';
+      setTrackingNumber(currentTrk);
+      setShowTrackingConfirmModal(false);
     } else {
       setSelectedOrderDetail(orderItem);
-      setUpdateOrderStatus(orderItem.orderStatus || orderItem.status || 'Confirmed');
-      setUpdatePaymentStatus(orderItem.paymentStatus || 'Pending');
+      setUpdateOrderStatus(orderItem.orderStatus || orderItem.order_status || orderItem.status || 'Confirmed');
+      setUpdatePaymentStatus(orderItem.paymentStatus || orderItem.payment_status || 'Pending');
+      setCourierName(orderItem.courier_name || orderItem.courierPartner || '');
+      const currentTrk = orderItem.tracking_number || orderItem.trackingId || orderItem.tracking_id || '';
+      setTrackingNumber(currentTrk);
+      setShowTrackingConfirmModal(false);
     }
     setOrderDetailLoading(false);
+  };
+
+  const handleOcrScan = async () => {
+    if (!receiptFile) {
+      setOcrMessage('Please choose a receipt image first.');
+      return;
+    }
+    if (!selectedOrder) return;
+    setOcrScanning(true);
+    setOcrMessage('');
+    try {
+      const csrfToken = getCsrfToken();
+      const formData = new FormData();
+      formData.append('receipt', receiptFile);
+      if (courierName) {
+        formData.append('courier_name', courierName);
+      }
+
+      const res = await fetch(`/api/admin-orders/${selectedOrder.id}/ocr-tracking/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.tracking_number) {
+        setTrackingNumber(data.tracking_number);
+        if (data.courier_name && !courierName) {
+          setCourierName(data.courier_name);
+        }
+        setOcrMessage(`✓ Extracted: ${data.tracking_number} (${data.confidence ? Math.round(data.confidence * 100) + '% match' : 'Pattern match'}). Verify and save.`);
+      } else {
+        setOcrMessage(data.message || 'Unable to detect tracking number. Please enter manually.');
+      }
+    } catch (err) {
+      setOcrMessage('Receipt scanning failed. Please enter tracking number manually.');
+    }
+    setOcrScanning(false);
+  };
+
+  const handleInitiateShipment = () => {
+    if (!selectedOrder) return;
+    if (!courierName) {
+      setShipmentMessage('Please select a courier partner (ST Courier or India Post).');
+      return;
+    }
+    if (!trackingNumber.trim()) {
+      setShipmentMessage('Please enter a tracking / AWB / consignment number.');
+      return;
+    }
+    setShipmentMessage('');
+    setShowTrackingConfirmModal(true);
+  };
+
+  const handleExecuteSaveShipment = async () => {
+    if (!selectedOrder) return;
+    setSavingShipment(true);
+    setShipmentMessage('');
+    try {
+      const csrfToken = getCsrfToken();
+      const formData = new FormData();
+      formData.append('courier_name', courierName);
+      formData.append('tracking_number', trackingNumber.trim());
+      formData.append('order_status', 'Shipped');
+      if (receiptFile) {
+        formData.append('receipt', receiptFile);
+      }
+
+      const res = await fetch(`/api/admin-orders/${selectedOrder.id}/shipment/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const waStatus = data.whatsapp_notification?.status || 'Sent';
+        const finalCourier = data.order?.courier_name || (courierName === 'ST_COURIER' ? 'ST Courier' : (courierName === 'INDIA_POST' ? 'India Post' : courierName));
+        setShipmentMessage(`✓ Tracking assigned & locked! Courier: ${finalCourier}. WhatsApp: ${waStatus}`);
+        setShowTrackingConfirmModal(false);
+        setSelectedOrderDetail(prev => ({
+          ...prev,
+          courier_name: finalCourier,
+          courier: finalCourier,
+          tracking_number: data.order?.tracking_number || trackingNumber.trim(),
+          trackingId: data.order?.tracking_number || trackingNumber.trim(),
+          tracking_id: data.order?.tracking_number || trackingNumber.trim(),
+          tracking_locked: true,
+          order_status: data.order?.order_status || 'Shipped',
+          status: data.order?.order_status || 'Shipped',
+          shipping_status: 'SHIPPED',
+          shippingStatus: 'Shipped',
+          shipped_at: data.order?.shipped_at || prev?.shipped_at || new Date().toISOString(),
+          tracking_assigned_at: new Date().toISOString(),
+          tracking_updated_at: data.order?.tracking_updated_at || new Date().toISOString(),
+          whatsapp_notifications: data.order?.whatsapp_notifications || prev?.whatsapp_notifications,
+          notification_logs: data.order?.notification_logs || prev?.notification_logs,
+        }));
+
+        // Refetch full fresh order from backend to sync logs
+        try {
+          const freshRes = await fetch(`/api/admin-orders/${selectedOrder.id}/`, { headers: { Accept: 'application/json' } });
+          if (freshRes.ok) {
+            const freshData = await freshRes.json();
+            setSelectedOrderDetail(prev => ({ ...prev, ...freshData }));
+          }
+        } catch {}
+
+        fetchOrders();
+      } else {
+        setShipmentMessage(data.error || 'Failed to save shipment.');
+        setShowTrackingConfirmModal(false);
+      }
+    } catch (err) {
+      setShipmentMessage('Error saving shipment.');
+      setShowTrackingConfirmModal(false);
+    }
+    setSavingShipment(false);
+  };
+
+  const handleRetryWhatsApp = async (eventType) => {
+    if (!selectedOrder) return;
+    setRetryingWa(true);
+    try {
+      const csrfToken = getCsrfToken();
+      const res = await fetch(`/api/admin-orders/${selectedOrder.id}/retry-whatsapp/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ event_type: eventType }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setShipmentMessage(`✓ WhatsApp notification resent: ${data.result?.status || 'Sent'}`);
+        // Refetch order detail to update logs
+        try {
+          const freshRes = await fetch(`/api/admin-orders/${selectedOrder.id}/`, { headers: { Accept: 'application/json' } });
+          if (freshRes.ok) {
+            const freshData = await freshRes.json();
+            setSelectedOrderDetail(prev => ({ ...prev, ...freshData }));
+          }
+        } catch {}
+      } else {
+        setShipmentMessage(data.error || 'Retry failed.');
+      }
+    } catch {
+      setShipmentMessage('Error retrying WhatsApp notification.');
+    }
+    setRetryingWa(false);
   };
 
   const handleSaveStatus = async () => {
@@ -257,7 +491,7 @@ export default function OrderPage() {
 
     try {
       const csrfToken = getCsrfToken();
-      await fetch(`/api/admin-orders/${selectedOrder.id}/`, {
+      const res = await fetch(`/api/admin-orders/${selectedOrder.id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -265,10 +499,47 @@ export default function OrderPage() {
         },
         body: JSON.stringify({
           order_status: updateOrderStatus,
+          shipping_status: updateOrderStatus,
           payment_status: updatePaymentStatus,
         }),
       });
-    } catch {}
+      if (res.ok) {
+        const freshData = await res.json();
+        if (freshData) {
+          setSelectedOrderDetail(prev => ({
+            ...prev,
+            ...freshData,
+            order_status: freshData.order_status || freshData.orderStatus || updateOrderStatus,
+            status: freshData.order_status || freshData.orderStatus || updateOrderStatus,
+            orderStatus: freshData.order_status || freshData.orderStatus || updateOrderStatus,
+            payment_status: freshData.payment_status || freshData.paymentStatus || updatePaymentStatus,
+            paymentStatus: freshData.payment_status || freshData.paymentStatus || updatePaymentStatus,
+          }));
+          setUpdateOrderStatus(freshData.order_status || freshData.orderStatus || updateOrderStatus);
+          setUpdatePaymentStatus(freshData.payment_status || freshData.paymentStatus || updatePaymentStatus);
+        }
+      } else {
+        setSelectedOrderDetail(prev => ({
+          ...prev,
+          order_status: updateOrderStatus,
+          status: updateOrderStatus,
+          orderStatus: updateOrderStatus,
+          payment_status: updatePaymentStatus,
+          paymentStatus: updatePaymentStatus,
+        }));
+      }
+    } catch {
+      setSelectedOrderDetail(prev => ({
+        ...prev,
+        order_status: updateOrderStatus,
+        status: updateOrderStatus,
+        orderStatus: updateOrderStatus,
+        payment_status: updatePaymentStatus,
+        paymentStatus: updatePaymentStatus,
+      }));
+    } finally {
+      setUpdating(false);
+    }
 
     // Update master dataset
     const master = getStoredMasterOrders();
@@ -289,7 +560,9 @@ export default function OrderPage() {
           ...o,
           orderStatus: updateOrderStatus,
           status: updateOrderStatus,
+          order_status: updateOrderStatus,
           paymentStatus: updatePaymentStatus,
+          payment_status: updatePaymentStatus,
           statusHistory: history,
           updatedAt: nowIso,
         };
@@ -301,15 +574,6 @@ export default function OrderPage() {
     saveStoredMasterOrders(updatedMaster);
 
     setUpdateMessage("Order status updated successfully.");
-    if (selectedOrderDetail) {
-      setSelectedOrderDetail(prev => ({
-        ...prev,
-        orderStatus: updateOrderStatus,
-        status: updateOrderStatus,
-        paymentStatus: updatePaymentStatus,
-      }));
-    }
-
     fetchOrders();
 
     if (typeof window.refreshAdminNotifications === 'function') {
@@ -317,7 +581,46 @@ export default function OrderPage() {
     } else {
       window.dispatchEvent(new CustomEvent('adminNotificationRequestRefresh'));
     }
+  };
 
+  const handleMarkCodCollected = async () => {
+    if (!selectedOrder) return;
+    setUpdating(true);
+    setUpdateMessage('');
+    try {
+      const csrfToken = getCsrfToken();
+      const res = await fetch(`/api/admin-orders/${selectedOrder.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+          mark_cod_collected: true,
+          payment_status: 'Paid',
+        }),
+      });
+      if (res.ok) {
+        setUpdateMessage('COD balance marked as collected and order marked as Paid.');
+        const tot = Number(selectedOrderDetail?.grandTotal || selectedOrderDetail?.totalAmount || selectedOrderDetail?.total || 0);
+        setSelectedOrderDetail(prev => ({
+          ...prev,
+          paymentStatus: 'Paid',
+          amountPaid: tot,
+          amount_paid: tot,
+          balanceDue: 0,
+          balance_due: 0,
+          pricing: prev?.pricing ? { ...prev.pricing, amountPaid: tot, balanceDue: 0 } : prev?.pricing,
+          paymentInfo: prev?.paymentInfo ? { ...prev.paymentInfo, status: 'Paid', amountPaid: tot, balanceDue: 0 } : prev?.paymentInfo,
+        }));
+        setUpdatePaymentStatus('Paid');
+        fetchOrders();
+      } else {
+        setUpdateMessage('Failed to update COD balance status.');
+      }
+    } catch {
+      setUpdateMessage('Error updating COD balance.');
+    }
     setUpdating(false);
   };
 
@@ -328,7 +631,7 @@ export default function OrderPage() {
       return;
     }
 
-    // Build flattened Excel rows matching exact columns A-P
+    // Build flattened Excel rows matching all required financial and delivery columns
     const excelRows = [];
 
     orders.forEach((o) => {
@@ -338,13 +641,20 @@ export default function OrderPage() {
       const mobile = o.mobile || o.customer?.phone || o.shippingAddress?.phone || "N/A";
       const paymentMethod = o.paymentMethod || (o.razorpayOrderId && !o.razorpayOrderId.startsWith('cod_') ? "UPI" : "COD");
       const paymentStatus = o.paymentStatus || "Pending";
+      const subtotal = Number(o.subtotalAmount || o.subtotal || o.totalAmount || 0);
+      const discountAmount = Number(o.discountAmount || o.discount || 0);
+      const shippingAmount = Number(o.shippingAmount || o.shippingCharge || o.deliveryCharge || 0);
+      const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || 0);
+      const amountPaid = Number(o.amountPaid !== undefined ? o.amountPaid : (paymentStatus === 'Paid' ? orderTotal : (o.codAdvancePaid ? 100 : 0)));
+      const balanceDue = Number(o.balanceDue !== undefined ? o.balanceDue : (paymentStatus === 'Paid' ? 0 : Math.max(0, orderTotal - amountPaid)));
+      const codAdvancePaid = o.codAdvancePaid ? "Yes (₹100)" : (paymentMethod === "COD" ? "No" : "N/A");
+      const razorpayPaymentId = o.razorpayPaymentId || o.razorpay_payment_id || "—";
       const fullAddress = o.address || o.shippingAddress?.address || o.shippingAddress?.flat || "N/A";
       const city = o.city || o.shippingAddress?.city || "N/A";
       const district = o.district || o.shippingAddress?.district || city || "N/A";
       const pinCode = o.pinCode || o.pincode || o.shippingAddress?.pincode || "N/A";
-      const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || 0);
       const orderStatus = o.orderStatus || o.status || "Confirmed";
-      const trackingId = o.trackingId || o.tracking_id || `MOXTRK${String(o.id || '0001').padStart(4, '0')}`;
+      const trackingId = o.tracking_number || o.trackingId || o.tracking_id || 'Not Assigned Yet';
 
       const productsList = Array.isArray(o.products) && o.products.length > 0
         ? o.products
@@ -367,6 +677,14 @@ export default function OrderPage() {
           "Mobile Number": mobile,
           "Payment Method": paymentMethod,
           "Payment Status": paymentStatus,
+          "Subtotal": `₹${subtotal.toLocaleString("en-IN")}`,
+          "Discount Amount": `₹${discountAmount.toLocaleString("en-IN")}`,
+          "Shipping Amount": `₹${shippingAmount.toLocaleString("en-IN")}`,
+          "Total Amount": `₹${orderTotal.toLocaleString("en-IN")}`,
+          "Amount Paid": `₹${amountPaid.toLocaleString("en-IN")}`,
+          "Balance Due": `₹${balanceDue.toLocaleString("en-IN")}`,
+          "COD Advance Paid": codAdvancePaid,
+          "Razorpay Payment ID": razorpayPaymentId,
           "Full Address": fullAddress,
           "City": city,
           "District": district,
@@ -374,7 +692,6 @@ export default function OrderPage() {
           "Product Name": prod.productName || prod.name || "Product",
           "Quantity": Number(prod.quantity || 1),
           "Product Price": `₹${Number(prod.price || 0).toLocaleString("en-IN")}`,
-          "Order Total": `₹${orderTotal.toLocaleString("en-IN")}`,
           "Order Status": orderStatus,
           "Tracking ID": trackingId,
         });
@@ -392,6 +709,14 @@ export default function OrderPage() {
       { wch: 15 }, // Mobile Number
       { wch: 16 }, // Payment Method
       { wch: 16 }, // Payment Status
+      { wch: 14 }, // Subtotal
+      { wch: 16 }, // Discount Amount
+      { wch: 16 }, // Shipping Amount
+      { wch: 14 }, // Total Amount
+      { wch: 14 }, // Amount Paid
+      { wch: 14 }, // Balance Due
+      { wch: 18 }, // COD Advance Paid
+      { wch: 22 }, // Razorpay Payment ID
       { wch: 32 }, // Full Address
       { wch: 16 }, // City
       { wch: 16 }, // District
@@ -399,7 +724,6 @@ export default function OrderPage() {
       { wch: 28 }, // Product Name
       { wch: 10 }, // Quantity
       { wch: 14 }, // Product Price
-      { wch: 14 }, // Order Total
       { wch: 18 }, // Order Status
       { wch: 18 }, // Tracking ID
     ];
@@ -621,16 +945,51 @@ export default function OrderPage() {
             ) : paginatedOrders.length > 0 ? (
               paginatedOrders.map((o) => {
                 const orderId = o.orderId || o.order_number || `MOX-${String(o.id).padStart(4, '0')}`;
-                const statusClass = (o.orderStatus || o.status || 'confirmed').toLowerCase().replace(/\s+/g, '-');
                 const paymentClass = (o.paymentStatus || 'pending').toLowerCase();
                 const customerName = o.customerName || o.customer?.name || o.shippingAddress?.name || "Customer";
                 const customerEmail = o.email || o.customer?.email || "customer@example.com";
                 const initial = customerName.charAt(0).toUpperCase() || "C";
-                const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || 0);
+                const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || o.total_amount || 0);
+                const isCancelled = (
+                  (o.orderStatus || '').toUpperCase() === 'CANCELLED' ||
+                  (o.order_status || '').toUpperCase() === 'CANCELLED' ||
+                  (o.status || '').toUpperCase() === 'CANCELLED' ||
+                  (o.shipping_status || '').toUpperCase() === 'CANCELLED' ||
+                  (o.shippingStatus || '').toUpperCase() === 'CANCELLED'
+                );
+                const normStatus = (o.shipping_status || o.shippingStatus || o.order_status || o.orderStatus || o.status || '').toUpperCase().replace(/\s+/g, '_');
+                const hasTracking = Boolean(o.tracking_locked || o.tracking_number || o.trackingId || o.tracking_id);
+                const isNewOrder = !hasTracking && !isCancelled;
+
+                let rowClass = '';
+                let displayStatusBadge = o.orderStatus || o.order_status || o.status || 'Confirmed';
+                let badgeClass = (o.orderStatus || o.order_status || o.status || 'confirmed').toLowerCase().replace(/\s+/g, '-');
+
+                if (isCancelled) {
+                  rowClass = 'order-row-cancelled';
+                  displayStatusBadge = 'CANCELLED';
+                  badgeClass = 'cancelled';
+                } else if (isNewOrder) {
+                  rowClass = 'order-row-new';
+                  displayStatusBadge = 'NEW ORDER';
+                  badgeClass = 'new-order';
+                } else if (normStatus === 'DELIVERED') {
+                  rowClass = 'order-row-delivered';
+                  displayStatusBadge = 'DELIVERED ✓';
+                  badgeClass = 'delivered';
+                } else if (normStatus === 'OUT_FOR_DELIVERY') {
+                  rowClass = 'order-row-out-for-delivery';
+                  displayStatusBadge = 'OUT FOR DELIVERY';
+                  badgeClass = 'out-for-delivery';
+                } else if (normStatus === 'SHIPPED' || normStatus === 'IN_TRANSIT') {
+                  rowClass = 'order-row-shipped';
+                  displayStatusBadge = normStatus === 'IN_TRANSIT' ? 'IN TRANSIT' : 'SHIPPED';
+                  badgeClass = 'shipped';
+                }
 
                 return (
-                  <tr key={o.id || orderId}>
-                    <td style={{ fontWeight: '750', color: '#0f172a' }}>{orderId}</td>
+                  <tr key={o.id || orderId} className={rowClass}>
+                    <td style={{ fontWeight: '750' }}>{orderId}</td>
                     <td>
                       <div className="user-cell">
                         <div className="user-avatar-circle">
@@ -642,13 +1001,13 @@ export default function OrderPage() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ color: '#475569', fontSize: '13px' }}>{o.orderDate || o.date}</td>
-                    <td style={{ fontWeight: '750', color: '#0f172a' }}>
+                    <td style={{ fontSize: '13px' }}>{o.orderDate || o.date}</td>
+                    <td style={{ fontWeight: '750' }}>
                       ₹{orderTotal.toLocaleString('en-IN')}
                     </td>
                     <td>
-                      <span className={`status-pill ${statusClass}`}>
-                        {o.orderStatus || o.status || 'Confirmed'}
+                      <span className={`status-pill ${badgeClass}`}>
+                        {displayStatusBadge}
                       </span>
                     </td>
                     <td>
@@ -739,49 +1098,347 @@ export default function OrderPage() {
                     </div>
                   )}
 
-                  {/* Order Status Change Card */}
+                  {/* 1. ORDER SUMMARY & PAYMENT */}
                   <div className="order-detail-card">
-                    <div className="detail-card-title">UPDATE ORDER STATUS & PAYMENT</div>
-                    <div className="status-update-grid">
-                      <div className="status-form-group">
-                        <label className="status-form-label">Order Status</label>
-                        <CustomSelect
-                          value={updateOrderStatus}
-                          onChange={(e) => setUpdateOrderStatus(e.target.value)}
-                          options={[
-                            { value: 'Confirmed', label: 'Confirmed' },
-                            { value: 'Processing', label: 'Processing' },
-                            { value: 'Packed', label: 'Packed' },
-                            { value: 'Shipped', label: 'Shipped' },
-                            { value: 'Out for Delivery', label: 'Out for Delivery' },
-                            { value: 'Delivered', label: 'Delivered' },
-                            { value: 'Cancelled', label: 'Cancelled' },
-                          ]}
-                          height="38px"
-                          width="100%"
-                        />
+                    <div className="detail-card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <span>ORDER SUMMARY</span>
+                      <span style={{ fontSize: '11px', background: '#071426', color: '#c99b45', padding: '3px 10px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: '750', letterSpacing: '0.04em' }}>
+                        Current Status: {selectedOrderDetail.order_status || selectedOrderDetail.status || 'Confirmed'}
+                      </span>
+                    </div>
+
+                    {/* Dynamic Order Lifecycle Status Banner */}
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      marginBottom: '14px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      color: '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}>
+                      <span style={{ fontSize: '16px' }}>
+                        {(() => {
+                          const s = (selectedOrderDetail.order_status || selectedOrderDetail.status || 'CONFIRMED').toUpperCase().replace(/\s+/g, '_');
+                          if (s === 'DELIVERED') return '✅';
+                          if (s === 'CANCELLED') return '❌';
+                          if (s === 'SHIPPED' || s === 'IN_TRANSIT') return '🚚';
+                          if (s === 'OUT_FOR_DELIVERY') return '📍';
+                          if (s === 'PACKED') return '📦';
+                          return 'ℹ️';
+                        })()}
+                      </span>
+                      <span>{getOrderStatusHint(selectedOrderDetail.order_status || selectedOrderDetail.status)}</span>
+                    </div>
+
+                    {/* Payment Info & COD collection */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
+                        <div>
+                          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Method</span>
+                          <span style={{ fontWeight: '750', color: '#0f172a' }}>{selectedOrderDetail.paymentMethod || 'UPI'}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Status</span>
+                          <span className={`payment-pill ${(selectedOrderDetail.paymentStatus || 'pending').toLowerCase()}`}>
+                            {selectedOrderDetail.paymentStatus || 'Pending'}
+                          </span>
+                        </div>
+                        {Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && (
+                          <div>
+                            <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Balance Due</span>
+                            <span style={{ fontWeight: '800', color: '#b45309' }}>
+                              ₹{Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="status-form-group">
-                        <label className="status-form-label">Payment Status</label>
-                        <CustomSelect
-                          value={updatePaymentStatus}
-                          onChange={(e) => setUpdatePaymentStatus(e.target.value)}
-                          options={[
-                            { value: 'Paid', label: 'Paid' },
-                            { value: 'Success', label: 'Success' },
-                            { value: 'Pending', label: 'Pending' },
-                            { value: 'Failed', label: 'Failed' },
-                          ]}
-                          height="38px"
-                          width="100%"
-                        />
-                      </div>
-
-                      <div className="status-form-group status-action-group">
-                        <button className="btn-update-status" disabled={updating} onClick={handleSaveStatus}>
-                          {updating ? 'Saving...' : 'Update Status'}
+                      {Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && selectedOrderDetail.paymentStatus !== 'Paid' && (
+                        <button
+                          type="button"
+                          onClick={handleMarkCodCollected}
+                          disabled={updating}
+                          style={{
+                            background: '#10b981',
+                            color: '#ffffff',
+                            border: '1px solid #059669',
+                            borderRadius: '6px',
+                            padding: '6px 14px',
+                            fontSize: '12px',
+                            fontWeight: '750',
+                            cursor: updating ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {updating ? 'Updating...' : `Mark COD Collected (₹${Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due).toLocaleString('en-IN')})`}
                         </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. SHIPPING SECTION */}
+                  <div className="order-detail-card courier-shipment-card" style={{ border: '1px solid rgba(201,155,69,0.35)', background: '#ffffff' }}>
+                    <div className="detail-card-title" style={{ color: '#071426', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
+                        {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id)
+                          ? 'SHIPPING DETAILS'
+                          : 'SHIPPING SETUP'}
+                      </span>
+                      {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) && (
+                        <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontWeight: '750' }}>
+                          ✓ Tracking Locked
+                        </span>
+                      )}
+                    </div>
+
+                    {shipmentMessage && (
+                      <div style={{ padding: '8px 12px', borderRadius: '6px', background: shipmentMessage.includes('✓') ? '#dcfce7' : '#fee2e2', color: shipmentMessage.includes('✓') ? '#166534' : '#991b1b', fontSize: '12.5px', fontWeight: '600', marginBottom: '12px' }}>
+                        {shipmentMessage}
+                      </div>
+                    )}
+
+                    {/* Locked Read-Only View if tracking exists / locked */}
+                    {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) ? (
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', fontSize: '13px' }}>
+                          <div>
+                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Courier Partner</span>
+                            <span style={{ fontWeight: '750', color: '#0f172a' }}>
+                              {selectedOrderDetail.courier_name === 'ST_COURIER' || selectedOrderDetail.courier === 'ST_COURIER'
+                                ? 'ST Courier'
+                                : selectedOrderDetail.courier_name === 'INDIA_POST' || selectedOrderDetail.courier === 'INDIA_POST'
+                                ? 'India Post'
+                                : (selectedOrderDetail.courier_name || selectedOrderDetail.courier || 'ST Courier')}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>
+                              {((selectedOrderDetail.courier_name || '').toUpperCase().includes('INDIA') || (selectedOrderDetail.courier || '').toUpperCase().includes('INDIA')) ? 'Consignment Number' : 'AWB Number'}
+                            </span>
+                            <span style={{ fontWeight: '800', fontFamily: 'monospace', color: '#c99b45', fontSize: '14px' }}>
+                              {selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Tracking Status</span>
+                            <span style={{ fontWeight: '750', color: '#0f172a' }}>
+                              {selectedOrderDetail.shippingStatus || selectedOrderDetail.shipping_status || selectedOrderDetail.order_status || 'Shipped'}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Assigned On</span>
+                            <span style={{ fontWeight: '600', color: '#475569' }}>
+                              {formatShippedDate(selectedOrderDetail.tracking_assigned_at || selectedOrderDetail.shipped_at || selectedOrderDetail.tracking_updated_at)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '12px' }}>
+                          <span style={{ color: '#64748b' }}>
+                            Carrier Live Sync: <strong style={{ color: '#475569' }}>Waiting for API configuration</strong>
+                          </span>
+                          <span style={{ color: '#059669', fontWeight: '650' }}>
+                            Tracking information is permanently locked.
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {((selectedOrderDetail.order_status || selectedOrderDetail.status || '').toUpperCase() === 'CANCELLED') ? (
+                          <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>
+                            This order has been cancelled. Shipping creation is disabled.
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '12px' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                  Courier Partner
+                                </label>
+                                <CustomSelect
+                                  value={courierName}
+                                  onChange={(e) => setCourierName(e.target.value)}
+                                  options={[
+                                    { value: '', label: 'Select Courier' },
+                                    { value: 'ST_COURIER', label: 'ST Courier' },
+                                    { value: 'INDIA_POST', label: 'India Post' },
+                                  ]}
+                                  height="38px"
+                                  width="100%"
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                  {courierName === 'ST_COURIER'
+                                    ? 'ST Courier AWB Number'
+                                    : courierName === 'INDIA_POST'
+                                    ? 'India Post Consignment Number'
+                                    : 'Tracking / AWB / Consignment Number'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={trackingNumber}
+                                  onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                                  placeholder={
+                                    courierName === 'ST_COURIER'
+                                      ? 'e.g. 1234567890'
+                                      : courierName === 'INDIA_POST'
+                                      ? 'e.g. EM123456789IN'
+                                      : 'Enter tracking number'
+                                  }
+                                  style={{
+                                    width: '100%',
+                                    height: '38px',
+                                    padding: '6px 12px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '8px',
+                                    fontFamily: 'monospace',
+                                    fontSize: '13.5px',
+                                    fontWeight: '700',
+                                    color: '#0f172a',
+                                    boxSizing: 'border-box',
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Simple Receipt Upload */}
+                            <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                                <div>
+                                  <span style={{ fontSize: '12.5px', fontWeight: '700', color: '#0f172a', display: 'block' }}>Upload Courier Receipt</span>
+                                  <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                                    {receiptFile ? `Selected: ${receiptFile.name}` : 'Upload the courier receipt to detect the tracking number automatically.'}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setReceiptFile(e.target.files[0] || null)}
+                                    style={{ fontSize: '12px' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleOcrScan}
+                                    disabled={ocrScanning || !receiptFile}
+                                    style={{
+                                      background: '#071426',
+                                      color: '#c99b45',
+                                      border: '1px solid #c99b45',
+                                      borderRadius: '6px',
+                                      padding: '6px 12px',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      cursor: ocrScanning || !receiptFile ? 'not-allowed' : 'pointer',
+                                    }}
+                                  >
+                                    {ocrScanning ? 'Detecting...' : 'Detect Tracking Number'}
+                                  </button>
+                                </div>
+                              </div>
+                              {ocrMessage && (
+                                <div style={{ marginTop: '8px', fontSize: '12px', fontWeight: '600', color: ocrMessage.includes('✓') ? '#166534' : '#b45309' }}>
+                                  {ocrMessage}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Main Action Button */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                              <button
+                                type="button"
+                                onClick={handleInitiateShipment}
+                                disabled={savingShipment}
+                                style={{
+                                  background: '#071426',
+                                  color: '#c99b45',
+                                  border: '1px solid #c99b45',
+                                  borderRadius: '8px',
+                                  padding: '10px 22px',
+                                  fontWeight: '800',
+                                  fontSize: '13px',
+                                  cursor: savingShipment ? 'not-allowed' : 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
+                                  letterSpacing: '0.02em',
+                                }}
+                              >
+                                {savingShipment ? 'Saving...' : 'CONFIRM & SEND TRACKING'}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {/* 3. CUSTOMER MESSAGES SECTION */}
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '6px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '800', color: '#071426', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        CUSTOMER MESSAGES
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px' }}>
+                        {[
+                          { key: 'order_confirmed', eventType: 'ORDER_CONFIRMED', label: 'Order Confirmation' },
+                          { key: 'shipped', eventType: 'SHIPPED', label: 'Shipment Update' },
+                          { key: 'out_for_delivery', eventType: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+                          { key: 'delivered', eventType: 'DELIVERED', label: 'Delivered' },
+                        ].map((wa) => {
+                          const rawStatus = (selectedOrderDetail.whatsapp_notifications && selectedOrderDetail.whatsapp_notifications[wa.key]) || 'NOT_SENT';
+                          const isSent = rawStatus === 'SENT';
+                          const isFailed = rawStatus === 'FAILED';
+                          const isSending = rawStatus === 'SENDING';
+                          return (
+                            <div key={wa.key} style={{
+                              background: isSent ? '#f0fdf4' : isFailed ? '#fef2f2' : isSending ? '#fffbeb' : '#f8fafc',
+                              border: `1px solid ${isSent ? '#bbf7d0' : isFailed ? '#fecaca' : isSending ? '#fde68a' : '#e2e8f0'}`,
+                              borderRadius: '6px',
+                              padding: '8px 10px',
+                              fontSize: '11.5px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: '700', color: '#334155' }}>{wa.label}</span>
+                                <span style={{
+                                  fontWeight: '700',
+                                  color: isSent ? '#166534' : isFailed ? '#991b1b' : isSending ? '#b45309' : '#64748b'
+                                }}>
+                                  {isSent ? 'Sent' : isFailed ? 'Failed' : isSending ? 'Sending' : 'Not Sent'}
+                                </span>
+                              </div>
+                              {isFailed && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRetryWhatsApp(wa.eventType)}
+                                  disabled={retryingWa}
+                                  style={{
+                                    background: '#991b1b',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '3px 8px',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    cursor: retryingWa ? 'not-allowed' : 'pointer',
+                                    marginTop: '2px',
+                                    alignSelf: 'flex-start'
+                                  }}
+                                >
+                                  {retryingWa ? 'Sending...' : 'SEND AGAIN'}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -804,8 +1461,8 @@ export default function OrderPage() {
                       </div>
                       <div className="info-item">
                         <label>Tracking ID</label>
-                        <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#c9a35c' }}>
-                          {selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id || `MOXTRK${String(selectedOrderDetail.id || '0001').padStart(4, '0')}`}
+                        <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#c99b45' }}>
+                          {selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id || 'Not assigned yet'}
                         </span>
                       </div>
                     </div>
@@ -916,10 +1573,117 @@ export default function OrderPage() {
                         <label>Payment Status</label>
                         <span style={{ fontWeight: '700' }}>{selectedOrderDetail.paymentStatus || selectedOrderDetail.paymentInfo?.status || "Pending"}</span>
                       </div>
+                      <div className="info-item">
+                        <label>Amount Paid</label>
+                        <span style={{ fontWeight: '700', color: '#166534' }}>
+                          ₹{Number(selectedOrderDetail.amountPaid !== undefined ? selectedOrderDetail.amountPaid : (selectedOrderDetail.pricing?.amountPaid !== undefined ? selectedOrderDetail.pricing.amountPaid : (selectedOrderDetail.paymentStatus === 'Paid' ? (selectedOrderDetail.totalAmount || selectedOrderDetail.grandTotal) : 0))).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <label>Balance Due</label>
+                        <span style={{ fontWeight: '700', color: Number(selectedOrderDetail.balanceDue !== undefined ? selectedOrderDetail.balanceDue : (selectedOrderDetail.pricing?.balanceDue !== undefined ? selectedOrderDetail.pricing.balanceDue : 0)) > 0 ? '#b91c1c' : '#166534' }}>
+                          ₹{Number(selectedOrderDetail.balanceDue !== undefined ? selectedOrderDetail.balanceDue : (selectedOrderDetail.pricing?.balanceDue !== undefined ? selectedOrderDetail.pricing.balanceDue : (selectedOrderDetail.paymentStatus === 'Paid' ? 0 : (selectedOrderDetail.totalAmount || selectedOrderDetail.grandTotal || 0)))).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <label>COD Advance</label>
+                        <span>
+                          {selectedOrderDetail.codAdvancePaid || selectedOrderDetail.paymentInfo?.codAdvancePaid
+                            ? 'Paid online (₹100)'
+                            : (selectedOrderDetail.paymentMethod === 'COD' || selectedOrderDetail.paymentInfo?.method === 'COD' ? 'Pending' : 'N/A')}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <label>Razorpay Payment ID</label>
+                        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                          {selectedOrderDetail.razorpayPaymentId || selectedOrderDetail.paymentInfo?.razorpayPaymentId || '—'}
+                        </span>
+                      </div>
                     </div>
+
+                    {(selectedOrderDetail.paymentMethod === 'COD' || selectedOrderDetail.paymentInfo?.method === 'COD') &&
+                      selectedOrderDetail.paymentStatus !== 'Paid' &&
+                      Number(selectedOrderDetail.balanceDue !== undefined ? selectedOrderDetail.balanceDue : selectedOrderDetail.pricing?.balanceDue) > 0 && (
+                        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                          <button
+                            type="button"
+                            onClick={handleMarkCodCollected}
+                            disabled={updating}
+                            style={{
+                              background: '#071426',
+                              color: '#c99b45',
+                              border: '1px solid #c99b45',
+                              borderRadius: '8px',
+                              padding: '9px 18px',
+                              fontWeight: '700',
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            ✓ Mark COD Balance Collected
+                          </button>
+                        </div>
+                      )}
                   </div>
                 </>
               ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tracking Lock Confirmation Modal */}
+      {showTrackingConfirmModal && (
+        <div className="tracking-confirm-overlay" onClick={() => setShowTrackingConfirmModal(false)}>
+          <div className="tracking-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              <span>📦</span> Confirm Shipment Details?
+            </h3>
+
+            <div className="tracking-confirm-meta">
+              <div className="tracking-confirm-meta-row">
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Courier Partner:</span>
+                <strong style={{ color: '#071426' }}>
+                  {courierName === 'ST_COURIER' ? 'ST Courier' : courierName === 'INDIA_POST' ? 'India Post' : courierName}
+                </strong>
+              </div>
+              <div className="tracking-confirm-meta-row">
+                <span style={{ color: '#64748b', fontWeight: '600' }}>
+                  {courierName === 'INDIA_POST' ? 'Consignment Number:' : 'AWB Number:'}
+                </span>
+                <strong style={{ fontFamily: 'monospace', color: '#c99b45', fontSize: '14.5px' }}>
+                  {trackingNumber.trim()}
+                </strong>
+              </div>
+            </div>
+
+            <div className="tracking-confirm-warning">
+              <span style={{ fontSize: '16px' }}>⚠️</span>
+              <div>
+                <strong>Important:</strong> This tracking number cannot be edited after confirmation. Please verify it carefully.
+              </div>
+            </div>
+
+            <div className="tracking-confirm-actions">
+              <button
+                type="button"
+                className="btn-confirm-cancel"
+                onClick={() => setShowTrackingConfirmModal(false)}
+                disabled={savingShipment}
+              >
+                GO BACK
+              </button>
+              <button
+                type="button"
+                className="btn-confirm-submit"
+                onClick={handleExecuteSaveShipment}
+                disabled={savingShipment}
+              >
+                {savingShipment ? 'CONFIRMING...' : 'CONFIRM & SEND'}
+              </button>
             </div>
           </div>
         </div>

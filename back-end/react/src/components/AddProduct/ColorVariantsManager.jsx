@@ -21,6 +21,10 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
       deleted_image_ids: [],
       primary_image_id: null,
       primary_image_index: 0,
+      video: null,
+      video_name: '',
+      new_video: null,
+      remove_video: false,
     }])
   }
 
@@ -83,6 +87,39 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
     const copy = [...variants]
     copy[vIndex].primary_image_index = imgIdx
     copy[vIndex].primary_image_id = null
+    setVariants(copy)
+  }
+
+  const handleVariantVideo = (vIndex, e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+    if (!['.mp4', '.webm'].includes(ext)) {
+      alert('Unsupported video format. Please upload an MP4 or WEBM file.')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert('Video size exceeds the allowed limit (50MB).')
+      e.target.value = ''
+      return
+    }
+
+    const copy = [...variants]
+    copy[vIndex].new_video = file
+    copy[vIndex].remove_video = false
+    setVariants(copy)
+    e.target.value = ''
+  }
+
+  const removeVariantVideo = (vIndex) => {
+    const copy = [...variants]
+    copy[vIndex].video = null
+    copy[vIndex].video_name = ''
+    copy[vIndex].new_video = null
+    copy[vIndex].remove_video = true
     setVariants(copy)
   }
 
@@ -193,14 +230,14 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
                     </div>
                   </div>
 
-                  {/* Row 2, Col 1: Price */}
+                  {/* Row 2, Col 1: Original Price */}
                   <div className="field">
                     <label>
-                      Price (₹) <span className="req-star">*</span>
+                      Original Price (₹) <span className="req-star">*</span>
                     </label>
                     <input
                       type="number"
-                      placeholder="e.g. 600"
+                      placeholder="e.g. 1000"
                       value={v.price}
                       onChange={(e) => updateVariant(vIndex, 'price', e.target.value)}
                       required
@@ -216,7 +253,7 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
                     </label>
                     <input
                       type="number"
-                      placeholder="e.g. 400"
+                      placeholder="e.g. 600"
                       value={v.discount_price || ''}
                       onChange={(e) => updateVariant(vIndex, 'discount_price', e.target.value)}
                       min="0"
@@ -341,7 +378,7 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
                       })}
 
                       {/* Image Upload Input */}
-                      {(((v.existing_images || v.images) ? (v.existing_images || v.images).length : 0) + (v.new_images ? v.new_images.length : 0)) < 4 && (
+                      {(((v.existing_images || v.images) ? (v.existing_images || v.images).length : 0) + (v.new_images ? v.new_images.length : 0)) < 20 && (
                         <div className="image-upload-dropzone">
                           <div className="image-upload-icon-box">
                             <AppIcon icon={UploadIcon} size={16} color="#64748B" />
@@ -349,15 +386,100 @@ export default function ColorVariantsManager({ variants = [], setVariants, sizeT
                           <div className="image-upload-input-wrap">
                             <input
                               type="file"
+                              multiple
                               accept="image/*"
                               onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
+                                if (e.target.files && e.target.files.length > 0) {
                                   handleNewFiles(vIndex, e)
                                   e.target.value = ''
                                 }
                               }}
                             />
                           </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Variant Video (Optional) (Full Row) */}
+                  <div className="field variant-video-field">
+                    <div className="variant-images-heading">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6256E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                      </svg>
+                      <span>Variant Video (Optional)</span>
+                    </div>
+
+                    <div className="variant-video-box">
+                      {v.new_video ? (
+                        <div className="video-preview-card">
+                          <video
+                            src={URL.createObjectURL(v.new_video)}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="video-preview-player"
+                          />
+                          <div className="video-preview-meta">
+                            <div className="video-preview-info">
+                              <span className="video-preview-name">{v.new_video.name}</span>
+                              <span className="video-preview-size">
+                                {(v.new_video.size / (1024 * 1024)).toFixed(1)} MB
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeVariantVideo(vIndex)}
+                              className="video-remove-btn"
+                            >
+                              <AppIcon icon={DeleteIcon} size={13} color="#EF4444" />
+                              <span>Remove Video</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (v.video && !v.remove_video) ? (
+                        <div className="video-preview-card">
+                          <video
+                            src={v.video}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="video-preview-player"
+                          />
+                          <div className="video-preview-meta">
+                            <div className="video-preview-info">
+                              <span className="video-preview-name">{v.video_name || 'Saved Video'}</span>
+                              <span className="video-preview-tag">Saved</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeVariantVideo(vIndex)}
+                              className="video-remove-btn"
+                            >
+                              <AppIcon icon={DeleteIcon} size={13} color="#EF4444" />
+                              <span>Remove Video</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="video-upload-dropzone">
+                          <div className="video-upload-content">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                            <div className="video-upload-text">
+                              <span className="video-upload-title">Upload Color Variant Video</span>
+                              <span className="video-upload-hint">MP4 or WEBM (Max 50MB)</span>
+                            </div>
+                          </div>
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/*"
+                            onChange={(e) => handleVariantVideo(vIndex, e)}
+                            className="video-file-input"
+                          />
                         </div>
                       )}
                     </div>

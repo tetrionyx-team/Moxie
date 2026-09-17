@@ -1,25 +1,41 @@
 /* ============================================================
    AccountDropdown.css
-   Moxie Luxury Profile Dropdown Styles
-   Signature MOXIE Gold (#FDB101) & Luxury Black Palette
+   MOXIE Luxury Customer Profile Dropdown
+   Palette: Deep Navy (#071426), Gold (#C99B45 / #D5AD62), Warm Cream (#FBF7EF)
    ============================================================ */
 
 .profile-dropdown-menu {
   position: absolute;
   top: calc(100% + 14px);
   right: 0;
-  background: #ffffff;
-  border: 1px solid rgba(253, 177, 1, 0.22);
+  background: #FBF7EF;
+  border: 1px solid rgba(201, 155, 69, 0.28);
   border-radius: 20px;
-  box-shadow: 0 18px 40px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(253, 177, 1, 0.16);
-  width: min(310px, calc(100vw - 24px));
-  min-width: 280px;
+  box-shadow: 
+    0 18px 45px rgba(7, 20, 38, 0.18),
+    0 4px 14px rgba(201, 155, 69, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  width: 320px;
+  max-width: calc(100vw - 32px);
   z-index: 1050;
-  padding: 14px 12px;
+  padding: 14px 12px 10px 12px;
   display: flex;
   flex-direction: column;
-  animation: profileDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: profileDropdownEnter 180ms ease-out forwards;
   box-sizing: border-box;
+}
+
+/* Subtle Gold Top Accent Bar */
+.profile-dropdown-menu::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #C99B45 30%, #D5AD62 50%, #C99B45 70%, transparent);
+  border-radius: 2px;
+  opacity: 0.85;
 }
 
 /* Luxury Triangle Pointer */
@@ -30,46 +46,46 @@
   right: 22px;
   border-width: 7px;
   border-style: solid;
-  border-color: transparent transparent #ffffff transparent;
-  filter: drop-shadow(0 -2px 1px rgba(253, 177, 1, 0.2));
+  border-color: transparent transparent #FBF7EF transparent;
+  filter: drop-shadow(0 -2px 1.5px rgba(201, 155, 69, 0.3));
 }
 
-@keyframes profileDropdownFadeIn {
+@keyframes profileDropdownEnter {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.98);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 /* ------------------------------------------------------------
-   1. Profile Header Area (Top)
+   1. Profile Header: Avatar + User Info
    ------------------------------------------------------------ */
 .profile-dropdown-user {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 4px 6px 8px 6px;
 }
 
-/* MOXIE Gold Avatar with Subtle Glow */
 .profile-avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #FDB101;
-  color: #111111;
+  background: #FFFFFF;
+  border: 2px solid #C99B45;
+  color: #071426;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 0 3px rgba(253, 177, 1, 0.22);
+  box-shadow: 0 4px 10px rgba(7, 20, 38, 0.10);
 }
 
 .profile-avatar-img {
@@ -81,13 +97,22 @@
 .profile-avatar-initials {
   line-height: 1;
   letter-spacing: 0.5px;
+  color: #071426;
+  font-weight: 750;
+  font-size: 16px;
 }
 
-/* Elegant Black User Name */
+.profile-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
 .profile-user-name {
-  font-size: 15.5px;
-  font-weight: 700;
-  color: #111111;
+  font-size: 17px;
+  font-weight: 750;
+  color: #071426;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
@@ -95,13 +120,22 @@
   letter-spacing: -0.01em;
 }
 
+.profile-user-badge {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #C99B45;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
 /* ------------------------------------------------------------
-   Subtle MOXIE Divider
+   Subtle Soft Divider
    ------------------------------------------------------------ */
 .profile-dropdown-divider {
   border: none;
-  border-top: 1px solid rgba(253, 177, 1, 0.18);
-  margin: 10px 4px;
+  border-top: 1px solid rgba(7, 20, 38, 0.08);
+  margin: 6px 4px;
 }
 
 /* ------------------------------------------------------------
@@ -110,42 +144,65 @@
 .profile-dropdown-links {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .profile-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 46px;
-  padding: 0 14px;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0 12px;
   border-radius: 12px;
-  color: #111111;
-  font-size: 14.5px;
+  color: #071426;
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   background-color: transparent;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 180ms ease;
   cursor: pointer;
   box-sizing: border-box;
 }
 
+.profile-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .profile-item-icon {
-  font-size: 19px;
+  font-size: 18px;
   flex-shrink: 0;
-  color: #1e293b;
-  transition: color 0.2s ease;
+  color: #667085;
+  transition: color 180ms ease;
+}
+
+.profile-item-text {
+  white-space: nowrap;
+}
+
+.profile-item-chevron {
+  font-size: 16px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: color 180ms ease, transform 180ms ease;
 }
 
 /* Premium Gold Tinted Hover */
 .profile-dropdown-item:hover {
-  background-color: rgba(253, 177, 1, 0.09);
-  color: #111111;
+  background-color: rgba(201, 155, 69, 0.12);
+  color: #071426;
   transform: translateX(3px);
 }
 
 .profile-dropdown-item:hover .profile-item-icon {
-  color: #FDB101;
+  color: #C99B45;
+}
+
+.profile-dropdown-item:hover .profile-item-chevron {
+  color: #C99B45;
+  transform: translateX(2px);
 }
 
 /* ------------------------------------------------------------
@@ -154,46 +211,71 @@
 .profile-dropdown-logout-btn {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 46px;
+  justify-content: space-between;
+  height: 42px;
   width: 100%;
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: 12px;
-  color: #111111;
-  font-size: 14.5px;
+  color: #071426;
+  font-size: 14px;
   font-weight: 600;
   background-color: transparent;
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 180ms ease;
   box-sizing: border-box;
 }
 
 .profile-logout-icon {
-  font-size: 19px;
+  font-size: 18px;
   flex-shrink: 0;
-  color: #FDB101;
-  transition: color 0.2s ease, transform 0.2s ease;
+  color: #C99B45;
+  transition: color 180ms ease;
 }
 
 /* Logout Hover */
 .profile-dropdown-logout-btn:hover {
-  background-color: rgba(253, 177, 1, 0.12);
-  color: #111111;
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
   transform: translateX(3px);
 }
 
 .profile-dropdown-logout-btn:hover .profile-logout-icon {
-  color: #e59f00;
+  color: #dc2626;
+}
+
+.profile-dropdown-logout-btn:hover .profile-item-text {
+  color: #dc2626;
 }
 
 /* Focus visibility for keyboard accessibility */
 .profile-dropdown-item:focus-visible,
 .profile-dropdown-logout-btn:focus-visible {
-  outline: 2px solid #FDB101;
+  outline: 2px solid #C99B45;
   outline-offset: 1px;
-  background-color: rgba(253, 177, 1, 0.08);
+  background-color: rgba(201, 155, 69, 0.10);
+}
+
+/* ------------------------------------------------------------
+   4. Subtle Brand Detail Footer
+   ------------------------------------------------------------ */
+.profile-dropdown-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 4px 2px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8c8273;
+}
+
+.profile-dropdown-brand .brand-dot {
+  color: #C99B45;
+  font-size: 12px;
 }
 
 /* ------------------------------------------------------------
@@ -202,15 +284,24 @@
 @media (max-width: 768px) {
   .profile-dropdown-menu {
     right: 0;
-    width: min(300px, calc(100vw - 20px));
-    padding: 12px 10px;
+    width: min(320px, calc(100vw - 24px));
+    padding: 12px 10px 8px 10px;
     border-radius: 18px;
+  }
+
+  .profile-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .profile-user-name {
+    font-size: 16px;
   }
 
   .profile-dropdown-item,
   .profile-dropdown-logout-btn {
-    height: 44px;
-    padding: 0 12px;
-    font-size: 14px;
+    height: 40px;
+    padding: 0 10px;
+    font-size: 13.5px;
   }
 }

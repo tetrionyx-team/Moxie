@@ -7,6 +7,7 @@ import {
   LuCheck,
   LuX,
   LuUpload,
+  LuCamera,
 } from "react-icons/lu";
 import { useAuth } from "../../context/AuthContext";
 
@@ -20,6 +21,7 @@ export default function ProfileDetails({ profile, onUpdate }) {
   });
 
   const fileInputRef = useRef(null);
+  const heroFileInputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedBase64, setSelectedBase64] = useState(null);
 
@@ -36,7 +38,7 @@ export default function ProfileDetails({ profile, onUpdate }) {
     };
   }, [previewUrl]);
 
-  // Sync formData when profile prop changes
+  // Sync formData when profile or user prop changes
   useEffect(() => {
     if ((profile || user) && !isEditing) {
       setFormData({
@@ -63,12 +65,8 @@ export default function ProfileDetails({ profile, onUpdate }) {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const processFile = (file) => {
     if (!file) return;
-
-    // Reset input value to allow selecting same file again if desired
-    e.target.value = "";
 
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type.toLowerCase())) {
@@ -95,7 +93,6 @@ export default function ProfileDetails({ profile, onUpdate }) {
       return updated;
     });
 
-    // Revoke old object URL if any
     if (previewUrl && previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -103,10 +100,57 @@ export default function ProfileDetails({ profile, onUpdate }) {
     const objUrl = URL.createObjectURL(file);
     setPreviewUrl(objUrl);
 
-    // Read Base64 for persistence
+    // Read Base64
     const reader = new FileReader();
     reader.onloadend = () => {
       setSelectedBase64(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    processFile(file);
+  };
+
+  // Direct avatar change from hero camera button
+  const handleHeroAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      setErrors({ form: "Please select a JPG, PNG or WEBP image." });
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setErrors({ form: "Profile photo must be smaller than 5 MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      try {
+        setLoading(true);
+        setErrors({});
+        setFormData((prev) => ({ ...prev, avatar: base64Data }));
+        await onUpdate({
+          name: profile?.name || user?.name || "User",
+          mobile: profile?.mobile || user?.mobile || "",
+          avatar: base64Data,
+        });
+        setSuccessMsg("Profile photo updated successfully!");
+        setTimeout(() => setSuccessMsg(""), 4000);
+      } catch (err) {
+        setErrors({ form: err.message || "Failed to update profile photo. Please try again." });
+      } finally {
+        setLoading(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -135,7 +179,11 @@ export default function ProfileDetails({ profile, onUpdate }) {
     setLoading(true);
     setSuccessMsg("");
 
-    const updatedAvatar = selectedBase64 !== null ? selectedBase64 : (formData.avatar || profile?.avatar || "");
+    const updatedAvatar =
+      selectedBase64 !== null
+        ? selectedBase64
+        : (formData.avatar || profile?.avatar || "");
+
     const payload = {
       ...formData,
       avatar: updatedAvatar,
@@ -162,8 +210,8 @@ export default function ProfileDetails({ profile, onUpdate }) {
     setPreviewUrl(null);
     setSelectedBase64(null);
     setFormData({
-      name: profile?.name || "",
-      mobile: profile?.mobile || "",
+      name: profile?.name || user?.name || "",
+      mobile: profile?.mobile || user?.mobile || "",
       avatar: profile?.avatar || "",
     });
     setErrors({});
@@ -173,18 +221,49 @@ export default function ProfileDetails({ profile, onUpdate }) {
   const userName = profile?.name || user?.name || "User";
   const userEmail = profile?.email || user?.email || "Not Provided";
   const userPhone = profile?.mobile || user?.mobile || "Not Provided";
-  const userJoined = profile?.joinedDate || "Member";
+  const userJoined = profile?.joinedDate || user?.joinedDate || "Member";
+  const isVerified = Boolean(
+    user?.emailVerified ||
+    profile?.isVerified ||
+    profile?.verified ||
+    (user?.providerData && user.providerData.length > 0)
+  );
 
-  const currentAvatarDisplay = previewUrl || (selectedBase64 !== null ? selectedBase64 : (formData.avatar || profile?.avatar || ""));
+  const currentAvatarDisplay =
+    previewUrl ||
+    (selectedBase64 !== null
+      ? selectedBase64
+      : (formData.avatar || profile?.avatar || user?.avatar || ""));
 
   return (
     <div className="profile-details-container">
-      {/* 1. Header */}
-      <div className="profile-header-wrap">
-        <h2 className="profile-page-title">My Profile</h2>
-        <p className="profile-page-subtitle">Manage your personal information.</p>
+      {/* 1. Header & Breadcrumb */}
+      <div className="profile-header-bar">
+        <div className="profile-header-titles">
+          <h1 className="profile-page-title">My Profile</h1>
+          <p className="profile-page-subtitle">
+            Manage your personal information and account settings.
+          </p>
+        </div>
+
+        <nav className="profile-breadcrumb-nav" aria-label="Breadcrumb">
+          <ol className="profile-breadcrumb-list">
+            <li className="profile-breadcrumb-item">
+              <a href="/" className="profile-breadcrumb-link">
+                Home
+              </a>
+            </li>
+            <li className="profile-breadcrumb-separator" aria-hidden="true">
+              &gt;
+            </li>
+            <li className="profile-breadcrumb-item active" aria-current="page">
+              My Profile
+            </li>
+          </ol>
+        </nav>
       </div>
 
+      {/* Status Alerts */}
       {successMsg && (
         <div className="profile-alert-success" role="alert">
           <LuCheck className="alert-icon" />
@@ -200,10 +279,10 @@ export default function ProfileDetails({ profile, onUpdate }) {
       )}
 
       {isEditing ? (
-        /* Edit Form Card */
+        /* Edit Profile Form Card */
         <div className="profile-edit-card">
           <div className="personal-info-header">
-            <h3 className="personal-info-title">Edit Profile</h3>
+            <h2 className="personal-info-title">Edit Profile</h2>
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="profile-edit-form">
@@ -330,34 +409,103 @@ export default function ProfileDetails({ profile, onUpdate }) {
           </form>
         </div>
       ) : (
-        <>
-          {/* 2. Main Profile Summary Card */}
-          <div className="profile-summary-main-card">
-            {/* Left side */}
-            <div className="profile-summary-left">
-              <div className="profile-avatar-wrapper">
-                {profile?.avatar ? (
+        /* 2. Main Luxury Profile Hero Card */
+        <section className="profile-hero-card" aria-labelledby="profile-heading-personal">
+          {/* Accessible section header */}
+          <h2 id="profile-heading-personal" className="sr-only">
+            Personal Information
+          </h2>
+
+          <div className="profile-hero-content">
+            {/* Left: Avatar & Direct Camera Upload */}
+            <div className="profile-hero-avatar-col">
+              <div className="profile-hero-avatar-wrap">
+                {currentAvatarDisplay ? (
                   <img
-                    src={profile.avatar}
+                    src={currentAvatarDisplay}
                     alt={userName}
-                    className="profile-main-avatar"
+                    className="profile-hero-avatar-img"
                   />
                 ) : (
-                  <div className="profile-main-avatar-initials">
+                  <div className="profile-hero-avatar-initials">
                     {getInitials(userName)}
                   </div>
                 )}
+
+                {/* Overlapping Camera button */}
+                <input
+                  type="file"
+                  ref={heroFileInputRef}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleHeroAvatarChange}
+                  hidden
+                />
+                <button
+                  type="button"
+                  className="profile-avatar-camera-btn"
+                  title="Change profile photo"
+                  aria-label="Change profile photo"
+                  onClick={() => heroFileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  <LuCamera className="camera-icon" aria-hidden="true" />
+                </button>
               </div>
-              <h3 className="profile-main-name">{userName}</h3>
+            </div>
+
+            {/* Middle: Name, Verified Badge, Details */}
+            <div className="profile-hero-info-col">
+              <div className="profile-hero-name-row">
+                <h2 className="profile-hero-name">{userName}</h2>
+                {isVerified && (
+                  <span className="profile-verified-badge" title="Verified Account">
+                    <LuCheck className="verified-icon" aria-hidden="true" />
+                    <span>Verified</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="profile-hero-details-list">
+                <div className="profile-detail-item">
+                  <LuMail className="detail-icon" aria-hidden="true" />
+                  <span className="detail-text">{userEmail}</span>
+                </div>
+
+                <div className="profile-detail-item">
+                  <LuPhone className="detail-icon" aria-hidden="true" />
+                  <span className="detail-text">{userPhone}</span>
+                </div>
+
+                <div className="profile-detail-item">
+                  <LuCalendar className="detail-icon" aria-hidden="true" />
+                  <span className="detail-text">
+                    {!userJoined.toLowerCase().startsWith("joined") && "Joined on "}
+                    <span>{userJoined}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Quote & Edit Profile Button */}
+            <div className="profile-hero-action-col">
+              <div className="profile-hero-quote-wrap">
+                <span className="quote-mark start">“</span>
+                <p className="profile-hero-quote">
+                  Good style always tells a story.
+                </p>
+                <span className="quote-mark end">”</span>
+                <div className="quote-divider" aria-hidden="true" />
+              </div>
+
               <button
                 type="button"
-                className="profile-edit-btn"
+                className="profile-hero-edit-btn"
                 onClick={() => {
                   setPreviewUrl(null);
                   setSelectedBase64(null);
                   setFormData({
-                    name: profile?.name || "",
-                    mobile: profile?.mobile || "",
+                    name: profile?.name || user?.name || "",
+                    mobile: profile?.mobile || user?.mobile || "",
                     avatar: profile?.avatar || "",
                   });
                   setErrors({});
@@ -368,74 +516,8 @@ export default function ProfileDetails({ profile, onUpdate }) {
                 <span>Edit Profile</span>
               </button>
             </div>
-
-            {/* Right side */}
-            <div className="profile-summary-right">
-              <div className="profile-summary-row">
-                <div className="profile-summary-icon-box" aria-hidden="true">
-                  <LuMail />
-                </div>
-                <div className="profile-summary-text">
-                  <span className="profile-summary-label">Email Address</span>
-                  <span className="profile-summary-value">{userEmail}</span>
-                </div>
-              </div>
-
-              <div className="profile-summary-row">
-                <div className="profile-summary-icon-box" aria-hidden="true">
-                  <LuPhone />
-                </div>
-                <div className="profile-summary-text">
-                  <span className="profile-summary-label">Mobile Number</span>
-                  <span className="profile-summary-value">{userPhone}</span>
-                </div>
-              </div>
-
-              <div className="profile-summary-row">
-                <div className="profile-summary-icon-box" aria-hidden="true">
-                  <LuCalendar />
-                </div>
-                <div className="profile-summary-text">
-                  <span className="profile-summary-label">Account Joined</span>
-                  <span className="profile-summary-value">{userJoined}</span>
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* 3. Personal Information Section Card */}
-          <div className="personal-info-section">
-            <div className="personal-info-header">
-              <h3 className="personal-info-title">Personal Information</h3>
-            </div>
-
-            <div className="personal-info-grid">
-              {/* Field 1: Full Name */}
-              <div className="personal-info-field-card">
-                <div className="personal-info-field-label">Full Name</div>
-                <div className="personal-info-field-value">{userName}</div>
-              </div>
-
-              {/* Field 2: Email Address */}
-              <div className="personal-info-field-card">
-                <div className="personal-info-field-label">Email Address</div>
-                <div className="personal-info-field-value">{userEmail}</div>
-              </div>
-
-              {/* Field 3: Phone Number */}
-              <div className="personal-info-field-card">
-                <div className="personal-info-field-label">Phone Number</div>
-                <div className="personal-info-field-value">{userPhone}</div>
-              </div>
-
-              {/* Field 4: Account Joined */}
-              <div className="personal-info-field-card">
-                <div className="personal-info-field-label">Account Joined</div>
-                <div className="personal-info-field-value">{userJoined}</div>
-              </div>
-            </div>
-          </div>
-        </>
+        </section>
       )}
     </div>
   );

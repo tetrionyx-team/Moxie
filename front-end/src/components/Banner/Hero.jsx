@@ -5,22 +5,7 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { API_URL, BACKEND_URL } from "../../config";
 import "./Hero.css";
 
-// Fallback project videos to ensure seamless looping video slider
-import clip1 from "../../assets/videos/moxie_clip_3.mp4";
-import clip2 from "../../assets/videos/moxie_watch_clip_4.mp4";
-import clip3 from "../../assets/videos/moxie_clip_2.mp4";
-import clip4 from "../../assets/videos/moxie_car_clip_2.mp4";
-import clip5 from "../../assets/videos/moxie_car_toy_clip.mp4";
-
 const API_ORIGIN = BACKEND_URL;
-
-const DEFAULT_BANNERS = [
-  { id: "fallback-1", mediaUrl: clip1, isVideo: true },
-  { id: "fallback-2", mediaUrl: clip2, isVideo: true },
-  { id: "fallback-3", mediaUrl: clip3, isVideo: true },
-  { id: "fallback-4", mediaUrl: clip4, isVideo: true },
-  { id: "fallback-5", mediaUrl: clip5, isVideo: true },
-];
 
 const isVideoUrl = (url) => {
   if (!url) return false;
@@ -57,9 +42,9 @@ const getMediaUrl = (url) => {
 
 export default function Hero() {
   const navigate = useNavigate();
-  const [banners, setBanners] = useState(DEFAULT_BANNERS);
+  const [banners, setBanners] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const videoRef = useRef(null);
   const touchStartX = useRef(null);
@@ -68,11 +53,7 @@ export default function Hero() {
   // Fetch backend dynamic banners if available
   useEffect(() => {
     let isMounted = true;
-    fetch(`${API_URL}/banners/`, {
-      headers: {
-        "ngrok-skip-browser-warning": "true",
-      },
-    })
+    fetch(`${API_URL}/banners/`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch banners");
         return res.json();
@@ -97,11 +78,12 @@ export default function Hero() {
         if (validBanners.length > 0) {
           setBanners(validBanners);
           setCurrentSlide(0);
+        } else {
+          setBanners([]);
         }
       })
-      .catch((err) => {
-        // Silently use DEFAULT_BANNERS
-        console.warn("Could not load dynamic banners, using local defaults:", err.message);
+      .catch(() => {
+        setBanners([]);
       })
       .finally(() => {
         if (isMounted) setLoading(false);

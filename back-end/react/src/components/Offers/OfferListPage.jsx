@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import CustomSelect from '../Common/CustomSelect';
 import {
   AppIcon,
@@ -15,6 +15,225 @@ import {
   AlertIcon,
 } from '../../icons';
 import './OfferListPage.css';
+
+const EMOJI_CATEGORIES = [
+  {
+    id: 'offers',
+    name: 'Offers & Discounts',
+    icon: '🏷️',
+    emojis: ['🏷️', '💸', '🎁', '🎉', '✨', '🔥', '⚡', '🛍️', '💰', '💎', '🌟', '💥', '🔔', '📢'],
+  },
+  {
+    id: 'delivery',
+    name: 'Delivery & Shipping',
+    icon: '🚚',
+    emojis: ['🚚', '📦', '⚡', '🛵', '✈️', '📫', '⏳', '🚀', '🏃', '💨', '🌍'],
+  },
+  {
+    id: 'fashion',
+    name: 'Fashion & Style',
+    icon: '👕',
+    emojis: ['👕', '👟', '⌚', '🛍️', '👗', '🕶️', '💍', '👠', '👜', '🎩', '👡', '👑'],
+  },
+  {
+    id: 'celebration',
+    name: 'Celebration & Festive',
+    icon: '🥳',
+    emojis: ['🥳', '🎊', '💫', '🎆', '🎈', '🎇', '✨', '🪅', '🥂', '🎉'],
+  },
+  {
+    id: 'popular',
+    name: 'Popular & Reactions',
+    icon: '⭐',
+    emojis: ['❤️', '⭐', '✅', '👑', '🔥', '✨', '💯', '🏆', '🛒', '😍', '👍', '🎯'],
+  },
+];
+
+function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('offers');
+  const [customInput, setCustomInput] = useState('');
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleSelect = (emoji) => {
+    onSelectEmoji(emoji);
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onSelectEmoji('');
+    setIsOpen(false);
+    setSearchQuery('');
+    setCustomInput('');
+  };
+
+  const handleCustomSubmit = (e) => {
+    e.preventDefault();
+    if (customInput.trim()) {
+      const trimmed = Array.from(customInput.trim())[0] || customInput.trim().slice(0, 4);
+      onSelectEmoji(trimmed);
+      setIsOpen(false);
+      setCustomInput('');
+      setSearchQuery('');
+    }
+  };
+
+  const allFilteredEmojis = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase().trim();
+    const matches = [];
+    EMOJI_CATEGORIES.forEach(cat => {
+      if (cat.name.toLowerCase().includes(q) || cat.id.includes(q)) {
+        matches.push(...cat.emojis);
+      }
+    });
+    return Array.from(new Set(matches));
+  }, [searchQuery]);
+
+  return (
+    <div className="emoji-picker-container" ref={popoverRef}>
+      <button
+        type="button"
+        className={`emoji-trigger-btn ${selectedEmoji ? 'has-emoji' : ''}`}
+        onClick={() => setIsOpen(prev => !prev)}
+        title="Select Offer Emoji"
+      >
+        <span className="emoji-trigger-icon">{selectedEmoji || '😊'}</span>
+        <span className="emoji-trigger-label">{selectedEmoji ? 'Emoji' : 'Emoji'}</span>
+        {selectedEmoji && (
+          <span
+            className="emoji-clear-icon"
+            onClick={handleClear}
+            title="Remove emoji"
+            role="button"
+          >
+            ✕
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="emoji-popover-card">
+          <div className="emoji-popover-header">
+            <div className="emoji-popover-title">
+              <span>✨ Select Offer Emoji</span>
+            </div>
+            {selectedEmoji && (
+              <button
+                type="button"
+                className="emoji-popover-clear-btn"
+                onClick={handleClear}
+              >
+                Clear Emoji
+              </button>
+            )}
+          </div>
+
+          <div className="emoji-popover-search">
+            <input
+              type="text"
+              placeholder="Search category (e.g. offers, delivery, fashion)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="emoji-search-input"
+              autoFocus
+            />
+          </div>
+
+          {!searchQuery && (
+            <div className="emoji-category-tabs">
+              {EMOJI_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`emoji-cat-tab ${activeCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                  title={cat.name}
+                >
+                  <span className="cat-icon">{cat.icon}</span>
+                  <span className="cat-name">{cat.name.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="emoji-grid-scroll">
+            {searchQuery ? (
+              allFilteredEmojis && allFilteredEmojis.length > 0 ? (
+                <div className="emoji-grid">
+                  {allFilteredEmojis.map((em, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`emoji-cell-btn ${selectedEmoji === em ? 'selected' : ''}`}
+                      onClick={() => handleSelect(em)}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="emoji-empty-hint">
+                  No matching category. Type/paste an emoji below.
+                </div>
+              )
+            ) : (
+              (() => {
+                const currentCat = EMOJI_CATEGORIES.find(c => c.id === activeCategory) || EMOJI_CATEGORIES[0];
+                return (
+                  <div className="emoji-grid">
+                    {currentCat.emojis.map((em, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`emoji-cell-btn ${selectedEmoji === em ? 'selected' : ''}`}
+                        onClick={() => handleSelect(em)}
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
+          </div>
+
+          {/* Custom Paste / Manual Input */}
+          <form className="emoji-custom-row" onSubmit={handleCustomSubmit}>
+            <input
+              type="text"
+              placeholder="Paste any emoji here (e.g. 💎)"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              maxLength={4}
+              className="emoji-custom-input"
+            />
+            <button type="submit" className="emoji-custom-apply-btn" disabled={!customInput.trim()}>
+              Apply
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OfferListPage() {
   const ctx = window.DJANGO_CONTEXT || {};
@@ -58,6 +277,7 @@ export default function OfferListPage() {
 
     return {
       offer_text: '',
+      emoji: '',
       start_datetime: getLocalDatetimeString(start),
       end_datetime: getLocalDatetimeString(end),
       is_active: true,
@@ -118,18 +338,23 @@ export default function OfferListPage() {
             let h = d.getHours();
             const m = pad(d.getMinutes());
             const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12;
-            h = h ? pad(h) : '12';
-            return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}, ${h}:${m} ${ampm}`;
+            h = h % 12 || 12;
+            return `${pad(h)}:${m} ${ampm}`;
           };
-          return `From: ${formatTime(s)}\nTo: ${formatTime(e)}`;
+          const startStr = `${pad(s.getDate())} ${months[s.getMonth()]} ${s.getFullYear()}, ${formatTime(s)}`;
+          const endStr = `${pad(e.getDate())} ${months[e.getMonth()]} ${e.getFullYear()}, ${formatTime(e)}`;
+          return `From: ${startStr}\nTo: ${endStr}`;
         }
-      } catch {
-        // fallback
-      }
+      } catch {}
     }
-    if (item.schedule && item.schedule !== '') return item.schedule;
-    return '—';
+    return item.schedule || '—';
+  };
+
+  // Truncate helper
+  const truncateText = (text, maxLen = 60) => {
+    if (!text) return '—';
+    if (text.length <= maxLen) return text;
+    return text.slice(0, maxLen).trim() + '...';
   };
 
   // Fetch updated list from API
@@ -149,12 +374,11 @@ export default function OfferListPage() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     refreshOffers();
-    // Re-evaluate statuses and refresh list periodically every 15 seconds
     const interval = setInterval(() => {
       setOffers(prev => [...prev]);
-    }, 15000);
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -170,11 +394,11 @@ export default function OfferListPage() {
     return { total, active, scheduled, expiredOrInactive };
   }, [offers]);
 
-  // Filtered offers — search against offer_text
+  // Filtered offers — search against offer_text & emoji
   const filteredOffers = useMemo(() => {
     return offers.filter(o => {
-      const text = getOfferText(o).toLowerCase();
-      const matchesSearch = text.includes(searchTerm.toLowerCase());
+      const text = `${o.emoji || ''} ${getOfferText(o)}`.toLowerCase();
+      const matchesSearch = !searchTerm || text.includes(searchTerm.toLowerCase().trim());
       const st = getComputedOfferStatus(o);
       const matchesStatus =
         statusFilter === 'all' ||
@@ -190,10 +414,16 @@ export default function OfferListPage() {
     return filteredOffers.slice(start, start + itemsPerPage);
   }, [filteredOffers, currentPage]);
 
-  // Open Add Modal
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Open Create Modal
   const handleOpenAddModal = () => {
-    setFormData(getDefaultFormData());
     setFormError('');
+    setFormData(getDefaultFormData());
     setShowAddModal(true);
   };
 
@@ -202,6 +432,7 @@ export default function OfferListPage() {
     setFormError('');
     setFormData({
       offer_text: getOfferText(item),
+      emoji: item.emoji || '',
       start_datetime: toDatetimeLocalValue(item.start_datetime) || getLocalDatetimeString(new Date()),
       end_datetime: toDatetimeLocalValue(item.end_datetime) || getLocalDatetimeString(new Date(Date.now() + 86400000)),
       is_active: item.isActive !== undefined ? item.isActive : (item.is_active !== undefined ? item.is_active : true),
@@ -216,6 +447,7 @@ export default function OfferListPage() {
         const data = await res.json();
         setFormData({
           offer_text: data.offer_text || data.name || data.title || getOfferText(item),
+          emoji: data.emoji || '',
           start_datetime: toDatetimeLocalValue(data.start_datetime) || toDatetimeLocalValue(item.start_datetime) || getLocalDatetimeString(new Date()),
           end_datetime: toDatetimeLocalValue(data.end_datetime) || toDatetimeLocalValue(item.end_datetime) || getLocalDatetimeString(new Date(Date.now() + 86400000)),
           is_active: data.isActive !== undefined ? data.isActive : (data.is_active !== undefined ? data.is_active : true),
@@ -346,17 +578,6 @@ export default function OfferListPage() {
     }
   };
 
-  const handlePageChange = (p) => {
-    if (p >= 1 && p <= totalPages) {
-      setCurrentPage(p);
-    }
-  };
-
-  const truncateText = (str, n = 80) => {
-    if (!str) return '';
-    return str.length > n ? str.substr(0, n - 1) + '...' : str;
-  };
-
   return (
     <div className="offer-list-shell">
       {/* Toast */}
@@ -480,10 +701,15 @@ export default function OfferListPage() {
                       <td>
                         <div className="offer-name-box">
                           <div className="offer-avatar-icon">
-                            <AppIcon icon={SparklesIcon} size={18} color="#6657ec" />
+                            {item.emoji ? (
+                              <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.emoji}</span>
+                            ) : (
+                              <AppIcon icon={SparklesIcon} size={18} color="#6657ec" />
+                            )}
                           </div>
                           <div className="offer-meta-info">
                             <strong style={{ whiteSpace: 'pre-line', lineHeight: '1.5' }}>
+                              {item.emoji && <span style={{ marginRight: '6px' }}>{item.emoji}</span>}
                               {truncateText(offerText, 100)}
                             </strong>
                           </div>
@@ -593,10 +819,18 @@ export default function OfferListPage() {
 
               <div className="modal-form-grid">
                 <div className="form-group full">
-                  <label>Offer <span style={{ color: '#ef4444' }}>*</span></label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                    <label style={{ margin: 0, fontWeight: '750' }}>
+                      Offer Description <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <EmojiPickerButton
+                      selectedEmoji={formData.emoji}
+                      onSelectEmoji={(emoji) => setFormData({ ...formData, emoji })}
+                    />
+                  </div>
                   <textarea
-                    rows="6"
-                    placeholder={'Write your offer here...\n\nExample:\nFLAT 20% OFF ON SMART WATCHES!\nLimited Time Offer\nShop Now & Save More!\nFree Delivery on Orders ₹999+'}
+                    rows="5"
+                    placeholder={'Write your offer here...\n\nExample:\nSave 40% instantly at checkout. Enjoy free express delivery across India.'}
                     value={formData.offer_text}
                     onChange={(e) => setFormData({ ...formData, offer_text: e.target.value })}
                     style={{ fontFamily: 'inherit', resize: 'vertical', fontSize: '14px', lineHeight: '1.6' }}
@@ -604,6 +838,28 @@ export default function OfferListPage() {
                   <small style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px', display: 'block' }}>
                     Supports line breaks and formatted text.
                   </small>
+                </div>
+
+                {/* Live Announcement Bar Preview */}
+                <div className="form-group full" style={{ marginTop: '-4px' }}>
+                  <div className="offer-preview-box">
+                    <div className="offer-preview-header">
+                      <span className="offer-preview-title">Live Preview (Top Announcement Bar)</span>
+                      {formData.emoji ? (
+                        <span className="offer-preview-badge">Emoji: {formData.emoji}</span>
+                      ) : (
+                        <span className="offer-preview-badge muted">No Emoji (Text Only)</span>
+                      )}
+                    </div>
+                    <div className="offer-preview-marquee-strip">
+                      <div className="offer-preview-item">
+                        {formData.emoji && <span className="offer-preview-emoji">{formData.emoji}</span>}
+                        <span className="offer-preview-text">
+                          {formData.offer_text.trim() || 'Save 40% instantly at checkout. Enjoy free express delivery across India.'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -659,13 +915,43 @@ export default function OfferListPage() {
 
               <div className="modal-form-grid">
                 <div className="form-group full">
-                  <label>Offer <span style={{ color: '#ef4444' }}>*</span></label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                    <label style={{ margin: 0, fontWeight: '750' }}>
+                      Offer Description <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <EmojiPickerButton
+                      selectedEmoji={formData.emoji}
+                      onSelectEmoji={(emoji) => setFormData({ ...formData, emoji })}
+                    />
+                  </div>
                   <textarea
-                    rows="6"
+                    rows="5"
                     value={formData.offer_text}
                     onChange={(e) => setFormData({ ...formData, offer_text: e.target.value })}
                     style={{ fontFamily: 'inherit', resize: 'vertical', fontSize: '14px', lineHeight: '1.6' }}
                   />
+                </div>
+
+                {/* Live Announcement Bar Preview */}
+                <div className="form-group full" style={{ marginTop: '-4px' }}>
+                  <div className="offer-preview-box">
+                    <div className="offer-preview-header">
+                      <span className="offer-preview-title">Live Preview (Top Announcement Bar)</span>
+                      {formData.emoji ? (
+                        <span className="offer-preview-badge">Emoji: {formData.emoji}</span>
+                      ) : (
+                        <span className="offer-preview-badge muted">No Emoji (Text Only)</span>
+                      )}
+                    </div>
+                    <div className="offer-preview-marquee-strip">
+                      <div className="offer-preview-item">
+                        {formData.emoji && <span className="offer-preview-emoji">{formData.emoji}</span>}
+                        <span className="offer-preview-text">
+                          {formData.offer_text.trim() || 'Save 40% instantly at checkout. Enjoy free express delivery across India.'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group">

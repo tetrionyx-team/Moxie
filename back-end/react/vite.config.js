@@ -23,6 +23,7 @@ export default defineConfig({
         login: resolve(__dirname, 'src/entries/login.jsx'),
         offers: resolve(__dirname, 'src/entries/offers.jsx'),
         profile: resolve(__dirname, 'src/entries/profile.jsx'),
+        featuredProducts: resolve(__dirname, 'src/entries/featuredProducts.jsx'),
 
 
 

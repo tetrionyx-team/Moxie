@@ -1,4 +1,5 @@
 import logging
+from django.db.backends.signals import connection_created
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from products.models import Product, ProductVariant, Review
@@ -7,6 +8,22 @@ from banners.models import Banner
 from .models import Notification
 
 logger = logging.getLogger(__name__)
+
+
+# ==============================================================================
+# SQLite Concurrency & Lock Prevention PRAGMAs
+# ==============================================================================
+@receiver(connection_created)
+def configure_sqlite_connection(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        try:
+            cursor = connection.cursor()
+            cursor.execute('PRAGMA journal_mode = WAL;')
+            cursor.execute('PRAGMA busy_timeout = 60000;')
+            cursor.execute('PRAGMA synchronous = NORMAL;')
+            cursor.execute('PRAGMA cache_size = -20000;')
+        except Exception as e:
+            logger.warning(f"SQLite PRAGMA setup skipped: {e}")
 
 
 # ==============================================================================

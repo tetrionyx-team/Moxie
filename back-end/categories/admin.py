@@ -1,15 +1,18 @@
 from django.contrib import admin
+from api.permissions_utils import StaffPermissionAdminMixin
 from .models import Category, Subcategory
 
 
-class SubcategoryInline(admin.TabularInline):
+class SubcategoryInline(StaffPermissionAdminMixin, admin.TabularInline):
     model = Subcategory
     extra = 1
     prepopulated_fields = {'slug': ('name',)}
+    required_module = 'categories'
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'categories'
     list_display = (
         'name',
         'slug',
@@ -33,7 +36,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Subcategory)
-class SubcategoryAdmin(admin.ModelAdmin):
+class SubcategoryAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'categories'
     list_display = (
         'name',
         'slug',

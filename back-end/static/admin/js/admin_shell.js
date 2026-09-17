@@ -31,6 +31,7 @@ document.addEventListener('click', function (e) {
         { id: 'categories', name: 'Categories', url: '/admin/categories/category/', desc: 'Product categories & collections', keywords: ['category', 'categories', 'collections', 'groups'], icon: '📂' },
         { id: 'subcategories', name: 'Subcategories', url: '/admin/categories/subcategory/', desc: 'Subcategories & sub-groupings', keywords: ['subcategory', 'subcategories', 'sub category'], icon: '📁' },
         { id: 'banners', name: 'Banners', url: '/admin/banners/banner/', desc: 'Promotional banners & hero carousels', keywords: ['banner', 'banners', 'slider', 'hero', 'promo'], icon: '🖼️' },
+        { id: 'featured_products', name: 'Featured Products', url: '/admin/featured-products/', desc: 'Hot Sale, Trending & Offer products for Home showcase', keywords: ['featured', 'featured products', 'hot sale', 'trending', 'offer', 'showcase'], icon: '🔥' },
         { id: 'reviews', name: 'Reviews', url: '/admin/products/review/', desc: 'Customer ratings, reviews & feedback', keywords: ['review', 'reviews', 'rating', 'feedback', 'stars'], icon: '💬' },
         { id: 'offers', name: 'Offers', url: '/admin/offers/', desc: 'Discounts, coupon codes & promotions', keywords: ['offer', 'offers', 'discount', 'coupon', 'deals', 'sale'], icon: '🏷️' },
         { id: 'orders', name: 'Orders', url: '/admin/orders/', desc: 'Customer orders, invoices & tracking', keywords: ['order', 'orders', 'purchase', 'sales', 'invoice', 'tracking'], icon: '🛍️' },

@@ -116,7 +116,7 @@
 /* Tablet Layout */
 @media (max-width: 1024px) {
   .moxie-hero-banner-section {
-    padding: 18px 0 22px;
+    padding: 16px 0 20px;
   }
 
   .moxie-hero-banner-container {
@@ -124,6 +124,7 @@
     border-radius: 22px;
     aspect-ratio: 2.2 / 1;
     min-height: 280px;
+    max-height: 600px;
   }
 
   .moxie-banner-nav-btn {
@@ -149,10 +150,18 @@
   }
 
   .moxie-hero-banner-container {
-    width: 93%;
+    width: calc(100% - 24px);
     border-radius: 18px;
     aspect-ratio: 16 / 9;
-    min-height: 200px;
+    min-height: 220px;
+    max-height: 380px;
+  }
+
+  .moxie-banner-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
   }
 
   .moxie-banner-nav-btn {
@@ -172,10 +181,15 @@
 }
 
 @media (max-width: 480px) {
+  .moxie-hero-banner-section {
+    padding: 10px 0 14px;
+  }
+
   .moxie-hero-banner-container {
-    width: 93%;
+    width: calc(100% - 20px);
     border-radius: 16px;
     aspect-ratio: 16 / 9;
-    min-height: 180px;
+    min-height: 200px;
+    max-height: 340px;
   }
 }

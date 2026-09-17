@@ -10,6 +10,7 @@ import {
   FiMapPin,
   FiClock,
   FiCheckCircle,
+  FiExternalLink,
 } from "react-icons/fi";
 import { FaInstagram } from "react-icons/fa6";
 import "./ContactModal.css";
@@ -364,6 +365,22 @@ export default function ContactModal({ isOpen, onClose }) {
         {/* Full-Width Map (Underneath BOTH Top Columns) */}
         <div className="contact-modal-map-wrap">
           <div className="contact-map-container">
+            <div className="contact-map-header-bar">
+              <div className="map-badge">
+                <FiMapPin className="map-badge-icon" aria-hidden="true" />
+                <span>Store Location</span>
+              </div>
+              <a
+                href="https://maps.google.com/?q=3%2F185%2C+Savariyar+Temple+South+Street%2C+Kulasekaranpattinam%2C+Thoothukudi+628206"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="open-maps-btn"
+                aria-label="Open in Maps"
+              >
+                <FiExternalLink className="maps-btn-icon" aria-hidden="true" />
+                <span>Open in Maps</span>
+              </a>
+            </div>
             <iframe
               title="Moxie Store Location Map"
               src="https://maps.google.com/maps?q=3%2F185%2C+Savariyar+Temple+South+Street%2C+Kulasekaranpattinam%2C+Thoothukudi+628206&t=&z=15&ie=UTF8&iwloc=&output=embed"

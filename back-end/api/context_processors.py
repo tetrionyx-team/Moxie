@@ -38,6 +38,7 @@ def admin_permissions_context(request):
         'can_admin_users': is_super or 'admin_users' in perms_set,
         'can_messages': is_super or 'messages' in perms_set,
         'can_settings': is_super or 'settings' in perms_set,
+        'can_featured_products': is_super or 'featured_products' in perms_set,
     }
 
 

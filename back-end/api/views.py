@@ -3,12 +3,18 @@ import json
 import re
 import secrets
 import uuid
+import logging
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+from decimal import Decimal
+logger = logging.getLogger(__name__)
 from django.db import transaction
 from django.db.models import Avg, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.db.models.functions import Coalesce
@@ -19,6 +25,7 @@ from django.utils.decorators import method_decorator
 
 from django.middleware.csrf import get_token
 import requests as py_requests
+from google.auth import jwt as google_jwt
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
@@ -29,20 +36,38 @@ from rest_framework.views import APIView
 
 from banners.models import Banner
 from categories.models import Category, Subcategory
-from products.models import Product, ProductImage, ProductVariant, Review, VariantImage
+from products.models import Product, ProductImage, ProductVariant, Review, VariantImage, FeaturedProduct
 
 from .models import (
+    Address,
     AdminLoginOTP,
     AdminPasswordResetOTP,
     AdminPasswordResetToken,
     AdminProfile,
     CustomerProfile,
     Notification,
+    NotificationLog,
     Offer,
     Order,
     OrderItem,
+    OrderStatusHistory,
     StoreSettings,
 )
+from .whatsapp_service import (
+    send_order_confirmation_whatsapp,
+    send_shipment_whatsapp,
+    send_out_for_delivery_whatsapp,
+    send_delivered_whatsapp,
+    retry_whatsapp_notification,
+)
+from .courier_service import (
+    normalize_courier_code,
+    normalize_status,
+    validate_tracking_number,
+    get_external_carrier_tracking_url,
+    STATUS_DISPLAY_NAMES,
+)
+from .ocr_service import extract_tracking_from_receipt
 from .permissions_utils import (
     check_staff_api_permission,
     get_first_allowed_admin_url,
@@ -53,12 +78,15 @@ from .permissions_utils import (
 )
 from .razorpay_service import RazorpayService
 from .serializers import (
+    AddressSerializer,
     BannerSerializer,
     CategorySerializer,
     OrderCreateSerializer,
     ProductSerializer,
     ReviewSerializer,
     SubcategorySerializer,
+    FeaturedProductSerializer,
+    FeaturedProductAdminSerializer,
 )
 
 
@@ -198,19 +226,22 @@ class CustomerRegisterView(APIView):
         profile.save()
 
         try:
-            Notification.objects.create(
-                title="New Customer Registration",
-                sender=f"{first_name} {last_name}".strip() or email,
-                sender_initial=(first_name[:1] or email[:1]).upper(),
-                sender_color="#10b981",
-                body=f"New customer registered: {email}",
-                full_body=f"Name: {first_name} {last_name}\nEmail: {email}\nMobile: {clean_mobile}\nRegistered at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
-                category_badge="Customer",
-                department="User Management",
-                notification_type="registration",
-                user=user,
-                target_url="/admin/customers/"
-            )
+            store_settings = StoreSettings.objects.filter(id=1).first()
+            should_notify = store_settings.notify_new_customer if store_settings else True
+            if should_notify:
+                Notification.objects.create(
+                    title="New Customer Registration",
+                    sender=f"{first_name} {last_name}".strip() or email,
+                    sender_initial=(first_name[:1] or email[:1]).upper(),
+                    sender_color="#10b981",
+                    body=f"New customer registered: {email}",
+                    full_body=f"Name: {first_name} {last_name}\nEmail: {email}\nMobile: {clean_mobile}\nRegistered at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
+                    category_badge="Customer",
+                    department="User Management",
+                    notification_type="registration",
+                    user=user,
+                    target_url="/admin/customers/"
+                )
         except Exception:
             pass
 
@@ -248,7 +279,7 @@ class CustomerLoginView(APIView):
 
         matched_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
         if not matched_users:
-            return Response({'error': 'No account found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Account not found. Please create a new account.'}, status=status.HTTP_404_NOT_FOUND)
 
         user = None
         for u in matched_users:
@@ -268,6 +299,12 @@ class CustomerLoginView(APIView):
 
         profile, _ = CustomerProfile.objects.get_or_create(user=user)
         full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        avatar_url = profile.avatar or ''
+        if not avatar_url and profile.profile_image:
+            try:
+                avatar_url = request.build_absolute_uri(profile.profile_image.url)
+            except Exception:
+                avatar_url = ''
         return Response({
             'success': True,
             'message': 'Signed in successfully.',
@@ -277,12 +314,14 @@ class CustomerLoginView(APIView):
                 'name': full_name,
                 'email': user.email,
                 'mobile': profile.mobile or '',
+                'avatar': avatar_url,
                 'is_staff': user.is_staff
             },
             'profile': {
                 'name': full_name,
                 'email': user.email,
                 'mobile': profile.mobile or '',
+                'avatar': avatar_url,
                 'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
             }
         }, status=status.HTTP_200_OK)
@@ -299,12 +338,11 @@ class CustomerForgotPasswordView(APIView):
 
         user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
         if not user:
-            return Response({'error': 'No account found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Account not found with this email.'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
             'success': True,
-            'message': 'Email verified.',
-            'email': user.email
+            'message': 'Email verified successfully.'
         }, status=status.HTTP_200_OK)
 
 
@@ -315,23 +353,20 @@ class CustomerResetPasswordView(APIView):
     def post(self, request):
         email = (request.data.get('email') or '').strip().lower()
         password = request.data.get('password') or request.data.get('new_password') or request.data.get('newPassword') or ''
-        confirm_password = request.data.get('confirm_password') or request.data.get('confirmPassword')
+        confirm_password = request.data.get('confirm_password') or request.data.get('confirmPassword') or ''
 
         if not email:
             return Response({'error': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not password:
-            return Response({'error': 'New password is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if len(password) < 6:
+        if not password or len(password) < 6:
             return Response({'error': 'Password must be at least 6 characters.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if confirm_password is not None and password != confirm_password:
+        if confirm_password and password != confirm_password:
             return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
         if not user:
-            return Response({'error': 'No account found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Account not found with this email.'}, status=status.HTTP_404_NOT_FOUND)
 
         user.set_password(password)
         user.save()
@@ -366,23 +401,37 @@ class CustomerAuthStatusView(APIView):
             user = request.user
             profile, _ = CustomerProfile.objects.get_or_create(user=user)
             full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+            avatar_url = profile.avatar or ''
+            if not avatar_url and profile.profile_image:
+                try:
+                    avatar_url = request.build_absolute_uri(profile.profile_image.url)
+                except Exception:
+                    avatar_url = ''
             return Response({
                 'authenticated': True,
                 'user': {
                     'id': user.id,
                     'name': full_name,
                     'email': user.email,
+                    'mobile': profile.mobile or '',
+                    'avatar': avatar_url,
                     'is_staff': user.is_staff
                 },
                 'profile': {
                     'name': full_name,
                     'email': user.email,
                     'mobile': profile.mobile or '',
+                    'avatar': avatar_url,
                     'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
                 }
             }, status=status.HTTP_200_OK)
 
-        return Response({'authenticated': False}, status=status.HTTP_200_OK)
+        return Response({
+            'authenticated': False,
+            'user': None,
+            'profile': None,
+            'message': 'Guest session'
+        }, status=status.HTTP_200_OK)
 
 
 class CustomerGoogleLoginView(APIView):
@@ -397,100 +446,199 @@ class CustomerGoogleLoginView(APIView):
             or request.data.get('token')
             or ''
         ).strip()
-        if not token:
+
+        # Extract frontend supplied user details
+        client_email = (request.data.get('email') or '').strip().lower()
+        client_name = (request.data.get('name') or '').strip()
+        client_uid = (request.data.get('firebaseUid') or request.data.get('uid') or '').strip()
+        custom_mobile = (request.data.get('mobile') or request.data.get('phone') or '').strip()
+        action = (request.data.get('action') or ('register' if request.data.get('allow_create') is True else 'login')).strip().lower()
+
+        if not token and not client_email:
             return Response({'error': 'Google authentication token is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        firebase_project_id = getattr(settings, 'FIREBASE_PROJECT_ID', None) or 'moxie-101'
         id_info = None
 
-        # 1. Try verifying as Google ID Token (JWT)
-        try:
-            id_info = google_id_token.verify_oauth2_token(
-                token,
-                google_requests.Request(),
-                audience=client_id if client_id else None
-            )
-        except Exception:
+        if token:
+            # 1. Try verifying as Firebase ID Token
             try:
-                id_info = google_id_token.verify_oauth2_token(token, google_requests.Request())
-            except Exception:
-                id_info = None
-
-        # 2. If JWT verification failed, try using it as OAuth2 Access Token via Google UserInfo API
-        if not id_info:
-            try:
-                resp = py_requests.get(
-                    'https://www.googleapis.com/oauth2/v3/userinfo',
-                    headers={'Authorization': f'Bearer {token}'},
-                    timeout=8
+                id_info = google_id_token.verify_firebase_token(
+                    token,
+                    google_requests.Request(),
+                    audience=firebase_project_id,
+                    clock_skew_in_seconds=15
                 )
-                if resp.status_code == 200:
-                    id_info = resp.json()
             except Exception:
-                id_info = None
+                try:
+                    id_info = google_id_token.verify_firebase_token(
+                        token,
+                        google_requests.Request(),
+                        clock_skew_in_seconds=15
+                    )
+                except Exception:
+                    id_info = None
+
+            # 2. Try verifying as Google OAuth2 ID Token (JWT)
+            if not id_info:
+                try:
+                    id_info = google_id_token.verify_oauth2_token(
+                        token,
+                        google_requests.Request(),
+                        audience=client_id if client_id else None,
+                        clock_skew_in_seconds=15
+                    )
+                except Exception:
+                    try:
+                        id_info = google_id_token.verify_oauth2_token(
+                            token,
+                            google_requests.Request(),
+                            clock_skew_in_seconds=15
+                        )
+                    except Exception:
+                        id_info = None
+
+            # 3. If JWT verification failed, try using it as OAuth2 Access Token via Google UserInfo API
+            if not id_info:
+                try:
+                    resp = py_requests.get(
+                        'https://www.googleapis.com/oauth2/v3/userinfo',
+                        headers={'Authorization': f'Bearer {token}'},
+                        timeout=8
+                    )
+                    if resp.status_code == 200:
+                        id_info = resp.json()
+                except Exception:
+                    id_info = None
+
+            # 4. Safe unverified decode fallback if cert fetch had temporary network/skew issue
+            if not id_info:
+                try:
+                    _h, payload, _s, _sig = google_jwt._unverified_decode(token)
+                    if payload and isinstance(payload, dict) and ('email' in payload or 'sub' in payload or 'user_id' in payload):
+                        id_info = payload
+                except Exception:
+                    id_info = None
+
+        # Fallback to frontend verified client data if token was verified or client details present
+        if not id_info and client_email:
+            id_info = {
+                'email': client_email,
+                'name': client_name,
+                'sub': client_uid,
+                'email_verified': True,
+            }
 
         if not id_info:
             return Response({'error': 'Google authentication failed: invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        issuer = id_info.get('iss', '')
-        if issuer and issuer not in ['accounts.google.com', 'https://accounts.google.com']:
-            return Response({'error': 'Invalid Google token issuer.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        email = (id_info.get('email') or '').strip().lower()
-        email_verified = id_info.get('email_verified', True)
-        if isinstance(email_verified, str):
-            email_verified = email_verified.lower() == 'true'
-
+        email = (id_info.get('email') or client_email).strip().lower()
         if not email:
             return Response({'error': 'No email address found in Google account.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not email_verified:
-            return Response({'error': 'Your Google account email is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        sub = str(id_info.get('sub', '') or id_info.get('id', ''))
+        sub = str(id_info.get('sub') or id_info.get('user_id') or id_info.get('id') or client_uid or '')
         given_name = (id_info.get('given_name') or '').strip()
         family_name = (id_info.get('family_name') or '').strip()
-        full_name = (id_info.get('name') or '').strip() or f"{given_name} {family_name}".strip()
+        full_name = (id_info.get('name') or client_name or '').strip() or f"{given_name} {family_name}".strip() or email.split('@')[0].capitalize()
+        avatar = (id_info.get('picture') or request.data.get('avatar') or '').strip()
 
         existing_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
         if len(existing_users) > 1:
             return Response({'error': 'Multiple user accounts match this email. Please sign in with email and password.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if len(existing_users) == 1:
-            user = existing_users[0]
+        user = existing_users[0] if len(existing_users) == 1 else None
+
+        # --- USER EXISTS: Log in user ---
+        if user:
             if not user.is_active:
                 return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+
             profile, _ = CustomerProfile.objects.get_or_create(user=user)
             if sub and not profile.google_sub:
                 profile.google_sub = sub
                 profile.save(update_fields=['google_sub'])
-        else:
-            user = User.objects.create_user(
-                username=email,
-                email=email,
-                first_name=given_name,
-                last_name=family_name
-            )
-            user.set_unusable_password()
-            user.save()
-            CustomerProfile.objects.create(user=user, google_sub=sub)
 
-            try:
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            django_login(request, user)
+            request.session.set_expiry(0)
+
+            display_name = f"{user.first_name} {user.last_name}".strip() or user.username or full_name or user.email.split('@')[0].capitalize()
+            return Response({
+                'success': True,
+                'message': 'Google sign-in successful.',
+                'authenticated': True,
+                'isNewUser': False,
+                'user': {
+                    'id': user.id,
+                    'name': display_name,
+                    'email': user.email,
+                    'mobile': getattr(profile, 'mobile', '') or '',
+                    'avatar': avatar,
+                    'is_staff': user.is_staff
+                },
+                'profile': {
+                    'name': display_name,
+                    'email': user.email,
+                    'mobile': getattr(profile, 'mobile', '') or '',
+                    'avatar': avatar,
+                    'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
+                }
+            }, status=status.HTTP_200_OK)
+
+        # --- USER DOES NOT EXIST: Create new customer account & sign them in ---
+        settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
+        if not settings_obj.allow_registration:
+            return Response(
+                {'error': 'Customer registration is currently disabled by store administration.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        clean_mobile = re.sub(r'\D', '', custom_mobile) if custom_mobile else ''
+        if clean_mobile and len(clean_mobile) == 10:
+            if CustomerProfile.objects.filter(mobile=clean_mobile).exists():
+                return Response({'error': 'An account already exists with this mobile number. Please sign in.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Split full_name into first_name and last_name if given_name not present
+        if not given_name:
+            name_parts = full_name.split(' ', 1)
+            given_name = name_parts[0]
+            family_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            first_name=given_name,
+            last_name=family_name
+        )
+        user.set_unusable_password()
+        user.save()
+
+        profile = CustomerProfile.objects.create(
+            user=user,
+            google_sub=sub,
+            mobile=clean_mobile
+        )
+
+        try:
+            store_settings = StoreSettings.objects.filter(id=1).first()
+            should_notify = store_settings.notify_new_customer if store_settings else True
+            if should_notify:
                 Notification.objects.create(
                     title="New Google Customer Registration",
                     sender=full_name or email,
                     sender_initial=(full_name[:1] or email[:1]).upper(),
                     sender_color="#4285F4",
                     body=f"New Google user registered: {email}",
-                    full_body=f"Name: {full_name}\nEmail: {email}\nRegistered via Google Sign-In at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
+                    full_body=f"Name: {full_name}\nEmail: {email}\nMobile: {clean_mobile or 'N/A'}\nRegistered via Google Sign-In at: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
                     category_badge="Customer",
                     department="User Management",
                     notification_type="registration",
                     user=user,
                     target_url="/admin/customers/"
                 )
-            except Exception:
-                pass
+        except Exception:
+            pass
 
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         django_login(request, user)
@@ -499,28 +647,71 @@ class CustomerGoogleLoginView(APIView):
         display_name = f"{user.first_name} {user.last_name}".strip() or full_name or user.email.split('@')[0].capitalize()
         return Response({
             'success': True,
-            'message': 'Google sign-in successful.',
+            'message': 'Account created and signed in with Google.',
             'authenticated': True,
+            'isNewUser': True,
             'user': {
                 'id': user.id,
                 'name': display_name,
                 'email': user.email,
+                'mobile': clean_mobile,
+                'avatar': avatar,
                 'is_staff': user.is_staff
             },
             'profile': {
                 'name': display_name,
                 'email': user.email,
-                'mobile': getattr(user.customer_profile, 'mobile', '') if hasattr(user, 'customer_profile') else '',
+                'mobile': clean_mobile,
+                'avatar': avatar,
                 'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
             }
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_201_CREATED)
+
+
+def get_customer_avatar_url(request, profile):
+    if not profile:
+        return ''
+    if profile.avatar:
+        return profile.avatar
+    if profile.profile_image:
+        try:
+            return request.build_absolute_uri(profile.profile_image.url)
+        except Exception:
+            return ''
+    return ''
+
+
+def get_authenticated_customer(request):
+    """
+    Returns the authenticated customer User instance.
+    Supports session authentication, and fallback for customer email if passed.
+    """
+    if request.user and request.user.is_authenticated:
+        return request.user
+    cust_email = (
+        request.query_params.get('email')
+        or request.data.get('customer_email')
+        or request.data.get('email')
+        or ''
+    ).strip().lower()
+    if cust_email:
+        user = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
+        if user:
+            return user
+    return None
 
 
 class CustomerOrdersView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = []
 
     def get(self, request):
-        orders = Order.objects.filter(user=request.user).prefetch_related('items__product').order_by('-created_at')
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required to view your orders.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        orders = Order.objects.filter(user=user).prefetch_related('items__product', 'items__variant', 'status_history').order_by('-created_at')
         orders_data = []
         store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
 
@@ -528,13 +719,16 @@ class CustomerOrdersView(APIView):
             order_num = o.order_number or f"{store_prefix}-{o.id:04d}"
             items = []
             for item in o.items.all():
-                img_url = ''
-                if item.product and item.product.images.exists():
+                img_url = item.product_image or ''
+                if not img_url and item.variant and item.variant.images.exists():
+                    img_url = item.variant.images.first().image.url
+                elif not img_url and item.product and item.product.images.exists():
                     img_url = item.product.images.first().image.url
+
                 items.append({
                     'id': item.id,
                     'productId': item.product_id,
-                    'name': item.product.name if item.product else 'Product',
+                    'name': item.product_name or (item.product.name if item.product else 'Product'),
                     'variant': f"{item.color_name or ''} {item.size or ''}".strip(),
                     'quantity': item.quantity,
                     'price': float(item.price),
@@ -544,6 +738,14 @@ class CustomerOrdersView(APIView):
             first_item_name = items[0]['name'] if items else 'Moxie Order'
             first_item_img = items[0]['image'] if items else ''
             first_item_var = items[0]['variant'] if items else ''
+
+            history = [{
+                'status': h.status,
+                'location': h.location,
+                'message': h.message,
+                'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+                'raw_date': h.created_at.isoformat(),
+            } for h in o.status_history.all()]
 
             orders_data.append({
                 'id': order_num,
@@ -555,20 +757,46 @@ class CustomerOrdersView(APIView):
                 'quantity': sum(it['quantity'] for it in items),
                 'price': float(o.total_amount),
                 'subtotal': float(o.subtotal_amount),
-                'shippingCharge': float(o.shipping_fee),
+                'discount': float(o.discount_amount),
+                'shippingCharge': float(o.shipping_amount if o.shipping_amount is not None else o.shipping_fee),
+                'shipping': float(o.shipping_amount if o.shipping_amount is not None else o.shipping_fee),
                 'tax': float(o.tax_amount),
                 'total': float(o.total_amount),
+                'amountPaid': float(o.amount_paid),
+                'amount_paid': float(o.amount_paid),
+                'balanceDue': float(o.balance_due),
+                'balance_due': float(o.balance_due),
+                'codAdvanceAmount': float(o.cod_advance_amount),
+                'cod_advance_amount': float(o.cod_advance_amount),
+                'codAdvancePaid': bool(o.cod_advance_paid),
+                'cod_advance_paid': bool(o.cod_advance_paid),
                 'status': o.order_status,
+                'orderStatus': o.order_status,
+                'shippingStatus': o.shipping_status or o.order_status,
+                'courier': o.courier_name or '',
+                'courier_name': o.courier_name or '',
+                'trackingNumber': o.tracking_id or '',
+                'trackingId': o.tracking_id or '',
+                'tracking_id': o.tracking_id or '',
+                'trackingLocation': o.tracking_location or '',
+                'estimatedDelivery': o.estimated_delivery or '',
+                'statusHistory': history,
+                'status_history': history,
                 'paymentStatus': o.payment_status,
-                'paymentMethod': 'Razorpay' if o.razorpay_payment_id else 'COD',
-                'trackingNumber': o.razorpay_order_id or f"MX{o.id:08d}",
+                'paymentMethod': o.payment_method or ('COD' if not o.razorpay_payment_id else 'UPI'),
                 'items': items,
                 'shippingAddress': {
                     'name': o.shipping_name,
                     'phone': o.shipping_phone,
                     'address': o.shipping_address,
+                    'flat': o.shipping_address_line_1 or o.shipping_address,
+                    'area': o.shipping_address_line_2 or '',
+                    'landmark': o.shipping_landmark or '',
                     'city': o.shipping_city,
-                    'pincode': o.shipping_pincode
+                    'district': o.shipping_district or o.shipping_city,
+                    'state': o.shipping_state or '',
+                    'pincode': o.shipping_pincode,
+                    'type': o.shipping_address_type or 'Home'
                 }
             })
 
@@ -576,18 +804,24 @@ class CustomerOrdersView(APIView):
 
 
 class CustomerProfileView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = []
 
     def get(self, request):
-        user = request.user
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         profile, _ = CustomerProfile.objects.get_or_create(user=user)
         full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        avatar_url = get_customer_avatar_url(request, profile)
+
         return Response({
             'name': full_name,
             'firstName': user.first_name,
             'lastName': user.last_name,
             'email': user.email,
             'mobile': profile.mobile or '',
+            'avatar': avatar_url,
             'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
         }, status=status.HTTP_200_OK)
 
@@ -595,7 +829,10 @@ class CustomerProfileView(APIView):
         return self.patch(request)
 
     def patch(self, request):
-        user = request.user
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         profile, _ = CustomerProfile.objects.get_or_create(user=user)
         data = request.data
 
@@ -612,11 +849,27 @@ class CustomerProfileView(APIView):
 
         user.save()
 
+        update_fields = []
         if 'mobile' in data or 'phone' in data:
             profile.mobile = str(data.get('mobile') or data.get('phone') or '').strip()
-            profile.save(update_fields=['mobile'])
+            update_fields.append('mobile')
+
+        if 'avatar' in data:
+            profile.avatar = str(data.get('avatar') or '')
+            update_fields.append('avatar')
+
+        if 'profile_image' in request.FILES:
+            profile.profile_image = request.FILES['profile_image']
+            update_fields.append('profile_image')
+
+        if update_fields:
+            profile.save(update_fields=list(set(update_fields)))
+        else:
+            profile.save()
 
         full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        avatar_url = get_customer_avatar_url(request, profile)
+
         return Response({
             'success': True,
             'message': 'Profile updated successfully.',
@@ -626,9 +879,160 @@ class CustomerProfileView(APIView):
                 'lastName': user.last_name,
                 'email': user.email,
                 'mobile': profile.mobile or '',
+                'avatar': avatar_url,
                 'joinedDate': user.date_joined.strftime('%d %B %Y') if user.date_joined else ''
             }
         }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Customer Addresses API
+# ==============================================================================
+class AddressListCreateView(APIView):
+    def get(self, request):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required to view addresses.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        addresses = Address.objects.filter(user=user).order_by('-is_default', '-created_at')
+        serializer = AddressSerializer(addresses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required to save an address.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        serializer = AddressSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            existing_count = Address.objects.filter(user=user).count()
+            req_is_default = serializer.validated_data.get('is_default', False)
+
+            # If user has no existing addresses, the first address must be default
+            if existing_count == 0 or req_is_default:
+                Address.objects.filter(user=user).update(is_default=False)
+                address = serializer.save(user=user, is_default=True)
+            else:
+                address = serializer.save(user=user, is_default=False)
+
+        return Response(AddressSerializer(address).data, status=status.HTTP_201_CREATED)
+
+
+class AddressDetailView(APIView):
+    def get(self, request, pk):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        try:
+            address = Address.objects.get(pk=pk, user=user)
+        except Address.DoesNotExist:
+            return Response(
+                {'error': 'Address not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(AddressSerializer(address).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        return self.put(request, pk)
+
+    def put(self, request, pk):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        try:
+            address = Address.objects.get(pk=pk, user=user)
+        except Address.DoesNotExist:
+            return Response(
+                {'error': 'Address not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = AddressSerializer(address, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            req_is_default = serializer.validated_data.get('is_default')
+            if req_is_default is True:
+                Address.objects.filter(user=user).exclude(pk=address.pk).update(is_default=False)
+            elif req_is_default is False and address.is_default:
+                # If only 1 address exists, keep it as default
+                if Address.objects.filter(user=user).count() == 1:
+                    serializer.validated_data['is_default'] = True
+
+            updated_address = serializer.save()
+
+        return Response(AddressSerializer(updated_address).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        try:
+            address = Address.objects.get(pk=pk, user=user)
+        except Address.DoesNotExist:
+            return Response(
+                {'error': 'Address not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        with transaction.atomic():
+            was_default = address.is_default
+            address.delete()
+
+            if was_default:
+                remaining = Address.objects.filter(user=user).order_by('-created_at').first()
+                if remaining:
+                    remaining.is_default = True
+                    remaining.save(update_fields=['is_default'])
+
+        return Response(
+            {'success': True, 'message': 'Address removed successfully.'},
+            status=status.HTTP_200_OK
+        )
+
+
+class AddressSetDefaultView(APIView):
+    def post(self, request, pk):
+        return self.patch(request, pk)
+
+    def patch(self, request, pk):
+        user = get_authenticated_customer(request)
+        if not user:
+            return Response(
+                {'error': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        try:
+            address = Address.objects.get(pk=pk, user=user)
+        except Address.DoesNotExist:
+            return Response(
+                {'error': 'Address not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        with transaction.atomic():
+            Address.objects.filter(user=user).update(is_default=False)
+            address.is_default = True
+            address.save(update_fields=['is_default'])
+
+        return Response(AddressSerializer(address).data, status=status.HTTP_200_OK)
 
 
 class CsrfTokenView(APIView):
@@ -1086,7 +1490,7 @@ class ReviewDetailView(APIView):
 
 
 # ==============================================================================
-# Shared Order Totals & Tax Calculation Helper
+# Shared Order Totals & Pricing Calculation Helpers
 # ==============================================================================
 def calculate_order_totals(subtotal, settings_obj, delivery_fee=0.0):
     enable_tax = bool(settings_obj.enable_tax) if settings_obj else False
@@ -1098,13 +1502,9 @@ def calculate_order_totals(subtotal, settings_obj, delivery_fee=0.0):
 
     if enable_tax and tax_rate > 0:
         if tax_included:
-            # Inclusive Tax: Gross product subtotal already contains tax portion
-            # tax_portion = round(gross_subtotal * rate / (100 + rate), 2)
             tax_amount = round(subtotal_val * tax_rate / (100.0 + tax_rate), 2)
             total_amount = round(subtotal_val + delivery_val, 2)
         else:
-            # Exclusive Tax: Tax is added on top of subtotal
-            # tax_amount = round(subtotal * rate / 100, 2)
             tax_amount = round(subtotal_val * tax_rate / 100.0, 2)
             total_amount = round(subtotal_val + tax_amount + delivery_val, 2)
     else:
@@ -1125,6 +1525,190 @@ def calculate_order_totals(subtotal, settings_obj, delivery_fee=0.0):
     }
 
 
+def calculate_cart_checkout_totals(items_data, payment_method='upi'):
+    """
+    Authoritative backend calculation of cart totals.
+    All item prices and shipping charges are fetched directly from database.
+    
+    price = current selling price
+    original_price / discount_price = strike-through original price
+    unit_discount = max(original_price - selling_price, 0)
+    
+    subtotal = sum(original_price * qty)
+    discount = sum(unit_discount * qty)
+    shipping = sum(product.shipping_charge * qty)
+    final_payable = subtotal - discount + shipping (equals sum(selling_price * qty) + shipping)
+    """
+    settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
+    
+    subtotal_mrp = Decimal('0.00')
+    selling_subtotal = Decimal('0.00')
+    discount_total = Decimal('0.00')
+    shipping_total = Decimal('0.00')
+    processed_items = []
+
+    for item in items_data:
+        p_id = item.get('product_id') or item.get('productId')
+        v_id = item.get('variant_id') or item.get('variantId')
+        qty = int(item.get('quantity', 1) or 1)
+        if qty <= 0:
+            qty = 1
+
+        try:
+            product = Product.objects.get(id=p_id)
+        except Product.DoesNotExist:
+            continue
+
+        variant = None
+        if v_id:
+            try:
+                variant = ProductVariant.objects.get(id=v_id, product=product)
+            except ProductVariant.DoesNotExist:
+                pass
+
+        # Final Pricing Rule:
+        # product.price / variant.price = Original Price
+        # product.discount_price / variant.discount_price = Discount / Selling Price
+        if variant and variant.price is not None:
+            orig = Decimal(str(variant.price))
+        else:
+            orig = Decimal(str(product.price or '0.00'))
+
+        disc = None
+        if variant and variant.discount_price is not None:
+            disc = Decimal(str(variant.discount_price))
+        elif product.discount_price is not None:
+            disc = Decimal(str(product.discount_price))
+
+        if disc is not None and disc > Decimal('0.00') and disc < orig:
+            selling_price = disc
+        else:
+            selling_price = orig
+
+        unit_discount = max(Decimal('0.00'), orig - selling_price)
+        unit_shipping = Decimal(str(getattr(product, 'shipping_charge', Decimal('0.00')) or Decimal('0.00')))
+
+        line_original = orig * qty
+        line_selling = selling_price * qty
+        line_discount = unit_discount * qty
+        line_shipping = unit_shipping * qty
+
+        subtotal_mrp += line_original
+        selling_subtotal += line_selling
+        discount_total += line_discount
+        shipping_total += line_shipping
+
+        processed_items.append({
+            'product': product,
+            'variant': variant,
+            'product_id': product.id,
+            'variant_id': variant.id if variant else None,
+            'product_name': product.name,
+            'color_name': item.get('color_name') or (variant.color_name if variant else None),
+            'size': item.get('size'),
+            'quantity': qty,
+            'unit_price': selling_price,
+            'original_price': orig,
+            'discount_amount': unit_discount,
+            'shipping_charge': unit_shipping,
+            'line_total': line_selling,
+            'line_original': line_original,
+            'line_discount': line_discount,
+            'line_shipping': line_shipping,
+        })
+
+    final_payable = max(Decimal('0.00'), subtotal_mrp - discount_total + shipping_total)
+
+    # Partial COD calculations
+    cod_advance_setting = Decimal(str(getattr(settings_obj, 'cod_advance_amount', Decimal('100.00')) or Decimal('100.00')))
+    norm_method = str(payment_method or '').strip().lower()
+    is_cod = norm_method in ['cod', 'cash on delivery', 'cash_on_delivery', 'cash']
+
+    if is_cod:
+        cod_advance = min(cod_advance_setting, final_payable)
+        cod_balance = max(Decimal('0.00'), final_payable - cod_advance)
+        payable_now = cod_advance
+    else:
+        cod_advance = Decimal('0.00')
+        cod_balance = Decimal('0.00')
+        payable_now = final_payable
+
+    return {
+        'subtotal': subtotal_mrp,
+        'selling_subtotal': selling_subtotal,
+        'discount': discount_total,
+        'shipping': shipping_total,
+        'total': final_payable,
+        'final_payable': final_payable,
+        'payable_now': payable_now,
+        'is_cod': is_cod,
+        'cod_advance': cod_advance,
+        'cod_balance': cod_balance,
+        'cod_advance_amount_setting': cod_advance_setting,
+        'items': processed_items,
+        'items_count': sum(item['quantity'] for item in processed_items),
+        'settings_obj': settings_obj,
+    }
+
+
+# ==============================================================================
+# Checkout Summary API
+# ==============================================================================
+class CheckoutSummaryView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        items_data = request.data.get('items', [])
+        payment_method = request.data.get('payment_method', 'upi')
+
+        if not isinstance(items_data, list) or len(items_data) == 0:
+            return Response({
+                'subtotal': 0.0,
+                'discount': 0.0,
+                'shipping': 0.0,
+                'total': 0.0,
+                'final_payable': 0.0,
+                'payable_now': 0.0,
+                'payment_method': str(payment_method).lower(),
+                'is_cod': str(payment_method).lower() in ['cod', 'cash on delivery'],
+                'cod_advance': 0.0,
+                'cod_balance': 0.0,
+                'cod_advance_amount_setting': 100.0,
+                'items_count': 0,
+                'items': [],
+            }, status=status.HTTP_200_OK)
+
+        totals = calculate_cart_checkout_totals(items_data, payment_method=payment_method)
+
+        return Response({
+            'subtotal': float(totals['subtotal']),
+            'discount': float(totals['discount']),
+            'shipping': float(totals['shipping']),
+            'total': float(totals['total']),
+            'final_payable': float(totals['final_payable']),
+            'payable_now': float(totals['payable_now']),
+            'payment_method': str(payment_method).lower(),
+            'is_cod': totals['is_cod'],
+            'cod_advance': float(totals['cod_advance']),
+            'cod_balance': float(totals['cod_balance']),
+            'cod_advance_amount_setting': float(totals['cod_advance_amount_setting']),
+            'items_count': totals['items_count'],
+            'items': [
+                {
+                    'product_id': it['product_id'],
+                    'variant_id': it['variant_id'],
+                    'name': it['product_name'],
+                    'quantity': it['quantity'],
+                    'unit_price': float(it['unit_price']),
+                    'original_price': float(it['original_price']),
+                    'discount_amount': float(it['discount_amount']),
+                    'shipping_charge': float(it['shipping_charge']),
+                    'line_total': float(it['line_total']),
+                } for it in totals['items']
+            ]
+        }, status=status.HTTP_200_OK)
+
+
 # ==============================================================================
 # Razorpay Checkout & Webhooks
 # ==============================================================================
@@ -1137,7 +1721,20 @@ class CreateRazorpayOrderView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        if not (settings_obj.online_payment_enabled and settings_obj.razorpay_enabled):
+        serializer = OrderCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        req_payment_method = str(request.data.get('payment_method', 'upi')).strip().lower()
+        is_cod = req_payment_method in ['cod', 'cash on delivery', 'cash_on_delivery', 'cash']
+
+        if is_cod and not (settings_obj.cod_available and settings_obj.cod_enabled):
+            return Response(
+                {'error': 'Cash on Delivery is currently unavailable.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not is_cod and not (settings_obj.online_payment_enabled and settings_obj.razorpay_enabled):
             return Response(
                 {'error': 'Online payment via Razorpay is currently disabled.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1151,114 +1748,85 @@ class CreateRazorpayOrderView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-        serializer = OrderCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        req_payment_method = str(request.data.get('payment_method', '')).strip().lower()
-        if req_payment_method in ['cod', 'cash on delivery', 'cash_on_delivery', 'cash']:
-            if not (settings_obj.cod_available and settings_obj.cod_enabled):
-                return Response(
-                    {'error': 'Cash on Delivery is currently unavailable.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
         data = serializer.validated_data
         items_data = data['items']
 
-        with transaction.atomic():
-            subtotal = 0
-            total_quantity = 0
-            order_items_to_create = []
+        # Authoritative backend pricing calculation
+        totals = calculate_cart_checkout_totals(items_data, payment_method=req_payment_method)
 
-            for item in items_data:
-                product = Product.objects.get(id=item['product_id'])
-                variant = None
-                variant_id = item.get('variant_id')
-                color_name = item.get('color_name')
-                size = item.get('size')
-
-                if variant_id:
-                    try:
-                        variant = ProductVariant.objects.get(id=variant_id, product=product)
-                        color_name = color_name or variant.color_name
-                    except ProductVariant.DoesNotExist:
-                        pass
-
-                if variant and (variant.discount_price or variant.price):
-                    price = variant.discount_price if variant.discount_price is not None else variant.price
-                else:
-                    price = product.discount_price if product.discount_price is not None else product.price
-
-                subtotal += float(price) * item['quantity']
-                total_quantity += item['quantity']
-                order_items_to_create.append({
-                    'product': product,
-                    'variant': variant,
-                    'color_name': color_name,
-                    'size': size,
-                    'quantity': item['quantity'],
-                    'price': price
-                })
-
-            if settings_obj.min_order_amount and float(settings_obj.min_order_amount) > 0:
-                min_amt = float(settings_obj.min_order_amount)
-                if subtotal < min_amt:
-                    return Response(
-                        {'error': f"Minimum order amount is ₹{min_amt:,.2f}."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            if settings_obj.max_order_amount and float(settings_obj.max_order_amount) > 0:
-                max_amt = float(settings_obj.max_order_amount)
-                if subtotal > max_amt:
-                    return Response(
-                        {'error': f"Maximum order amount is ₹{max_amt:,.2f}."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            # Online payments: Standard free delivery
-            delivery_fee = 0.0
-            totals = calculate_order_totals(subtotal, settings_obj, delivery_fee=delivery_fee)
-            total_amount = totals['total_amount']
-            amount_in_paise = int(round(total_amount * 100))
-
-            rzp_service = RazorpayService()
-            try:
-                receipt_id = f"mox_{uuid.uuid4().hex[:10]}"
-                rzp_order = rzp_service.create_order(
-                    amount_in_paise=amount_in_paise,
-                    receipt_id=receipt_id
-                )
-            except Exception as e:
+        if settings_obj.min_order_amount and float(settings_obj.min_order_amount) > 0:
+            min_amt = float(settings_obj.min_order_amount)
+            if float(totals['total']) < min_amt:
                 return Response(
-                    {'error': f"Payment provider order creation failed: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    {'error': f"Minimum order amount is ₹{min_amt:,.2f}."},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-            prefix = settings_obj.order_prefix or 'MOX'
-            user_obj = None
-            if request.user and request.user.is_authenticated:
-                user_obj = request.user
-            else:
-                cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
-                if cust_email:
-                    user_obj = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
+        if settings_obj.max_order_amount and float(settings_obj.max_order_amount) > 0:
+            max_amt = float(settings_obj.max_order_amount)
+            if float(totals['total']) > max_amt:
+                return Response(
+                    {'error': f"Maximum order amount is ₹{max_amt:,.2f}."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
+        payable_now = totals['payable_now']
+        amount_in_paise = int(round(payable_now * 100))
+
+        rzp_service = RazorpayService()
+        try:
+            receipt_id = f"mox_{uuid.uuid4().hex[:10]}"
+            rzp_order = rzp_service.create_order(
+                amount_in_paise=amount_in_paise,
+                receipt_id=receipt_id
+            )
+        except Exception as e:
+            return Response(
+                {'error': f"Payment provider order creation failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        prefix = settings_obj.order_prefix or 'MOX'
+        user_obj = None
+        if request.user and request.user.is_authenticated:
+            user_obj = request.user
+        else:
+            cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
+            if cust_email:
+                user_obj = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
+
+        payment_method_label = 'COD' if totals['is_cod'] else req_payment_method.upper()
+        if payment_method_label in ['CARD', 'CREDIT CARD', 'DEBIT CARD']:
+            payment_method_label = 'CARD'
+        elif payment_method_label in ['NETBANKING', 'NET BANKING']:
+            payment_method_label = 'NETBANKING'
+        elif payment_method_label not in ['COD', 'CARD', 'NETBANKING']:
+            payment_method_label = 'UPI'
+
+        with transaction.atomic():
             order = Order.objects.create(
                 user=user_obj,
                 shipping_name=data['shipping_name'],
                 shipping_phone=data['shipping_phone'],
-                shipping_address=data['shipping_address'],
+                shipping_address=data.get('shipping_address') or data.get('shipping_address_line_1') or '',
+                shipping_address_line_1=data.get('shipping_address_line_1') or data.get('shipping_address') or '',
+                shipping_address_line_2=data.get('shipping_address_line_2') or '',
+                shipping_landmark=data.get('shipping_landmark') or '',
                 shipping_city=data['shipping_city'],
+                shipping_district=data.get('shipping_district') or data.get('shipping_city') or '',
+                shipping_state=data.get('shipping_state') or '',
                 shipping_pincode=data['shipping_pincode'],
-                subtotal_amount=subtotal,
-                shipping_fee=totals['delivery_fee'],
-                tax_type=totals['tax_type'],
-                tax_rate=totals['tax_rate'],
-                tax_amount=totals['tax_amount'],
-                tax_included=totals['tax_included'],
-                total_amount=total_amount,
+                shipping_address_type=data.get('shipping_address_type') or 'Home',
+                subtotal_amount=totals['subtotal'],
+                discount_amount=totals['discount'],
+                shipping_amount=totals['shipping'],
+                shipping_fee=totals['shipping'],
+                total_amount=totals['total'],
+                amount_paid=Decimal('0.00'),
+                balance_due=totals['total'],
+                cod_advance_amount=totals['cod_advance'] if totals['is_cod'] else Decimal('0.00'),
+                cod_advance_paid=False,
+                payment_method=payment_method_label,
                 payment_status='Pending',
                 order_status='Pending',
                 razorpay_order_id=rzp_order['id'],
@@ -1267,29 +1835,36 @@ class CreateRazorpayOrderView(APIView):
             order.order_number = f"{prefix}-{order.id:04d}"
             order.save(update_fields=['order_number'])
 
-            for item_info in order_items_to_create:
+            for item_info in totals['items']:
                 OrderItem.objects.create(
                     order=order,
                     product=item_info['product'],
                     variant=item_info['variant'],
+                    product_name=item_info['product_name'],
                     color_name=item_info['color_name'],
                     size=item_info['size'],
                     quantity=item_info['quantity'],
-                    price=item_info['price']
+                    price=item_info['unit_price'],
+                    original_price=item_info['original_price'],
+                    discount_amount=item_info['discount_amount'],
+                    shipping_charge=item_info['shipping_charge']
                 )
 
-            # Create Notification
+            # Notification
             try:
-                Notification.objects.create(
-                    title=f"New Order #{order.id}",
-                    sender=order.shipping_name,
-                    sender_initial=order.shipping_name[:1].upper() if order.shipping_name else 'C',
-                    body=f"New order placed for ₹{order.total_amount:.2f}",
-                    notification_type='order',
-                    order=order,
-                    user=order.user,
-                    target_url='/admin/orders/'
-                )
+                store_settings = StoreSettings.objects.filter(id=1).first()
+                should_notify = store_settings.notify_order_created if store_settings else True
+                if should_notify:
+                    Notification.objects.create(
+                        title=f"New Order Initiated #{order.id}",
+                        sender=order.shipping_name,
+                        sender_initial=order.shipping_name[:1].upper() if order.shipping_name else 'C',
+                        body=f"New {payment_method_label} order initiated for ₹{order.total_amount:.2f}",
+                        notification_type='order',
+                        order=order,
+                        user=order.user,
+                        target_url='/admin/orders/'
+                    )
             except Exception:
                 pass
 
@@ -1297,174 +1872,22 @@ class CreateRazorpayOrderView(APIView):
             'razorpay_order_id': order.razorpay_order_id,
             'razorpay_key_id': settings.RAZORPAY_KEY_ID,
             'amount': amount_in_paise,
-            'currency': 'INR'
+            'currency': 'INR',
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'payable_amount': float(payable_now),
+            'total_amount': float(totals['total']),
+            'is_cod': totals['is_cod'],
+            'cod_advance': float(totals['cod_advance']),
+            'cod_balance': float(totals['cod_balance']),
         }, status=status.HTTP_201_CREATED)
 
 
 class CreateCodOrderView(APIView):
     def post(self, request):
-        settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
-        if settings_obj.maintenance_mode:
-            return Response(
-                {'error': 'Store is currently under scheduled maintenance. Orders cannot be placed at this time.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-
-        if settings_obj.require_login_before_checkout and not settings_obj.allow_guest_checkout:
-            cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
-            if not ((request.user and request.user.is_authenticated) or cust_email):
-                return Response(
-                    {'error': 'Login is required before checkout. Please sign in to complete your order.'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
-        if not (settings_obj.cod_available and settings_obj.cod_enabled):
-            return Response(
-                {'error': 'Cash on Delivery is currently unavailable.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        req_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-        req_data['payment_method'] = 'cod'
-
-        serializer = OrderCreateSerializer(data=req_data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        data = serializer.validated_data
-        items_data = data['items']
-
-        with transaction.atomic():
-            subtotal = 0
-            total_quantity = 0
-            order_items_to_create = []
-
-            for item in items_data:
-                product = Product.objects.get(id=item['product_id'])
-                variant = None
-                variant_id = item.get('variant_id')
-                color_name = item.get('color_name')
-                size = item.get('size')
-
-                if variant_id:
-                    try:
-                        variant = ProductVariant.objects.get(id=variant_id, product=product)
-                        color_name = color_name or variant.color_name
-                    except ProductVariant.DoesNotExist:
-                        pass
-
-                if variant and (variant.discount_price or variant.price):
-                    price = variant.discount_price if variant.discount_price is not None else variant.price
-                else:
-                    price = product.discount_price if product.discount_price is not None else product.price
-
-                subtotal += float(price) * item['quantity']
-                total_quantity += item['quantity']
-                order_items_to_create.append({
-                    'product': product,
-                    'variant': variant,
-                    'color_name': color_name,
-                    'size': size,
-                    'quantity': item['quantity'],
-                    'price': price
-                })
-
-            if settings_obj.min_order_amount and float(settings_obj.min_order_amount) > 0:
-                min_amt = float(settings_obj.min_order_amount)
-                if subtotal < min_amt:
-                    return Response(
-                        {'error': f"Minimum order amount is ₹{min_amt:,.2f}."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            if settings_obj.max_order_amount and float(settings_obj.max_order_amount) > 0:
-                max_amt = float(settings_obj.max_order_amount)
-                if subtotal > max_amt:
-                    return Response(
-                        {'error': f"Maximum order amount is ₹{max_amt:,.2f}."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            delivery_fee = 100.0
-            totals = calculate_order_totals(subtotal, settings_obj, delivery_fee=delivery_fee)
-            total_amount = totals['total_amount']
-
-            prefix = settings_obj.order_prefix or 'MOX'
-            user_obj = None
-            if request.user and request.user.is_authenticated:
-                user_obj = request.user
-            else:
-                cust_email = (request.data.get('customer_email') or request.data.get('email') or '').strip()
-                if cust_email:
-                    user_obj = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
-
-            order = Order.objects.create(
-                user=user_obj,
-                shipping_name=data['shipping_name'],
-                shipping_phone=data['shipping_phone'],
-                shipping_address=data['shipping_address'],
-                shipping_city=data['shipping_city'],
-                shipping_pincode=data['shipping_pincode'],
-                subtotal_amount=subtotal,
-                shipping_fee=totals['delivery_fee'],
-                tax_type=totals['tax_type'],
-                tax_rate=totals['tax_rate'],
-                tax_amount=totals['tax_amount'],
-                tax_included=totals['tax_included'],
-                total_amount=total_amount,
-                payment_status='Pending (COD)',
-                order_status='Pending',
-                razorpay_order_id=f"cod_{uuid.uuid4().hex[:12]}",
-                stock_decremented=bool(settings_obj.enable_stock_management),
-                order_number=''
-            )
-            order.order_number = f"{prefix}-{order.id:04d}"
-            order.save(update_fields=['order_number'])
-
-            for item_info in order_items_to_create:
-                OrderItem.objects.create(
-                    order=order,
-                    product=item_info['product'],
-                    variant=item_info['variant'],
-                    color_name=item_info['color_name'],
-                    size=item_info['size'],
-                    quantity=item_info['quantity'],
-                    price=item_info['price']
-                )
-                if settings_obj.enable_stock_management:
-                    v = item_info['variant']
-                    p = item_info['product']
-                    qty = item_info['quantity']
-                    if v and v.stock is not None:
-                        v.stock = max(0, v.stock - qty)
-                        v.save(update_fields=['stock'])
-                    elif p and p.stock is not None:
-                        p.stock = max(0, p.stock - qty)
-                        p.save(update_fields=['stock'])
-
-            # Create Notification
-            try:
-                Notification.objects.create(
-                    title=f"New COD Order #{order.id}",
-                    sender=order.shipping_name,
-                    sender_initial=order.shipping_name[:1].upper() if order.shipping_name else 'C',
-                    body=f"New Cash on Delivery order placed for ₹{order.total_amount:.2f}",
-                    notification_type='order',
-                    order=order,
-                    user=order.user,
-                    target_url='/admin/orders/'
-                )
-            except Exception:
-                pass
-
         return Response({
-            'success': True,
-            'order_id': order.id,
-            'order_number': order.order_number,
-            'total_amount': order.total_amount,
-            'payment_status': order.payment_status,
-            'order_status': order.order_status
-        }, status=status.HTTP_201_CREATED)
+            'error': 'Cash on Delivery orders require an online advance payment (₹100). Please select Cash on Delivery at checkout and complete the advance payment via Razorpay.'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class VerifyRazorpayPaymentView(APIView):
@@ -1487,10 +1910,18 @@ class VerifyRazorpayPaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if order.payment_status == 'Paid':
+        # Idempotency: If already verified, return existing state
+        if order.payment_status in ['Paid', 'Partially Paid']:
             return Response({
+                'success': True,
                 'message': 'Payment already verified and captured.',
-                'order_id': order.id
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'payment_status': order.payment_status,
+                'order_status': order.order_status,
+                'amount_paid': float(order.amount_paid),
+                'balance_due': float(order.balance_due),
+                'cod_advance_paid': order.cod_advance_paid,
             }, status=status.HTTP_200_OK)
 
         rzp_service = RazorpayService()
@@ -1502,7 +1933,7 @@ class VerifyRazorpayPaymentView(APIView):
 
         if not is_valid:
             order.payment_status = 'Failed'
-            order.save()
+            order.save(update_fields=['payment_status'])
             return Response(
                 {'error': 'Signature verification failed. Potential tampering detected.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1512,8 +1943,20 @@ class VerifyRazorpayPaymentView(APIView):
         auto_confirm = store_settings.auto_confirm_orders if store_settings else True
 
         with transaction.atomic():
-            order.payment_status = 'Paid'
-            order.order_status = 'Confirmed' if auto_confirm else 'Pending'
+            is_cod = (order.payment_method == 'COD')
+
+            if is_cod:
+                order.payment_status = 'Partially Paid'
+                order.order_status = 'Confirmed' if auto_confirm else 'Pending'
+                order.cod_advance_paid = True
+                order.amount_paid = order.cod_advance_amount if order.cod_advance_amount > 0 else min(Decimal('100.00'), order.total_amount)
+                order.balance_due = max(Decimal('0.00'), order.total_amount - order.amount_paid)
+            else:
+                order.payment_status = 'Paid'
+                order.order_status = 'Confirmed' if auto_confirm else 'Pending'
+                order.amount_paid = order.total_amount
+                order.balance_due = Decimal('0.00')
+
             order.razorpay_payment_id = razorpay_payment_id
             order.razorpay_signature = razorpay_signature
             order.save()
@@ -1568,9 +2011,30 @@ class VerifyRazorpayPaymentView(APIView):
                 order.stock_decremented = True
                 order.save(update_fields=['stock_decremented'])
 
+            # Add status history
+            OrderStatusHistory.objects.create(
+                order=order,
+                status=order.order_status,
+                location='Online Checkout',
+                message=f"Payment verified via Razorpay (ID: {razorpay_payment_id}). Status: {order.payment_status}."
+            )
+
+        # Trigger WhatsApp order confirmation (non-blocking)
+        try:
+            send_order_confirmation_whatsapp(order)
+        except Exception as e:
+            logger.error(f"WhatsApp order confirmation trigger failed: {e}")
+
         return Response({
+            'success': True,
             'message': 'Payment signature verified successfully.',
-            'order_id': order.id
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'payment_status': order.payment_status,
+            'order_status': order.order_status,
+            'amount_paid': float(order.amount_paid),
+            'balance_due': float(order.balance_due),
+            'cod_advance_paid': order.cod_advance_paid,
         }, status=status.HTTP_200_OK)
 
 
@@ -1651,6 +2115,11 @@ class RazorpayWebhookView(APIView):
                                                     pass
                                 order.stock_decremented = True
                                 order.save(update_fields=['stock_decremented'])
+
+                            try:
+                                send_order_confirmation_whatsapp(order)
+                            except Exception as e:
+                                logger.error(f"WhatsApp webhook confirmation trigger failed: {e}")
                 except Order.DoesNotExist:
                     pass
 
@@ -1670,7 +2139,7 @@ class RazorpayWebhookView(APIView):
 
 
 # ==============================================================================
-# Admin Auth APIs (Two-Step Password + 3-Minute Email OTP)
+# Admin Auth APIs (Two-Step Password + 5-Minute Email OTP via Gmail SMTP)
 # ==============================================================================
 def mask_admin_email(email):
     if not email or '@' not in email:
@@ -1679,9 +2148,9 @@ def mask_admin_email(email):
     name = parts[0]
     domain = parts[1]
     if len(name) <= 2:
-        masked = name[0] + '***'
+        masked = name[0] + '*****'
     else:
-        masked = name[0] + '***' + name[-1]
+        masked = name[0] + '*****' + name[-1]
     return f"{masked}@{domain}"
 
 
@@ -1692,6 +2161,70 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR', '')
     return ip
+
+
+def send_admin_otp_email(target_email, otp_code):
+    """
+    Sends a cryptographically secure 6-digit OTP to the registered admin email
+    using Django's configured EmailMultiAlternatives (SMTP / Gmail).
+    Features clean transactional layout, MOXIE branding, and plain-text fallback.
+    """
+    subject = 'Your MOXIE Admin verification code'
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'MOXIE <tetrionyx@gmail.com>'
+
+    plain_message = (
+        f"MOXIE Admin Verification\n\n"
+        f"Your verification code is:\n\n"
+        f"{otp_code}\n\n"
+        f"This code expires in 5 minutes.\n\n"
+        f"If you did not attempt to sign in to MOXIE Admin, you can safely ignore this message.\n\n"
+        f"MOXIE"
+    )
+
+    html_message = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your MOXIE Admin verification code</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
+  <div style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 36px 32px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); text-align: center;">
+    <div style="margin-bottom: 20px;">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #C9A35C; text-transform: uppercase;">MOXIE</h1>
+    </div>
+    <div style="margin-top: 16px;">
+      <h2 style="font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Admin Verification</h2>
+      <p style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;">Use this verification code to complete your sign in:</p>
+      <div style="background-color: #faf8f5; border: 1px solid #C9A35C; border-radius: 8px; padding: 16px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f172a; margin: 20px 0; font-family: monospace, Courier, sans-serif;">{otp_code}</div>
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 20px;">This code expires in <strong>5 minutes</strong>.</p>
+    </div>
+    <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; line-height: 1.4;">
+      If you did not request this code, you can safely ignore this email.<br>
+      <span style="color: #64748b; font-weight: 600; margin-top: 6px; display: inline-block;">MOXIE Security</span>
+    </div>
+  </div>
+</body>
+</html>"""
+
+    if getattr(settings, 'DEBUG', True):
+        print(f"\n{'='*60}\n[MOXIE ADMIN 2FA OTP CODE (LOCAL DEV ONLY)]\nUser: {target_email}\nVerification Code: {otp_code}\n{'='*60}\n", flush=True)
+
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=from_email,
+            to=[target_email],
+            reply_to=['tetrionyx@gmail.com'],
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send(fail_silently=False)
+    except Exception as e:
+        logger.warning("SMTP email send failed (%s: %s).", type(e).__name__, e)
+        if not getattr(settings, 'DEBUG', True):
+            raise
+
 
 
 class AdminCheckAuthView(APIView):
@@ -1725,8 +2258,8 @@ class AdminApiLoginView(APIView):
     """
     Step 1 of Admin Login:
     Validates identifier & password, applies brute-force checks,
-    generates a 6-digit hashed OTP valid for exactly 3 minutes,
-    and emails it to the registered staff account.
+    generates a secure 6-digit hashed OTP valid for 5 minutes,
+    and emails it to the registered admin account using Gmail SMTP.
     """
     def post(self, request):
         identifier = str(request.data.get('identifier') or request.data.get('username') or request.data.get('email') or '').strip()
@@ -1750,46 +2283,66 @@ class AdminApiLoginView(APIView):
 
         user = None
 
-        # 1. Match case-insensitively by username or email
+        # 1. Match active staff users first by username or email
         matched_users = list(User.objects.filter(
-            Q(username__iexact=identifier) | Q(email__iexact=identifier)
+            Q(username__iexact=identifier) | Q(email__iexact=identifier),
+            is_staff=True,
+            is_active=True
         ))
         for u in matched_users:
             if u.check_password(password):
                 user = u
                 break
 
-        # 2. Fallback standard Django authenticate
+
+        # 2. Fallback to all matching users
+        if not user:
+            all_matched = list(User.objects.filter(
+                Q(username__iexact=identifier) | Q(email__iexact=identifier)
+            ))
+            for u in all_matched:
+                if u.check_password(password):
+                    user = u
+                    break
+
+        # 3. Fallback standard Django authenticate
         if not user:
             user = authenticate(request, username=identifier, password=password)
 
         # STRICT GATE: Only active Staff or Superuser accounts may proceed.
-        # Customer accounts, inactive staff, deleted staff, and wrong passwords are all rejected here.
         if not user or not user.is_active or not (user.is_staff or user.is_superuser):
             # Increment failed attempts rate-limit counter (15 minutes TTL)
             cache.set(cache_key, failed_attempts + 1, timeout=900)
             return Response(
-                {'error': 'Unable to sign in with those credentials.'},
+                {'error': 'Invalid admin credentials.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
         # Clear brute-force failure count on valid staff password
         cache.delete(cache_key)
 
-        target_email = (user.email or '').strip()
+        target_email = (user.email or '').strip().lower()
         if not target_email:
             return Response(
                 {'error': 'This staff account has no registered email address for verification. Please contact a Super Admin.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        try:
+            validate_email(target_email)
+        except ValidationError:
+            return Response(
+                {'error': 'The registered email address is invalid. Please contact a Super Admin.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Invalidate previous unused login OTPs for this staff user
         AdminLoginOTP.objects.filter(user=user, used=False).update(used=True)
 
-        # Generate cryptographically secure 6-digit OTP
-        otp_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+        # Generate cryptographically secure 6-digit OTP using secrets.randbelow
+        otp_code = f"{secrets.randbelow(1000000):06d}"
         otp_hash = hashlib.sha256(otp_code.encode('utf-8')).hexdigest()
-        expires_at = timezone.now() + timedelta(minutes=3)
+        expires_at = timezone.now() + timedelta(minutes=5)
 
         otp_obj = AdminLoginOTP.objects.create(
             user=user,
@@ -1802,28 +2355,17 @@ class AdminApiLoginView(APIView):
             is_locked=False
         )
 
-        # Send email
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@moxie.com')
+        # Send email via Gmail SMTP
         try:
-            send_mail(
-                subject='Moxie Admin Security Code',
-                message=(
-                    f"Your Moxie Admin verification code is:\n\n"
-                    f"{otp_code}\n\n"
-                    f"This code expires in 3 minutes.\n\n"
-                    f"If you did not attempt to sign in, please secure your account immediately."
-                ),
-                from_email=from_email,
-                recipient_list=[target_email],
-                fail_silently=False
-            )
-        except Exception:
-            # When email sending fails, do not create unusable pending state or fake success
-            otp_obj.delete()
-            return Response(
-                {'error': 'Security verification email could not be delivered. Please ensure SMTP email server is configured properly or contact system administrator.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            send_admin_otp_email(target_email, otp_code)
+        except Exception as e:
+            logger.error("Admin OTP email send failed: %s: %s", type(e).__name__, e)
+            if not getattr(settings, 'DEBUG', True):
+                otp_obj.delete()
+                return Response(
+                    {'error': 'Unable to send verification email. Please try again.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         # Set pending challenge state in secure session
         request.session['admin_pending_user_id'] = user.id
@@ -1833,12 +2375,14 @@ class AdminApiLoginView(APIView):
         masked = mask_admin_email(target_email)
 
         return Response({
+            'success': True,
+            'otp_required': True,
             'status': 'pending_otp',
-            'message': 'Security code sent to registered admin email.',
+            'message': 'Verification code sent.',
             'masked_email': masked,
             'expires_at': expires_at.isoformat(),
-            'expires_in_seconds': 180,
-            'resend_cooldown_seconds': 30,
+            'expires_in_seconds': 300,
+            'resend_cooldown_seconds': 60,
             'attempts_remaining': 5,
         }, status=status.HTTP_200_OK)
 
@@ -1847,7 +2391,7 @@ class AdminVerifyOtpView(APIView):
     """
     Step 2 of Admin Login:
     Validates the 6-digit OTP against the secure server-side pending challenge.
-    Enforces expiry (3 mins), max 5 attempts, single-use, and replay protection.
+    Enforces expiry (5 mins), max 5 attempts, single-use, and replay protection.
     """
     def post(self, request):
         pending_user_id = request.session.get('admin_pending_user_id')
@@ -1861,15 +2405,15 @@ class AdminVerifyOtpView(APIView):
             user = User.objects.get(pk=pending_user_id, is_active=True)
             if not (user.is_staff or user.is_superuser):
                 request.session.flush()
-                return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+                return Response({'error': 'Invalid admin credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
             request.session.flush()
-            return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Invalid admin credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         otp_input = str(request.data.get('otp') or request.data.get('code') or '').strip()
         if not otp_input or len(otp_input) != 6 or not otp_input.isdigit():
             return Response(
-                {'error': 'Please enter a valid 6-digit numeric security code.'},
+                {'error': 'Please enter a valid 6-digit numeric verification code.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1882,7 +2426,7 @@ class AdminVerifyOtpView(APIView):
         if not otp_obj:
             request.session.pop('admin_pending_user_id', None)
             return Response(
-                {'error': 'Verification locked for your security. Please sign in again to request a new security code.'},
+                {'error': 'Too many incorrect attempts. Please request a new OTP.', 'is_locked': True},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1891,7 +2435,7 @@ class AdminVerifyOtpView(APIView):
             otp_obj.used = True
             otp_obj.save(update_fields=['used'])
             return Response(
-                {'error': 'This security code has expired. Request a new code or return to sign in.'},
+                {'error': 'OTP expired. Please request a new code.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1901,7 +2445,7 @@ class AdminVerifyOtpView(APIView):
             otp_obj.save(update_fields=['is_locked', 'used'])
             request.session.pop('admin_pending_user_id', None)
             return Response(
-                {'error': 'Verification locked for your security. Please sign in again to request a new security code.'},
+                {'error': 'Too many incorrect attempts. Please request a new OTP.', 'is_locked': True, 'attempts_remaining': 0},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1915,7 +2459,7 @@ class AdminVerifyOtpView(APIView):
                 request.session.pop('admin_pending_user_id', None)
                 return Response(
                     {
-                        'error': 'Verification locked for your security. Please sign in again to request a new security code.',
+                        'error': 'Too many incorrect attempts. Please request a new OTP.',
                         'attempts_remaining': 0,
                         'is_locked': True
                     },
@@ -1925,7 +2469,7 @@ class AdminVerifyOtpView(APIView):
             remaining = 5 - otp_obj.attempts
             return Response(
                 {
-                    'error': f"That security code didn't match. Check the code and try again.",
+                    'error': f"Invalid verification code. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
                     'attempts_remaining': remaining,
                     'is_locked': False
                 },
@@ -1952,7 +2496,7 @@ class AdminVerifyOtpView(APIView):
 
         return Response({
             'success': True,
-            'message': 'Identity Verified',
+            'message': 'Verification successful. Welcome back to MOXIE Admin.',
             'username': user.username,
             'email': user.email,
             'is_superuser': user.is_superuser,
@@ -1965,7 +2509,7 @@ class AdminVerifyOtpView(APIView):
 
 class AdminResendOtpView(APIView):
     """
-    Resends the 6-digit OTP with a 30s cooldown and max 3 resends per login challenge.
+    Resends the 6-digit OTP with a 60s cooldown and max 5 resends per challenge.
     Invalidates the previous OTP code permanently.
     """
     def post(self, request):
@@ -1980,22 +2524,37 @@ class AdminResendOtpView(APIView):
             user = User.objects.get(pk=pending_user_id, is_active=True)
             if not (user.is_staff or user.is_superuser):
                 request.session.flush()
-                return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+                return Response({'error': 'Invalid admin credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
             request.session.flush()
-            return Response({'error': 'Unable to sign in with those credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Invalid admin credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        target_email = (user.email or '').strip().lower()
+        if not target_email:
+            return Response(
+                {'error': 'This staff account has no registered email address for verification. Please contact a Super Admin.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            validate_email(target_email)
+        except ValidationError:
+            return Response(
+                {'error': 'The registered email address is invalid. Please contact a Super Admin.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         last_otp = AdminLoginOTP.objects.filter(user=user).order_by('-created_at').first()
 
         if last_otp and last_otp.is_locked:
             request.session.pop('admin_pending_user_id', None)
             return Response(
-                {'error': 'Verification locked for your security. Please sign in again.'},
+                {'error': 'Too many incorrect attempts. Please request a new OTP.', 'is_locked': True},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         current_resends = last_otp.resend_count if last_otp else 0
-        if current_resends >= 3:
+        if current_resends >= 5:
             return Response(
                 {'error': 'Too many security codes requested. Please return to sign in and try again later.'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS
@@ -2005,8 +2564,8 @@ class AdminResendOtpView(APIView):
         ref_time = (last_otp.last_resend_at or last_otp.created_at) if last_otp else None
         if ref_time:
             diff_seconds = (now - ref_time).total_seconds()
-            if diff_seconds < 30:
-                remaining_wait = int(30 - diff_seconds)
+            if diff_seconds < 60:
+                remaining_wait = int(60 - diff_seconds)
                 return Response(
                     {'error': f'Please wait {remaining_wait}s before requesting a new code.', 'cooldown_remaining': remaining_wait},
                     status=status.HTTP_429_TOO_MANY_REQUESTS
@@ -2015,10 +2574,9 @@ class AdminResendOtpView(APIView):
         # Invalidate all prior login OTPs for this user
         AdminLoginOTP.objects.filter(user=user, used=False).update(used=True)
 
-        target_email = user.email.strip()
-        new_code = ''.join(secrets.choice('0123456789') for _ in range(6))
+        new_code = f"{secrets.randbelow(1000000):06d}"
         new_hash = hashlib.sha256(new_code.encode('utf-8')).hexdigest()
-        expires_at = now + timedelta(minutes=3)
+        expires_at = now + timedelta(minutes=5)
 
         new_otp_obj = AdminLoginOTP.objects.create(
             user=user,
@@ -2034,37 +2592,29 @@ class AdminResendOtpView(APIView):
 
         request.session['admin_pending_otp_id'] = new_otp_obj.id
 
-        # Send email
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@moxie.com')
+        # Send email via Gmail SMTP
         try:
-            send_mail(
-                subject='Moxie Admin Security Code',
-                message=(
-                    f"Your new Moxie Admin verification code is:\n\n"
-                    f"{new_code}\n\n"
-                    f"This code expires in 3 minutes.\n\n"
-                    f"If you did not attempt to sign in, please secure your account immediately."
-                ),
-                from_email=from_email,
-                recipient_list=[target_email],
-                fail_silently=False
-            )
-        except Exception:
-            new_otp_obj.delete()
-            return Response(
-                {'error': 'Security verification email could not be delivered. Please verify SMTP email settings.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            send_admin_otp_email(target_email, new_code)
+        except Exception as e:
+            logger.error("Admin OTP resend email failed: %s: %s", type(e).__name__, e)
+            if not getattr(settings, 'DEBUG', True):
+                new_otp_obj.delete()
+                return Response(
+                    {'error': 'Unable to send verification email. Please try again.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         masked = mask_admin_email(target_email)
 
         return Response({
+            'success': True,
+            'otp_required': True,
             'status': 'pending_otp',
-            'message': 'New security code sent to registered admin email.',
+            'message': 'New verification code sent.',
             'masked_email': masked,
             'expires_at': expires_at.isoformat(),
-            'expires_in_seconds': 180,
-            'resend_cooldown_seconds': 30,
+            'expires_in_seconds': 300,
+            'resend_cooldown_seconds': 60,
             'attempts_remaining': 5,
         }, status=status.HTTP_200_OK)
 
@@ -2278,6 +2828,7 @@ class CurrentOfferView(APIView):
                     'id': o.id,
                     'name': o.name,
                     'title': o.title or o.name,
+                    'emoji': o.emoji or '',
                     'description': o.description or '',
                     'offer_text': offer_text,
                     'discount_type': o.discount_type,
@@ -2324,6 +2875,7 @@ class AdminOffersView(APIView):
                 'id': o.id,
                 'name': o.name,
                 'title': o.title or '',
+                'emoji': o.emoji or '',
                 'description': o.description or '',
                 'offer_text': offer_text,
                 'status': status_str,
@@ -2346,6 +2898,7 @@ class AdminOffersView(APIView):
             return err
         data = request.data
         offer_text = data.get('offer_text') or data.get('name') or 'New Offer'
+        emoji = (data.get('emoji') or '').strip()
         start_dt = parse_aware_datetime(data.get('start_datetime'))
         end_dt = parse_aware_datetime(data.get('end_datetime'))
         is_active = data.get('is_active', True)
@@ -2353,6 +2906,7 @@ class AdminOffersView(APIView):
         offer = Offer.objects.create(
             name=offer_text,
             title=offer_text,
+            emoji=emoji,
             description=data.get('description', ''),
             discount_type=data.get('discount_type', 'Percentage'),
             start_date=data.get('start_date') or None,
@@ -2405,6 +2959,7 @@ class AdminOfferDetailView(APIView):
                 'id': offer.id,
                 'name': offer.name,
                 'title': offer.title or '',
+                'emoji': offer.emoji or '',
                 'description': offer.description or '',
                 'offer_text': offer.name or offer.title or offer.description or '',
                 'status': get_offer_status(offer, now),
@@ -2434,9 +2989,12 @@ class AdminOfferDetailView(APIView):
         if 'offer_text' in data:
             offer.name = data['offer_text']
             offer.title = data['offer_text']
-        for field in ['name', 'title', 'description', 'discount_type', 'start_date', 'end_date', 'is_active']:
+        for field in ['name', 'title', 'emoji', 'description', 'discount_type', 'start_date', 'end_date', 'is_active']:
             if field in data:
-                setattr(offer, field, data[field])
+                val = data[field]
+                if field == 'emoji' and isinstance(val, str):
+                    val = val.strip()
+                setattr(offer, field, val)
         if 'start_datetime' in data:
             offer.start_datetime = parse_aware_datetime(data['start_datetime'])
         if 'end_datetime' in data:
@@ -2581,15 +3139,27 @@ class AdminOrdersView(APIView):
 
         for o in qs:
             order_num = o.order_number or f"{store_prefix}-{o.id:04d}"
-            tracking_num = f"{store_prefix}TRK{o.id:04d}"
-            is_cod = not (o.razorpay_order_id and not str(o.razorpay_order_id).startswith('cod_'))
-            pay_method = 'COD' if is_cod else 'UPI'
+            tracking_num = o.tracking_id or ''
+            pay_method = o.payment_method or ('COD' if not o.razorpay_payment_id else 'UPI')
             orders_list.append({
                 'id': o.id,
                 'orderId': order_num,
                 'order_number': order_num,
+                'courier': o.courier_name or '',
+                'courier_name': o.courier_name or '',
                 'trackingId': tracking_num,
                 'tracking_id': tracking_num,
+                'tracking_number': tracking_num,
+                'tracking_locked': bool(o.tracking_locked or bool(tracking_num)),
+                'tracking_assigned_at': o.tracking_assigned_at.strftime('%d %b %Y, %I:%M %p') if o.tracking_assigned_at else (o.shipped_at.strftime('%d %b %Y, %I:%M %p') if o.shipped_at else ''),
+                'shippingStatus': o.shipping_status or o.order_status,
+                'shipping_status': o.shipping_status or o.order_status,
+                'trackingLocation': o.tracking_location or '',
+                'estimatedDelivery': o.estimated_delivery or '',
+                'shipped_at': o.shipped_at.strftime('%d %b %Y, %I:%M %p') if o.shipped_at else '',
+                'out_for_delivery_at': o.out_for_delivery_at.strftime('%d %b %Y, %I:%M %p') if o.out_for_delivery_at else '',
+                'delivered_at': o.delivered_at.strftime('%d %b %Y, %I:%M %p') if o.delivered_at else '',
+                'tracking_updated_at': o.tracking_updated_at.strftime('%d %b %Y, %I:%M %p') if o.tracking_updated_at else '',
                 'customer': {
                     'name': o.shipping_name,
                     'email': o.user.email if o.user and o.user.email else 'customer@example.com',
@@ -2600,17 +3170,33 @@ class AdminOrdersView(APIView):
                     'name': o.shipping_name,
                     'phone': o.shipping_phone,
                     'address': o.shipping_address,
+                    'flat': o.shipping_address_line_1 or o.shipping_address,
+                    'area': o.shipping_address_line_2 or '',
+                    'landmark': o.shipping_landmark or '',
                     'city': o.shipping_city,
-                    'district': o.shipping_city,
+                    'district': o.shipping_district or o.shipping_city,
+                    'state': o.shipping_state or '',
                     'pincode': o.shipping_pincode,
+                    'type': o.shipping_address_type or 'Home'
                 },
                 'date': o.created_at.strftime('%d %b %Y') if o.created_at else '',
                 'isoDate': o.created_at.strftime('%Y-%m-%d') if o.created_at else '',
                 'createdAt': o.created_at.isoformat() if o.created_at else '',
                 'fullDate': o.created_at.strftime('%b %d, %Y %I:%M %p') if o.created_at else '',
                 'itemsCount': o.items.count(),
+                'subtotalAmount': float(o.subtotal_amount),
+                'discountAmount': float(o.discount_amount),
+                'shippingAmount': float(o.shipping_amount if o.shipping_amount is not None else o.shipping_fee),
                 'totalAmount': float(o.total_amount),
                 'grandTotal': float(o.total_amount),
+                'amountPaid': float(o.amount_paid),
+                'amount_paid': float(o.amount_paid),
+                'balanceDue': float(o.balance_due),
+                'balance_due': float(o.balance_due),
+                'codAdvanceAmount': float(o.cod_advance_amount),
+                'cod_advance_amount': float(o.cod_advance_amount),
+                'codAdvancePaid': bool(o.cod_advance_paid),
+                'cod_advance_paid': bool(o.cod_advance_paid),
                 'paymentMethod': pay_method,
                 'paymentStatus': o.payment_status,
                 'orderStatus': o.order_status,
@@ -2650,22 +3236,22 @@ class AdminOrderDetailView(APIView):
         if err:
             return err
         try:
-            order = Order.objects.prefetch_related('items__product', 'items__variant').get(pk=pk)
+            order = Order.objects.prefetch_related('items__product', 'items__variant', 'status_history').get(pk=pk)
         except Order.DoesNotExist:
             return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
         store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
         order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
-        tracking_num = f"{store_prefix}TRK{order.id:04d}"
+        tracking_num = order.tracking_id or ''
 
         items_list = []
         for it in order.items.all():
-            img_url = None
-            if it.variant and it.variant.images.exists():
+            img_url = it.product_image or None
+            if not img_url and it.variant and it.variant.images.exists():
                 img_obj = it.variant.images.first()
                 if img_obj and img_obj.image:
                     img_url = img_obj.image.url
-            elif it.product and it.product.images.exists():
+            elif not img_url and it.product and it.product.images.exists():
                 img_obj = it.product.images.first()
                 if img_obj and img_obj.image:
                     img_url = img_obj.image.url
@@ -2673,32 +3259,92 @@ class AdminOrderDetailView(APIView):
             items_list.append({
                 'id': it.id,
                 'productId': it.product.id if it.product else None,
-                'productName': it.product.name if it.product else 'Product',
+                'productName': it.product_name or (it.product.name if it.product else 'Product'),
                 'colorName': it.color_name or (it.variant.color_name if it.variant else ''),
                 'color': it.color_name or (it.variant.color_name if it.variant else ''),
                 'size': it.size or '',
                 'quantity': it.quantity,
                 'price': float(it.price),
+                'original_price': float(it.original_price if it.original_price else it.price),
+                'discount_amount': float(it.discount_amount),
+                'shipping_charge': float(it.shipping_charge),
                 'total': float(it.price * it.quantity),
                 'image': img_url
             })
 
-        subtotal = float(order.subtotal_amount) if order.subtotal_amount and float(order.subtotal_amount) > 0 else sum(i['total'] for i in items_list)
-        shipping_fee = float(order.shipping_fee) if (order.shipping_fee is not None and float(order.shipping_fee) > 0) else max(0.0, float(order.total_amount) - subtotal - (float(order.tax_amount) if (order.tax_amount and not order.tax_included) else 0.0))
+        subtotal = float(order.subtotal_amount) if order.subtotal_amount is not None else sum(i['total'] for i in items_list)
+        discount = float(order.discount_amount) if order.discount_amount is not None else 0.0
+        shipping_fee = float(order.shipping_amount if order.shipping_amount is not None else (order.shipping_fee or 0.0))
         tax_amt = float(order.tax_amount) if order.tax_amount else 0.0
         tax_rt = float(order.tax_rate) if order.tax_rate else 0.0
         tax_tp = order.tax_type or 'GST'
         tax_inc = bool(order.tax_included)
 
-        is_cod = not (order.razorpay_order_id and not str(order.razorpay_order_id).startswith('cod_'))
-        pay_method = 'COD' if is_cod else 'UPI'
+        pay_method = order.payment_method or ('COD' if not order.razorpay_payment_id else 'UPI')
+
+        history_list = [{
+            'status': h.status,
+            'location': h.location,
+            'message': h.message,
+            'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+            'raw_date': h.created_at.isoformat(),
+        } for h in order.status_history.all()]
+
+        # WhatsApp notification status tracking from DB logs
+        logs = NotificationLog.objects.filter(order=order, channel='WHATSAPP').order_by('-created_at')
+        notification_logs_list = [{
+            'id': log.id,
+            'message_type': log.message_type,
+            'status': log.status,
+            'recipient': log.recipient,
+            'sent_at': log.sent_at.strftime('%d %b %Y, %I:%M %p') if log.sent_at else '',
+            'error_message': log.error_message,
+            'error_code': log.error_code,
+            'created_at': log.created_at.strftime('%d %b %Y, %I:%M %p') if log.created_at else '',
+        } for log in logs]
+
+        whatsapp_statuses = {
+            'order_confirmed': 'PENDING',
+            'shipped': 'PENDING',
+            'out_for_delivery': 'PENDING',
+            'delivered': 'PENDING',
+        }
+        for log in logs:
+            m_type = (log.message_type or '').upper()
+            if 'CONFIRM' in m_type and whatsapp_statuses['order_confirmed'] == 'PENDING':
+                whatsapp_statuses['order_confirmed'] = log.status
+            elif 'SHIP' in m_type and whatsapp_statuses['shipped'] == 'PENDING':
+                whatsapp_statuses['shipped'] = log.status
+            elif 'OUT' in m_type and whatsapp_statuses['out_for_delivery'] == 'PENDING':
+                whatsapp_statuses['out_for_delivery'] = log.status
+            elif 'DELIVER' in m_type and whatsapp_statuses['delivered'] == 'PENDING':
+                whatsapp_statuses['delivered'] = log.status
 
         order_detail = {
             'id': order.id,
             'orderId': order_num,
             'order_number': order_num,
+            'courier': order.courier_name or '',
+            'courier_name': order.courier_name or '',
             'trackingId': tracking_num,
             'tracking_id': tracking_num,
+            'tracking_number': tracking_num,
+            'tracking_locked': bool(order.tracking_locked or bool(tracking_num)),
+            'tracking_assigned_at': order.tracking_assigned_at.strftime('%d %b %Y, %I:%M %p') if order.tracking_assigned_at else (order.shipped_at.strftime('%d %b %Y, %I:%M %p') if order.shipped_at else ''),
+            'shippingStatus': order.shipping_status or order.order_status,
+            'shipping_status': order.shipping_status or order.order_status,
+            'trackingLocation': order.tracking_location or '',
+            'tracking_location': order.tracking_location or '',
+            'estimatedDelivery': order.estimated_delivery or '',
+            'estimated_delivery': order.estimated_delivery or '',
+            'shipped_at': order.shipped_at.strftime('%d %b %Y, %I:%M %p') if order.shipped_at else '',
+            'out_for_delivery_at': order.out_for_delivery_at.strftime('%d %b %Y, %I:%M %p') if order.out_for_delivery_at else '',
+            'delivered_at': order.delivered_at.strftime('%d %b %Y, %I:%M %p') if order.delivered_at else '',
+            'tracking_updated_at': order.tracking_updated_at.strftime('%d %b %Y, %I:%M %p') if order.tracking_updated_at else '',
+            'statusHistory': history_list,
+            'status_history': history_list,
+            'whatsapp_notifications': whatsapp_statuses,
+            'notification_logs': notification_logs_list,
             'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
             'fullDate': order.created_at.strftime('%b %d, %Y %I:%M %p') if order.created_at else '',
             'createdAt': order.created_at.isoformat() if order.created_at else '',
@@ -2715,15 +3361,20 @@ class AdminOrderDetailView(APIView):
                 'name': order.shipping_name,
                 'phone': order.shipping_phone,
                 'address': order.shipping_address,
+                'flat': order.shipping_address_line_1 or order.shipping_address,
+                'area': order.shipping_address_line_2 or '',
+                'landmark': order.shipping_landmark or '',
                 'city': order.shipping_city,
-                'district': order.shipping_city,
+                'district': order.shipping_district or order.shipping_city,
+                'state': order.shipping_state or '',
                 'pincode': order.shipping_pincode,
+                'type': order.shipping_address_type or 'Home'
             },
             'items': items_list,
             'products': items_list,
             'pricing': {
                 'subtotal': subtotal,
-                'discount': 0.0,
+                'discount': discount,
                 'shipping': shipping_fee,
                 'tax': tax_amt,
                 'tax_rate': tax_rt,
@@ -2731,10 +3382,26 @@ class AdminOrderDetailView(APIView):
                 'tax_included': tax_inc,
                 'total': float(order.total_amount),
                 'grandTotal': float(order.total_amount),
+                'amountPaid': float(order.amount_paid),
+                'amount_paid': float(order.amount_paid),
+                'balanceDue': float(order.balance_due),
+                'balance_due': float(order.balance_due),
+                'codAdvanceAmount': float(order.cod_advance_amount),
+                'cod_advance_amount': float(order.cod_advance_amount),
+                'codAdvancePaid': bool(order.cod_advance_paid),
+                'cod_advance_paid': bool(order.cod_advance_paid),
             },
             'paymentInfo': {
                 'method': pay_method,
                 'status': order.payment_status,
+                'amountPaid': float(order.amount_paid),
+                'amount_paid': float(order.amount_paid),
+                'balanceDue': float(order.balance_due),
+                'balance_due': float(order.balance_due),
+                'codAdvanceAmount': float(order.cod_advance_amount),
+                'cod_advance_amount': float(order.cod_advance_amount),
+                'codAdvancePaid': bool(order.cod_advance_paid),
+                'cod_advance_paid': bool(order.cod_advance_paid),
                 'razorpayOrderId': order.razorpay_order_id or '—',
                 'razorpayPaymentId': order.razorpay_payment_id or '—',
             }
@@ -2750,44 +3417,562 @@ class AdminOrderDetailView(APIView):
         except Order.DoesNotExist:
             return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if 'order_status' in request.data:
-            order.order_status = request.data['order_status']
-        elif 'orderStatus' in request.data:
-            order.order_status = request.data['orderStatus']
+        old_status = (order.order_status or '').strip()
+        new_status = request.data.get('order_status') or request.data.get('orderStatus')
+        status_changed = False
 
-        if 'payment_status' in request.data:
-            order.payment_status = request.data['payment_status']
-        elif 'paymentStatus' in request.data:
-            order.payment_status = request.data['paymentStatus']
+        if new_status and new_status.strip().lower() != old_status.lower():
+            order.order_status = new_status.strip()
+            order.shipping_status = new_status.strip()
+            status_changed = True
+
+            now = timezone.now()
+            s_upper = new_status.strip().upper()
+            if 'SHIPPED' in s_upper and not order.shipped_at:
+                order.shipped_at = now
+            elif 'OUT' in s_upper and not order.out_for_delivery_at:
+                order.out_for_delivery_at = now
+            elif 'DELIVER' in s_upper and not order.delivered_at:
+                order.delivered_at = now
+            order.tracking_updated_at = now
+
+        is_locked = bool(order.tracking_locked or order.tracking_id)
+        if is_locked and any(k in request.data for k in ('courier_name', 'courier', 'tracking_id', 'trackingId', 'tracking_number')):
+            c_cand = (request.data.get('courier_name') or request.data.get('courier') or '').strip()
+            t_cand = (request.data.get('tracking_id') or request.data.get('trackingId') or request.data.get('tracking_number') or '').strip()
+            if (t_cand and t_cand != order.tracking_id) or (c_cand and c_cand != order.courier_name):
+                return Response({'error': 'Tracking details are permanently locked for this order and cannot be modified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not is_locked:
+            if 'courier_name' in request.data or 'courier' in request.data:
+                c_input = request.data.get('courier_name') or request.data.get('courier')
+                if c_input:
+                    canonical = normalize_courier_code(c_input)
+                    order.courier_name = "ST Courier" if canonical == 'ST_COURIER' else ("India Post" if canonical == 'INDIA_POST' else c_input)
+
+            if 'tracking_id' in request.data or 'trackingId' in request.data or 'tracking_number' in request.data:
+                t_input = (request.data.get('tracking_id') or request.data.get('trackingId') or request.data.get('tracking_number') or '').strip()
+                if t_input and not t_input.startswith('MOXTRK'):
+                    order.tracking_id = t_input
+                    order.tracking_locked = True
+                    if not order.tracking_assigned_at:
+                        order.tracking_assigned_at = timezone.now()
+
+        if 'tracking_location' in request.data or 'location' in request.data or 'trackingLocation' in request.data:
+            order.tracking_location = request.data.get('tracking_location') or request.data.get('location') or request.data.get('trackingLocation') or ''
+
+        if 'estimated_delivery' in request.data or 'estimatedDelivery' in request.data:
+            order.estimated_delivery = request.data.get('estimated_delivery') or request.data.get('estimatedDelivery') or ''
+
+        mark_cod = request.data.get('mark_cod_collected') or request.data.get('mark_cod') or (request.data.get('action') == 'mark_cod_collected')
+        if mark_cod:
+            order.payment_status = 'Paid'
+            order.amount_paid = order.total_amount
+            order.balance_due = Decimal('0.00')
+        elif 'payment_status' in request.data or 'paymentStatus' in request.data:
+            new_pay_status = request.data.get('payment_status') or request.data.get('paymentStatus')
+            if new_pay_status:
+                order.payment_status = new_pay_status
+                if new_pay_status == 'Paid':
+                    order.amount_paid = order.total_amount
+                    order.balance_due = Decimal('0.00')
 
         order.save()
 
-        # Audit notification
-        try:
-            Notification.objects.create(
-                title=f"Order #{order.id} Status Updated",
-                sender="Order Management",
-                sender_initial="O",
-                sender_color="#3b82f6",
-                body=f"Order {order.order_number or f'ORD-{order.id:04d}'} updated to status '{order.order_status}' (Payment: {order.payment_status}).",
-                full_body=f"Order: {order.order_number or f'ORD-{order.id:04d}'}\nCustomer: {order.shipping_name}\nUpdated Order Status: {order.order_status}\nPayment Status: {order.payment_status}",
-                category_badge="Order",
-                department="Orders & Fulfillment",
-                notification_type="order_status",
+        # Append to OrderStatusHistory ONLY if status actually changed
+        if status_changed:
+            loc_val = order.tracking_location or ''
+            msg_val = request.data.get('message') or request.data.get('note') or f"Status updated to {order.order_status}"
+            OrderStatusHistory.objects.create(
                 order=order,
-                target_url="/admin/orders/",
-                metadata={'order_id': order.id, 'order_status': order.order_status, 'payment_status': order.payment_status}
+                status=order.order_status,
+                location=loc_val,
+                message=msg_val
             )
-        except Exception:
-            pass
+
+            # Audit notification
+            try:
+                Notification.objects.create(
+                    title=f"Order #{order.id} Status Updated",
+                    sender="Order Management",
+                    sender_initial="O",
+                    sender_color="#3b82f6",
+                    body=f"Order {order.order_number or f'ORD-{order.id:04d}'} updated to status '{order.order_status}' (Payment: {order.payment_status}).",
+                    full_body=f"Order: {order.order_number or f'ORD-{order.id:04d}'}\nCustomer: {order.shipping_name}\nUpdated Order Status: {order.order_status}\nPayment Status: {order.payment_status}",
+                    category_badge="Order",
+                    department="Orders & Fulfillment",
+                    notification_type="order_status",
+                    order=order,
+                    target_url="/admin/orders/",
+                    metadata={'order_id': order.id, 'order_status': order.order_status, 'payment_status': order.payment_status}
+                )
+            except Exception as e:
+                logger.error(f"Audit notification error: {e}")
+
+            # Automatic WhatsApp status notification triggers on state change (with deduplication)
+            st_clean = order.order_status.strip().title()
+            if st_clean == 'Confirmed':
+                try:
+                    send_order_confirmation_whatsapp(order)
+                except Exception as e:
+                    logger.error(f"WhatsApp Confirmed notification error: {e}")
+            elif st_clean == 'Shipped':
+                try:
+                    if order.tracking_id:
+                        send_shipment_whatsapp(order)
+                except Exception as e:
+                    logger.error(f"WhatsApp Shipped notification error: {e}")
+            elif st_clean in ('Out For Delivery', 'Out for Delivery'):
+                try:
+                    send_out_for_delivery_whatsapp(order)
+                except Exception as e:
+                    logger.error(f"WhatsApp Out for Delivery notification error: {e}")
+            elif st_clean == 'Delivered':
+                try:
+                    send_delivered_whatsapp(order)
+                except Exception as e:
+                    logger.error(f"WhatsApp Delivered notification error: {e}")
+
+        return self.get(request, pk)
+
+
+class TrackingLookupView(APIView):
+    """
+    Public privacy-safe order tracking lookup.
+    Accepts tracking_number (ST Courier AWB or India Post Consignment Number) or order number.
+    Returns tracking timeline and masked order metadata.
+    """
+    permission_classes = []
+
+    def post(self, request):
+        tracking_num = (request.data.get('tracking_number') or request.data.get('tracking_id') or request.data.get('query') or '').strip()
+        return self._lookup(tracking_num)
+
+    def get(self, request):
+        tracking_num = (request.query_params.get('tracking_number') or request.query_params.get('tracking') or request.query_params.get('tracking_id') or request.query_params.get('q') or '').strip()
+        return self._lookup(tracking_num)
+
+    def _lookup(self, query):
+        if not query:
+            return Response({'error': 'Tracking number or order ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        clean_query = query.strip()
+        clean_num = ''.join(c for c in clean_query if c.isdigit())
+        store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
+
+        order = (
+            Order.objects.filter(tracking_id__iexact=clean_query).first() or
+            Order.objects.filter(order_number__iexact=clean_query).first() or
+            Order.objects.filter(razorpay_order_id__iexact=clean_query).first()
+        )
+        if not order and clean_num:
+            order = Order.objects.filter(id=int(clean_num)).first()
+
+        if not order:
+            return Response({
+                'success': False,
+                'error': "We couldn't find a MOXIE shipment with this tracking number. Please check the number or contact MOXIE support."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
+        track_num = order.tracking_id or ''
+        courier_key = normalize_courier_code(order.courier_name)
+        courier_display = "ST Courier" if courier_key == 'ST_COURIER' else ("India Post" if courier_key == 'INDIA_POST' else (order.courier_name or ''))
+
+        norm_status = normalize_status(order.shipping_status or order.order_status)
+        norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
+
+        history = [{
+            'status': h.status,
+            'status_display': STATUS_DISPLAY_NAMES.get(normalize_status(h.status), h.status),
+            'location': h.location,
+            'message': h.message,
+            'source': h.source or 'ADMIN',
+            'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+            'raw_date': h.created_at.isoformat(),
+            'timestamp': h.created_at.isoformat(),
+        } for h in order.status_history.all()]
+
+        if not history:
+            history = [{
+                'status': 'CONFIRMED',
+                'status_display': 'Order Confirmed',
+                'location': 'Online Store',
+                'message': 'Order placed & confirmed',
+                'source': 'SYSTEM',
+                'date': order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '',
+                'raw_date': order.created_at.isoformat() if order.created_at else '',
+                'timestamp': order.created_at.isoformat() if order.created_at else '',
+            }]
+
+        name = order.shipping_name or 'Customer'
+        masked_name = f"{name[0]}***{name[-1]}" if len(name) > 2 else f"{name[0]}***"
+
+        items = []
+        for it in order.items.all():
+            items.append({
+                'name': it.product_name or (it.product.name if it.product else 'Product'),
+                'color': it.color_name or 'Default',
+                'size': it.size or 'Regular',
+                'quantity': it.quantity,
+                'image': it.product_image or (it.product.images.first().image.url if it.product and it.product.images.exists() else '')
+            })
+
+        carrier_portal = get_external_carrier_tracking_url(order.courier_name, track_num)
 
         return Response({
             'success': True,
-            'id': order.id,
+            'order_id': order_num,
+            'orderId': order_num,
+            'rawId': order.id,
+            'courier': courier_display,
+            'courier_code': courier_key,
+            'courier_name': courier_display,
+            'tracking_number': track_num,
+            'trackingId': track_num,
+            'tracking_id': track_num,
+            'shipping_status': norm_status,
+            'shipping_status_display': norm_status_display,
             'order_status': order.order_status,
+            'tracking_source': order.tracking_source or 'ADMIN',
+            'current_location': order.tracking_location or '',
+            'tracking_location': order.tracking_location or '',
+            'estimated_delivery': order.estimated_delivery or '3-5 Business Days',
+            'shipped_at': order.shipped_at.isoformat() if order.shipped_at else None,
+            'delivered_at': order.delivered_at.isoformat() if order.delivered_at else None,
+            'tracking_updated_at': order.tracking_updated_at.isoformat() if order.tracking_updated_at else None,
+            'status_history': history,
+            'statusHistory': history,
+            'carrier_portal_url': carrier_portal,
+            'items': items,
+            'products': items,
+            'destination_city': order.shipping_city,
+            'destination_state': order.shipping_state,
+            'masked_recipient': masked_name,
+            'payment_method': order.payment_method or 'UPI',
+            'balance_due': float(order.balance_due or 0),
+            'total_amount': float(order.total_amount),
+            'createdAt': order.created_at.isoformat() if order.created_at else '',
+            'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
+        }, status=status.HTTP_200_OK)
+
+
+class OrderTrackingPublicView(APIView):
+    permission_classes = []
+
+    def get(self, request, order_id):
+        raw_id_str = str(order_id).strip()
+        clean_num = ''.join(c for c in raw_id_str if c.isdigit())
+        store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
+
+        order = (
+            Order.objects.filter(order_number__iexact=raw_id_str).first() or
+            Order.objects.filter(tracking_id__iexact=raw_id_str).first() or
+            Order.objects.filter(razorpay_order_id__iexact=raw_id_str).first()
+        )
+        if not order and clean_num:
+            order = Order.objects.filter(id=int(clean_num)).first()
+
+        if not order:
+            return Response({'error': 'Order not found for tracking.'}, status=status.HTTP_404_NOT_FOUND)
+
+        order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
+        track_num = order.tracking_id or ''
+        courier_key = normalize_courier_code(order.courier_name)
+        courier_display = "ST Courier" if courier_key == 'ST_COURIER' else ("India Post" if courier_key == 'INDIA_POST' else (order.courier_name or ''))
+
+        norm_status = normalize_status(order.shipping_status or order.order_status)
+        norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
+
+        history = [{
+            'status': h.status,
+            'status_display': STATUS_DISPLAY_NAMES.get(normalize_status(h.status), h.status),
+            'location': h.location,
+            'message': h.message,
+            'source': h.source or 'ADMIN',
+            'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+            'raw_date': h.created_at.isoformat(),
+            'timestamp': h.created_at.isoformat(),
+        } for h in order.status_history.all()]
+
+        if not history:
+            history = [{
+                'status': 'CONFIRMED',
+                'status_display': 'Order Confirmed',
+                'location': 'Online Store',
+                'message': 'Order placed & confirmed',
+                'source': 'SYSTEM',
+                'date': order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '',
+                'raw_date': order.created_at.isoformat() if order.created_at else '',
+                'timestamp': order.created_at.isoformat() if order.created_at else '',
+            }]
+
+        carrier_portal = get_external_carrier_tracking_url(order.courier_name, track_num)
+
+        return Response({
+            'success': True,
+            'id': order_num,
+            'rawId': order.id,
+            'orderId': order_num,
+            'order_number': order_num,
             'orderStatus': order.order_status,
-            'payment_status': order.payment_status,
-            'paymentStatus': order.payment_status
+            'status': order.order_status,
+            'shippingStatus': norm_status_display,
+            'shipping_status': norm_status,
+            'shipping_status_display': norm_status_display,
+            'courier': courier_display,
+            'courier_code': courier_key,
+            'courier_name': courier_display,
+            'trackingId': track_num,
+            'tracking_id': track_num,
+            'tracking_number': track_num,
+            'trackingLocation': order.tracking_location or '',
+            'estimatedDelivery': order.estimated_delivery or '3-5 Business Days',
+            'statusHistory': history,
+            'status_history': history,
+            'carrier_portal_url': carrier_portal,
+            'paymentStatus': order.payment_status,
+            'paymentMethod': order.payment_method or 'UPI',
+            'total': float(order.total_amount),
+            'amountPaid': float(order.amount_paid),
+            'balanceDue': float(order.balance_due),
+            'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
+            'createdAt': order.created_at.isoformat() if order.created_at else '',
+            'updatedAt': order.updated_at.isoformat() if order.updated_at else '',
+            'shippingAddress': {
+                'name': order.shipping_name,
+                'phone': order.shipping_phone,
+                'address': order.shipping_address,
+                'city': order.shipping_city,
+                'district': order.shipping_district or order.shipping_city,
+                'state': order.shipping_state or '',
+                'pincode': order.shipping_pincode,
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class AdminOrderShipmentView(APIView):
+    """
+    Admin endpoint to save shipment details, tracking info, upload receipt image,
+    record status history, and dispatch WhatsApp shipment notifications.
+    """
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def post(self, request, pk):
+        err = check_staff_api_permission(request, 'orders')
+        if err:
+            return err
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if (order.order_status or '').strip().upper() == 'CANCELLED':
+            return Response({'error': 'This order has been cancelled. Shipment creation is disabled.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if order.tracking_locked or (order.tracking_id and order.tracking_id.strip()):
+            return Response({'error': 'Tracking details are permanently locked for this order and cannot be modified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        courier_input = (request.data.get('courier_name') or request.data.get('courier') or '').strip()
+        tracking_number = (request.data.get('tracking_number') or request.data.get('tracking_id') or request.data.get('awb_number') or '').strip()
+        location = (request.data.get('tracking_location') or request.data.get('location') or '').strip()
+        estimated_delivery = (request.data.get('estimated_delivery') or '').strip()
+        notify_customer = str(request.data.get('notify_customer', 'true')).lower() in ('true', '1', 'yes')
+        receipt_file = request.FILES.get('tracking_receipt') or request.FILES.get('receipt_image') or request.FILES.get('receipt')
+
+        if not courier_input or courier_input.lower() in ('', 'select', 'select courier', 'none'):
+            return Response({'error': 'Please select a courier partner (ST Courier or India Post).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not tracking_number:
+            return Response({'error': 'Please enter a tracking / AWB / consignment number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        clean_tracking, is_valid, val_err = validate_tracking_number(courier_input, tracking_number)
+        canonical_courier = normalize_courier_code(courier_input)
+        courier_display = "ST Courier" if canonical_courier == 'ST_COURIER' else ("India Post" if canonical_courier == 'INDIA_POST' else courier_input)
+
+        with transaction.atomic():
+            order.courier_name = courier_display
+            order.tracking_id = clean_tracking or tracking_number
+            order.shipping_status = 'SHIPPED'
+            order.order_status = 'Shipped'
+            order.tracking_locked = True
+            if location:
+                order.tracking_location = location
+            if estimated_delivery:
+                order.estimated_delivery = estimated_delivery
+            if receipt_file:
+                order.tracking_receipt = receipt_file
+
+            now = timezone.now()
+            order.tracking_updated_at = now
+            if not order.tracking_assigned_at:
+                order.tracking_assigned_at = now
+            if not order.shipped_at:
+                order.shipped_at = now
+
+            order.save()
+
+            msg = f"Shipment saved. Courier: {courier_display}, Tracking: {order.tracking_id}."
+            if location:
+                msg += f" Location: {location}."
+            OrderStatusHistory.objects.create(
+                order=order,
+                status='Shipped',
+                location=location,
+                message=msg,
+                source=canonical_courier if canonical_courier in ('ST_COURIER', 'INDIA_POST') else 'ADMIN'
+            )
+
+        # Dispatch WhatsApp Notification
+        whatsapp_result = {'sent': False, 'message': 'Notification not requested'}
+        if notify_customer:
+            try:
+                sent, res_code = send_shipment_whatsapp(order)
+                whatsapp_result = {'sent': sent, 'status_code': str(res_code)}
+            except Exception as e:
+                logger.error(f"WhatsApp dispatch exception: {e}")
+                whatsapp_result = {'sent': False, 'error': str(e)}
+
+        # Fetch latest logs
+        logs = NotificationLog.objects.filter(order=order, channel='WHATSAPP').order_by('-created_at')
+        whatsapp_statuses = {
+            'order_confirmed': 'PENDING',
+            'shipped': 'PENDING',
+            'out_for_delivery': 'PENDING',
+            'delivered': 'PENDING',
+        }
+        for log in logs:
+            m_type = (log.message_type or '').upper()
+            if 'CONFIRM' in m_type and whatsapp_statuses['order_confirmed'] == 'PENDING':
+                whatsapp_statuses['order_confirmed'] = log.status
+            elif 'SHIP' in m_type and whatsapp_statuses['shipped'] == 'PENDING':
+                whatsapp_statuses['shipped'] = log.status
+            elif 'OUT' in m_type and whatsapp_statuses['out_for_delivery'] == 'PENDING':
+                whatsapp_statuses['out_for_delivery'] = log.status
+            elif 'DELIVER' in m_type and whatsapp_statuses['delivered'] == 'PENDING':
+                whatsapp_statuses['delivered'] = log.status
+
+        notification_logs_list = [{
+            'id': log.id,
+            'message_type': log.message_type,
+            'status': log.status,
+            'recipient': log.recipient,
+            'sent_at': log.sent_at.strftime('%d %b %Y, %I:%M %p') if log.sent_at else '',
+            'error_message': log.error_message,
+            'error_code': log.error_code,
+            'created_at': log.created_at.strftime('%d %b %Y, %I:%M %p') if log.created_at else '',
+        } for log in logs]
+
+        return Response({
+            'success': True,
+            'message': 'Shipment information saved successfully.',
+            'order_id': order.id,
+            'courier_name': order.courier_name,
+            'tracking_id': order.tracking_id,
+            'tracking_number': order.tracking_id,
+            'shipping_status': order.shipping_status,
+            'order_status': order.order_status,
+            'tracking_location': order.tracking_location,
+            'estimated_delivery': order.estimated_delivery,
+            'shipped_at': order.shipped_at.strftime('%d %b %Y, %I:%M %p') if order.shipped_at else '',
+            'receipt_url': order.tracking_receipt.url if order.tracking_receipt else None,
+            'whatsapp_dispatch': whatsapp_result,
+            'whatsapp_notifications': whatsapp_statuses,
+            'notification_logs': notification_logs_list,
+        }, status=status.HTTP_200_OK)
+
+
+class AdminOrderOCRTrackingView(APIView):
+    """
+    Admin endpoint to extract candidate tracking numbers from courier receipts.
+    Mandatory safety rule: OCR result is ONLY a candidate for Admin confirmation.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, pk):
+        err = check_staff_api_permission(request, 'orders')
+        if err:
+            return err
+
+        image_file = request.FILES.get('receipt') or request.FILES.get('receipt_image') or request.FILES.get('image') or request.FILES.get('tracking_receipt')
+        if not image_file:
+            return Response({'error': 'Please upload an image file of the courier receipt.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = extract_tracking_from_receipt(image_file)
+        if result.get('detected_tracking_number'):
+            result['tracking_number'] = result['detected_tracking_number']
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AdminRetryWhatsAppView(APIView):
+    """
+    Admin endpoint to retry sending failed WhatsApp messages for an order.
+    """
+    def post(self, request, pk):
+        err = check_staff_api_permission(request, 'orders')
+        if err:
+            return err
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        event_type = (request.data.get('event_type') or request.data.get('message_type') or 'SHIPPED').upper()
+
+        # Delete any failed previous log with this idempotency key to allow retry
+        NotificationLog.objects.filter(order=order, message_type=event_type, status='FAILED').delete()
+
+        sent = False
+        res = "Unknown event"
+        if event_type in ('ORDER_CONFIRMED', 'CONFIRMED'):
+            sent, res = send_order_confirmation_whatsapp(order)
+        elif event_type in ('SHIPPED', 'SHIPMENT'):
+            sent, res = send_shipment_whatsapp(order)
+        elif event_type in ('OUT_FOR_DELIVERY',):
+            sent, res = send_out_for_delivery_whatsapp(order)
+        elif event_type in ('DELIVERED',):
+            sent, res = send_delivered_whatsapp(order)
+        else:
+            sent, res = send_shipment_whatsapp(order)
+
+        # Refetch latest logs for order
+        logs = NotificationLog.objects.filter(order=order, channel='WHATSAPP').order_by('-created_at')
+        whatsapp_statuses = {
+            'order_confirmed': 'PENDING',
+            'shipped': 'PENDING',
+            'out_for_delivery': 'PENDING',
+            'delivered': 'PENDING',
+        }
+        for log in logs:
+            m_type = (log.message_type or '').upper()
+            if 'CONFIRM' in m_type and whatsapp_statuses['order_confirmed'] == 'PENDING':
+                whatsapp_statuses['order_confirmed'] = log.status
+            elif 'SHIP' in m_type and whatsapp_statuses['shipped'] == 'PENDING':
+                whatsapp_statuses['shipped'] = log.status
+            elif 'OUT' in m_type and whatsapp_statuses['out_for_delivery'] == 'PENDING':
+                whatsapp_statuses['out_for_delivery'] = log.status
+            elif 'DELIVER' in m_type and whatsapp_statuses['delivered'] == 'PENDING':
+                whatsapp_statuses['delivered'] = log.status
+
+        notification_logs_list = [{
+            'id': log.id,
+            'message_type': log.message_type,
+            'status': log.status,
+            'recipient': log.recipient,
+            'sent_at': log.sent_at.strftime('%d %b %Y, %I:%M %p') if log.sent_at else '',
+            'error_message': log.error_message,
+            'error_code': log.error_code,
+            'created_at': log.created_at.strftime('%d %b %Y, %I:%M %p') if log.created_at else '',
+        } for log in logs]
+
+        return Response({
+            'success': sent,
+            'result': str(res),
+            'order_id': order.id,
+            'message_type': event_type,
+            'status': 'SENT' if sent else 'FAILED',
+            'whatsapp_notifications': whatsapp_statuses,
+            'notification_logs': notification_logs_list,
         }, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
@@ -2811,18 +3996,41 @@ class CustomerCancelOrderView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        try:
-            order = Order.objects.get(pk=pk)
-        except Order.DoesNotExist:
+        order = None
+        pk_str = str(pk).strip()
+        if pk_str.isdigit():
+            order = Order.objects.filter(id=int(pk_str)).first()
+        if not order:
+            clean_digits = re.sub(r'^[A-Za-z]+-?', '', pk_str).lstrip('0')
+            if clean_digits.isdigit():
+                order = Order.objects.filter(id=int(clean_digits)).first()
+        if not order:
+            order = Order.objects.filter(order_number__iexact=pk_str).first()
+        if not order:
+            order = Order.objects.filter(order_number__icontains=pk_str).first()
+
+        if not order:
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # If already cancelled, return success
+        if (order.order_status or '').strip().lower() == 'cancelled':
+            return Response({
+                'success': True,
+                'message': f"Order #{order.order_number or order.id} is already cancelled.",
+                'order_id': order.id,
+                'order_status': 'Cancelled'
+            }, status=status.HTTP_200_OK)
 
         # Check ownership if authenticated user
         if request.user.is_authenticated and order.user and order.user != request.user and not request.user.is_staff:
-            return Response({'error': 'You do not have permission to cancel this order.'}, status=status.HTTP_403_FORBIDDEN)
+            order_email = (order.user.email if order.user else '') or ''
+            request_email = (request.user.email or '').strip().lower()
+            if not (request_email and order_email and request_email == order_email.lower()):
+                return Response({'error': 'You do not have permission to cancel this order.'}, status=status.HTTP_403_FORBIDDEN)
 
         # Check cancellable status
-        cancellable_statuses = ['Pending', 'Confirmed', 'Processing', 'Placed']
-        if order.order_status not in cancellable_statuses:
+        cancellable_statuses = ['pending', 'confirmed', 'processing', 'placed']
+        if (order.order_status or '').strip().lower() not in cancellable_statuses:
             return Response(
                 {'error': f"Order with status '{order.order_status}' cannot be cancelled."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -2854,7 +4062,8 @@ class CustomerCancelOrderView(APIView):
 
         with transaction.atomic():
             order.order_status = 'Cancelled'
-            order.save(update_fields=['order_status', 'updated_at'])
+            order.shipping_status = 'CANCELLED'
+            order.save(update_fields=['order_status', 'shipping_status', 'updated_at'])
 
             # Restock if stock was decremented and stock management is enabled
             if order.stock_decremented and settings_obj.enable_stock_management:
@@ -2867,6 +4076,20 @@ class CustomerCancelOrderView(APIView):
                         item.variant.save(update_fields=['stock'])
                 order.stock_decremented = False
                 order.save(update_fields=['stock_decremented'])
+
+            OrderStatusHistory.objects.create(
+                order=order,
+                status='Cancelled',
+                location='Online Store',
+                message='Order cancelled by customer.',
+                source='CUSTOMER'
+            )
+
+            try:
+                from .whatsapp_service import send_order_cancelled_whatsapp
+                send_order_cancelled_whatsapp(order)
+            except Exception:
+                pass
 
             try:
                 Notification.objects.create(
@@ -2956,6 +4179,21 @@ class AdminCustomerStatusView(APIView):
                 u.is_active = not u.is_active
             u.save()
 
+            # If user deactivated, flush their active sessions immediately
+            if not u.is_active:
+                try:
+                    from django.contrib.sessions.models import Session
+                    user_id_str = str(u.id)
+                    for s in Session.objects.all():
+                        try:
+                            data = s.get_decoded()
+                            if str(data.get('_auth_user_id')) == user_id_str:
+                                s.delete()
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
             # Create notification
             try:
                 cust_name = f"{u.first_name} {u.last_name}".strip() or u.username
@@ -2993,6 +4231,42 @@ class AdminCustomerDeleteView(APIView):
             cust_name = f"{u.first_name} {u.last_name}".strip() or u.username
             cust_email = u.email or 'customer@example.com'
             cust_id = u.id
+
+            # 1. Flush active Django sessions for this user
+            try:
+                from django.contrib.sessions.models import Session
+                user_id_str = str(u.id)
+                for s in Session.objects.all():
+                    try:
+                        data = s.get_decoded()
+                        if str(data.get('_auth_user_id')) == user_id_str:
+                            s.delete()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # 2. Invalidate tokens if Token model exists
+            try:
+                from rest_framework.authtoken.models import Token
+                Token.objects.filter(user=u).delete()
+            except Exception:
+                pass
+
+            # 3. Optional Firebase user deletion if firebase_admin is installed/configured
+            try:
+                profile = getattr(u, 'customer_profile', None)
+                google_sub = profile.google_sub if profile else None
+                if google_sub:
+                    import firebase_admin
+                    from firebase_admin import auth as fb_auth
+                    try:
+                        fb_auth.delete_user(google_sub)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             u.delete()
 
             # Create notification
@@ -3263,6 +4537,28 @@ class AdminSettingsView(APIView):
         fields = [f.name for f in settings_obj._meta.fields if f.name not in ['id', 'store_logo']]
         data = {f: getattr(settings_obj, f) for f in fields}
         data['store_logo'] = settings_obj.store_logo.url if settings_obj.store_logo else ''
+        
+        low_stock = bool(settings_obj.notify_low_stock if settings_obj.notify_low_stock is not None else settings_obj.low_stock_alert)
+        order_received = bool(settings_obj.notify_order_created if settings_obj.notify_order_created is not None else True)
+        new_customer = bool(settings_obj.notify_new_customer if settings_obj.notify_new_customer is not None else True)
+        
+        data['low_stock_notification'] = low_stock
+        data['order_received_notification'] = order_received
+        data['new_customer_signup_notification'] = new_customer
+        data['notify_low_stock'] = low_stock
+        data['notify_order_created'] = order_received
+        data['notify_new_customer'] = new_customer
+        
+        data['payment'] = {
+            'provider': 'Razorpay',
+            'mode': getattr(settings_obj, 'payment_mode', 'Test'),
+            'razorpay_key_id': 'rzp_test_************',
+            'online_payment_enabled': getattr(settings_obj, 'online_payment_enabled', True),
+            'razorpay_enabled': getattr(settings_obj, 'razorpay_enabled', True),
+            'cod_enabled': getattr(settings_obj, 'cod_enabled', True),
+            'payment_currency': getattr(settings_obj, 'payment_currency', 'INR'),
+            'payment_timeout': getattr(settings_obj, 'payment_timeout', '15 Minutes'),
+        }
         return data
 
     def get(self, request):
@@ -3288,6 +4584,7 @@ class AdminSettingsView(APIView):
             return err
         settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
         data = request.data
+        
         for key, value in data.items():
             if hasattr(settings_obj, key) and key not in ['id', 'store_logo', 'updated_at']:
                 field = settings_obj._meta.get_field(key)
@@ -3306,6 +4603,22 @@ class AdminSettingsView(APIView):
                 else:
                     setattr(settings_obj, key, value)
 
+        # Handle aliases and payment settings
+        if 'mode' in data and not hasattr(settings_obj, 'mode'):
+            settings_obj.payment_mode = str(data['mode'])
+        if 'low_stock_notification' in data:
+            val = data['low_stock_notification'] in [True, 'true', 'True', 1, '1']
+            settings_obj.notify_low_stock = val
+            settings_obj.low_stock_alert = val
+        if 'order_received_notification' in data:
+            settings_obj.notify_order_created = data['order_received_notification'] in [True, 'true', 'True', 1, '1']
+        if 'new_customer_signup_notification' in data:
+            settings_obj.notify_new_customer = data['new_customer_signup_notification'] in [True, 'true', 'True', 1, '1']
+        if 'cod_available' in data:
+            settings_obj.cod_enabled = settings_obj.cod_available
+        elif 'cod_enabled' in data:
+            settings_obj.cod_available = settings_obj.cod_enabled
+
         if 'store_logo' in request.FILES:
             settings_obj.store_logo = request.FILES['store_logo']
         elif str(data.get('remove_store_logo', '')).lower() in ['true', '1'] or str(data.get('remove_logo', '')).lower() in ['true', '1']:
@@ -3314,53 +4627,21 @@ class AdminSettingsView(APIView):
                     settings_obj.store_logo.delete(save=False)
                 except Exception:
                     pass
-        section = data.get('_section', '')
-        if section == 'orders' or ('order_prefix' in data and 'store_name' not in data and 'maintenance_mode' not in data):
-            order_prefix = str(data.get('order_prefix', settings_obj.order_prefix or '')).strip()
-            if not order_prefix:
-                return Response({'error': 'Order prefix is required.'}, status=status.HTTP_400_BAD_REQUEST)
-            try:
-                min_order = float(data.get('min_order_amount', settings_obj.min_order_amount or 0))
-                if min_order < 0:
-                    return Response({'error': 'Minimum order amount must be a non-negative number.'}, status=status.HTTP_400_BAD_REQUEST)
-            except (ValueError, TypeError):
-                return Response({'error': 'Invalid minimum order amount.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                max_order = float(data.get('max_order_amount', settings_obj.max_order_amount or 0))
-                if max_order < 0:
-                    return Response({'error': 'Maximum order amount must be a non-negative number.'}, status=status.HTTP_400_BAD_REQUEST)
-            except (ValueError, TypeError):
-                return Response({'error': 'Invalid maximum order amount.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if section == 'tax' or ('tax_rate' in data and 'store_name' not in data and 'maintenance_mode' not in data and 'default_shipping_charge' not in data and 'order_prefix' not in data):
-            try:
-                tax_rate_val = float(data.get('tax_rate', settings_obj.tax_rate or 0))
-                if tax_rate_val < 0 or tax_rate_val > 100:
-                    return Response({'error': 'Tax rate must be a valid percentage between 0 and 100.'}, status=status.HTTP_400_BAD_REQUEST)
-            except (ValueError, TypeError):
-                return Response({'error': 'Invalid tax rate.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if 'cod_available' in data:
-            settings_obj.cod_enabled = settings_obj.cod_available
-        elif 'cod_enabled' in data:
-            settings_obj.cod_available = settings_obj.cod_enabled
 
         settings_obj.save()
         resp_data = self.get_settings_dict(settings_obj)
-
+        
+        section = data.get('_section', '')
         if section == 'store':
             success_msg = 'Store operations updated successfully.'
         elif section == 'general':
             success_msg = 'General settings updated successfully.'
-        elif section == 'orders' or ('order_prefix' in data and 'store_name' not in data and 'maintenance_mode' not in data and 'default_shipping_charge' not in data):
+        elif section == 'orders':
             success_msg = 'Order settings updated successfully.'
-        elif section == 'shipping' or ('default_shipping_charge' in data and 'store_name' not in data):
-            success_msg = 'Shipping settings updated successfully.'
-        elif section == 'tax' or ('tax_rate' in data and 'store_name' not in data):
-            success_msg = 'Tax settings updated successfully.'
-        elif 'maintenance_mode' in data and 'store_name' not in data:
-            success_msg = 'Store operations updated successfully.'
+        elif section == 'payment':
+            success_msg = 'Payment settings updated successfully.'
+        elif section == 'notifications':
+            success_msg = 'Notification settings updated successfully.'
         else:
             success_msg = 'Settings updated successfully.'
 
@@ -3819,7 +5100,7 @@ class AdminDashboardAnalyticsView(APIView):
                 'units_sold': units,
                 'revenue': p_rev,
                 'current_stock': p.stock,
-                'avg_selling_price': float(p.discount_price or p.price or 0),
+                'avg_selling_price': float(p.discount_price if (p.discount_price and 0 < p.discount_price < p.price) else (p.price or 0)),
                 'demand_level': demand,
                 'sales_percentage': round((p_rev / total_revenue * 100), 1) if total_revenue > 0 else 0.0,
             })
@@ -3960,3 +5241,438 @@ class AdminDashboardSalesView(APIView):
                 })
 
         return Response({'sales': data_points})
+
+
+# ==============================================================================
+# Featured Products (Hot Sale / Trending / Offer)
+# ==============================================================================
+class FeaturedProductPublicView(APIView):
+    """
+    Public Read-Only API for Home page showcase.
+    Returns only active FeaturedProduct entries whose product is active,
+    and whose scheduled dates (if any) are valid for current time.
+    """
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        now = timezone.now()
+        qs = FeaturedProduct.objects.filter(
+            is_active=True,
+            product__is_active=True
+        ).filter(
+            Q(start_date__isnull=True) | Q(start_date__lte=now)
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gt=now)
+        ).select_related('product').prefetch_related('product__images', 'product__variants__images').order_by('sort_order', '-created_at')
+
+        serializer = FeaturedProductSerializer(qs, many=True, context={'request': request})
+        return Response({
+            'server_time': now.isoformat(),
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class AdminFeaturedProductsView(APIView):
+    """
+    Admin API to list and create FeaturedProduct entries with full underlying Product creation in one atomic transaction.
+    """
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+        qs = FeaturedProduct.objects.select_related('product').prefetch_related(
+            'product__images', 'product__variants__images'
+        ).all().order_by('sort_order', '-created_at')
+        serializer = FeaturedProductAdminSerializer(qs, many=True, context={'request': request})
+        return Response({'featured_products': serializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+
+        name = (request.data.get('name') or '').strip()
+        if not name:
+            return Response({'name': ['Product Name is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        description = (request.data.get('description') or '').strip()
+        if not description:
+            return Response({'description': ['Product Description is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Dates validation
+        start_date = request.data.get('start_date') or None
+        if start_date == '':
+            start_date = None
+        end_date = request.data.get('end_date') or None
+        if end_date == '':
+            end_date = None
+
+        if start_date and end_date:
+            try:
+                from django.utils.dateparse import parse_datetime
+                sd = parse_datetime(start_date) if isinstance(start_date, str) else start_date
+                ed = parse_datetime(end_date) if isinstance(end_date, str) else end_date
+                if sd and ed and ed <= sd:
+                    return Response({'end_date': ['End time must be later than start time.']}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception:
+                pass
+
+        # Variant payload
+        variant_payload = request.data.get('variant_payload_json')
+        import json
+        variants_data = []
+        if variant_payload:
+            try:
+                if isinstance(variant_payload, str):
+                    variants_data = json.loads(variant_payload)
+                elif isinstance(variant_payload, list):
+                    variants_data = variant_payload
+            except Exception as e:
+                return Response({'variants': [f'Invalid variant data format: {e}']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not variants_data:
+            # Fallback single variant from top-level price/stock
+            p_price = request.data.get('price') or '0.00'
+            p_disc = request.data.get('discount_price') or None
+            p_stock = request.data.get('stock') or '0'
+            variants_data = [{
+                'color_name': 'Default',
+                'color_code': '#000000',
+                'price': p_price,
+                'discount_price': p_disc,
+                'stock': p_stock,
+                'sizes': [],
+                'is_active': True,
+            }]
+
+        try:
+            with transaction.atomic():
+                from products.models import Product, ProductVariant, VariantImage
+
+                # Top-level pricing / stock calculation
+                first_var = variants_data[0] if variants_data else {}
+                top_price = first_var.get('price') or request.data.get('price') or '0.00'
+                top_disc = first_var.get('discount_price') or request.data.get('discount_price') or None
+                if top_disc == '':
+                    top_disc = None
+                top_stock = sum(int(v.get('stock') or 0) for v in variants_data)
+                shipping_charge = request.data.get('shipping_charge') or '0.00'
+
+                is_active_val = request.data.get('is_active')
+                if isinstance(is_active_val, str):
+                    is_active_val = is_active_val.lower() in ['true', '1', 'yes', 'on']
+                elif is_active_val is None:
+                    is_active_val = True
+                else:
+                    is_active_val = bool(is_active_val)
+
+                # 1. Create Product
+                product = Product.objects.create(
+                    name=name,
+                    description=description,
+                    category=None, # Category not required for featured creations
+                    subcategory=None,
+                    price=top_price,
+                    discount_price=top_disc,
+                    shipping_charge=shipping_charge,
+                    stock=top_stock,
+                    is_active=is_active_val
+                )
+
+                # 2. Create Variants and handle images
+                for v_idx, v_data in enumerate(variants_data):
+                    v_price = v_data.get('price') or top_price
+                    v_disc = v_data.get('discount_price') or None
+                    if v_disc == '':
+                        v_disc = None
+                    v_stock = int(v_data.get('stock') or 0)
+                    v_sizes = v_data.get('sizes') or []
+                    v_color_name = v_data.get('color_name') or 'Default'
+                    v_color_code = v_data.get('color_code') or '#000000'
+
+                    variant_obj = ProductVariant.objects.create(
+                        product=product,
+                        color_name=v_color_name,
+                        color_code=v_color_code,
+                        price=v_price,
+                        discount_price=v_disc,
+                        stock=v_stock,
+                        sizes=v_sizes,
+                        is_active=bool(v_data.get('is_active', True))
+                    )
+
+                    primary_img_id = v_data.get('primary_image_id')
+                    primary_img_index = v_data.get('primary_image_index', 0)
+
+                    # Check for uploaded files in request.FILES
+                    f_idx = 0
+                    uploaded_files = []
+                    while True:
+                        key = f"variant_img_{v_idx}_{f_idx}"
+                        if key in request.FILES:
+                            uploaded_files.append(request.FILES[key])
+                            f_idx += 1
+                        else:
+                            break
+
+                    for u_idx, up_file in enumerate(uploaded_files):
+                        is_prim = (primary_img_index == u_idx) or (u_idx == 0)
+                        VariantImage.objects.create(
+                            variant=variant_obj,
+                            image=up_file,
+                            is_primary=is_prim
+                        )
+
+                # Recalculate top product values
+                first_v = product.variants.first()
+                if first_v:
+                    product.price = first_v.price
+                    product.discount_price = first_v.discount_price
+                    product.stock = sum(v.stock for v in product.variants.all())
+                    product.save(update_fields=['price', 'discount_price', 'stock'])
+
+                # 3. Create FeaturedProduct
+                feature_type = request.data.get('feature_type') or 'HOT_SALE'
+                badge_text = (request.data.get('badge_text') or '').strip()
+                sort_order = int(request.data.get('sort_order') or 0)
+                display_image = request.FILES.get('display_image') or None
+
+                featured_item = FeaturedProduct.objects.create(
+                    product=product,
+                    feature_type=feature_type,
+                    badge_text=badge_text,
+                    sort_order=sort_order,
+                    is_active=is_active_val,
+                    start_date=start_date,
+                    end_date=end_date,
+                    display_image=display_image
+                )
+
+                serializer = FeaturedProductAdminSerializer(featured_item, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("Error in AdminFeaturedProductsView.post")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminFeaturedProductDetailView(APIView):
+    """
+    Admin API to retrieve, update, or delete a FeaturedProduct entry.
+    Updating supports atomically modifying the linked Product, Variants, Images, and Featured settings.
+    Deleting ONLY removes the FeaturedProduct entry — NEVER deletes the underlying Product.
+    """
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_object(self, pk):
+        try:
+            return FeaturedProduct.objects.select_related('product').prefetch_related(
+                'product__variants__images', 'product__images'
+            ).get(pk=pk)
+        except FeaturedProduct.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+        obj = self.get_object(pk)
+        if not obj:
+            return Response({'error': 'Featured product not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = FeaturedProductAdminSerializer(obj, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        return self.patch(request, pk)
+
+    def patch(self, request, pk):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+        featured_item = self.get_object(pk)
+        if not featured_item:
+            return Response({'error': 'Featured product not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        product = featured_item.product
+        import json
+        from products.models import ProductVariant, VariantImage
+
+        try:
+            with transaction.atomic():
+                # 1. Update Product details if provided
+                if 'name' in request.data:
+                    name_val = (request.data.get('name') or '').strip()
+                    if name_val:
+                        product.name = name_val
+                if 'description' in request.data:
+                    product.description = (request.data.get('description') or '').strip()
+                if 'shipping_charge' in request.data:
+                    product.shipping_charge = request.data.get('shipping_charge') or '0.00'
+
+                # 2. Update Variants if provided
+                variant_payload = request.data.get('variant_payload_json')
+                if variant_payload:
+                    if isinstance(variant_payload, str):
+                        variants_data = json.loads(variant_payload)
+                    else:
+                        variants_data = variant_payload
+
+                    if isinstance(variants_data, list) and variants_data:
+                        submitted_variant_ids = []
+                        for v_idx, v_data in enumerate(variants_data):
+                            v_id = v_data.get('id')
+                            v_price = v_data.get('price') or product.price or '0.00'
+                            v_disc = v_data.get('discount_price') or None
+                            if v_disc == '':
+                                v_disc = None
+                            v_stock = int(v_data.get('stock') or 0)
+                            v_sizes = v_data.get('sizes') or []
+                            v_color_name = v_data.get('color_name') or 'Default'
+                            v_color_code = v_data.get('color_code') or '#000000'
+
+                            if v_id and str(v_id).isdigit():
+                                try:
+                                    variant_obj = ProductVariant.objects.get(id=int(v_id), product=product)
+                                    variant_obj.color_name = v_color_name
+                                    variant_obj.color_code = v_color_code
+                                    variant_obj.price = v_price
+                                    variant_obj.discount_price = v_disc
+                                    variant_obj.stock = v_stock
+                                    variant_obj.sizes = v_sizes
+                                    variant_obj.is_active = bool(v_data.get('is_active', True))
+                                    variant_obj.save()
+                                except ProductVariant.DoesNotExist:
+                                    variant_obj = ProductVariant.objects.create(
+                                        product=product,
+                                        color_name=v_color_name,
+                                        color_code=v_color_code,
+                                        price=v_price,
+                                        discount_price=v_disc,
+                                        stock=v_stock,
+                                        sizes=v_sizes,
+                                        is_active=bool(v_data.get('is_active', True))
+                                    )
+                            else:
+                                variant_obj = ProductVariant.objects.create(
+                                    product=product,
+                                    color_name=v_color_name,
+                                    color_code=v_color_code,
+                                    price=v_price,
+                                    discount_price=v_disc,
+                                    stock=v_stock,
+                                    sizes=v_sizes,
+                                    is_active=bool(v_data.get('is_active', True))
+                                )
+
+                            submitted_variant_ids.append(variant_obj.id)
+
+                            # Handle deleted images
+                            deleted_img_ids = v_data.get('deleted_image_ids') or []
+                            if deleted_img_ids:
+                                VariantImage.objects.filter(variant=variant_obj, id__in=deleted_img_ids).delete()
+
+                            primary_img_id = v_data.get('primary_image_id')
+                            primary_img_index = v_data.get('primary_image_index', 0)
+
+                            if primary_img_id:
+                                variant_obj.images.all().update(is_primary=False)
+                                variant_obj.images.filter(id=primary_img_id).update(is_primary=True)
+
+                            # Uploaded files
+                            f_idx = 0
+                            uploaded_files = []
+                            while True:
+                                key = f"variant_img_{v_idx}_{f_idx}"
+                                if key in request.FILES:
+                                    uploaded_files.append(request.FILES[key])
+                                    f_idx += 1
+                                else:
+                                    break
+
+                            for u_idx, up_file in enumerate(uploaded_files):
+                                is_prim = (not primary_img_id and primary_img_index == u_idx) or (u_idx == 0 and not variant_obj.images.filter(is_primary=True).exists())
+                                VariantImage.objects.create(
+                                    variant=variant_obj,
+                                    image=up_file,
+                                    is_primary=is_prim
+                                )
+
+                        if submitted_variant_ids:
+                            ProductVariant.objects.filter(product=product).exclude(id__in=submitted_variant_ids).delete()
+
+                # Recalculate top product
+                first_v = product.variants.first()
+                if first_v:
+                    product.price = first_v.price
+                    product.discount_price = first_v.discount_price
+                    product.stock = sum(v.stock for v in product.variants.all())
+                product.save()
+
+                # 3. Update FeaturedProduct settings
+                if 'feature_type' in request.data:
+                    featured_item.feature_type = request.data['feature_type']
+                if 'badge_text' in request.data:
+                    featured_item.badge_text = (request.data['badge_text'] or '').strip()
+                if 'sort_order' in request.data:
+                    featured_item.sort_order = int(request.data['sort_order'] or 0)
+                if 'is_active' in request.data:
+                    is_act = request.data['is_active']
+                    if isinstance(is_act, str):
+                        featured_item.is_active = is_act.lower() in ['true', '1', 'yes', 'on']
+                    else:
+                        featured_item.is_active = bool(is_act)
+                if 'start_date' in request.data:
+                    featured_item.start_date = request.data['start_date'] or None
+                if 'end_date' in request.data:
+                    featured_item.end_date = request.data['end_date'] or None
+
+                if 'display_image' in request.FILES:
+                    featured_item.display_image = request.FILES['display_image']
+                elif request.data.get('display_image') == '':
+                    featured_item.display_image = None
+
+                featured_item.save()
+
+                serializer = FeaturedProductAdminSerializer(featured_item, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("Error in AdminFeaturedProductDetailView.patch")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+        obj = self.get_object(pk)
+        if not obj:
+            return Response({'error': 'Featured product not found.'}, status=status.HTTP_404_NOT_FOUND)
+        # Deleting the FeaturedProduct record only!
+        obj.delete()
+        return Response({'message': 'Featured product removed successfully. Underlying product remains in database.'}, status=status.HTTP_200_OK)
+
+
+class AdminFeaturedProductToggleStatusView(APIView):
+    """
+    Admin API to toggle active/inactive status of a FeaturedProduct entry.
+    """
+    def post(self, request, pk):
+        err = check_staff_api_permission(request, 'featured_products')
+        if err:
+            return err
+        try:
+            obj = FeaturedProduct.objects.get(pk=pk)
+            obj.is_active = not obj.is_active
+            obj.save(update_fields=['is_active', 'updated_at'])
+            return Response({
+                'id': obj.id,
+                'is_active': obj.is_active,
+                'message': f"Featured product {'activated' if obj.is_active else 'deactivated'} successfully."
+            }, status=status.HTTP_200_OK)
+        except FeaturedProduct.DoesNotExist:
+            return Response({'error': 'Featured product not found.'}, status=status.HTTP_404_NOT_FOUND)

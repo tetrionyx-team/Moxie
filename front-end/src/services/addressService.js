@@ -1,95 +1,185 @@
+import { apiFetch } from "../api/apiConfig";
+
 /**
- * Address Service API Client
- * Manages user shipping addresses.
- * Prepared for future integration with Python + Django REST API /api/addresses/.
+ * Normalizes an address object from the API to guarantee consistent UI properties
  */
+export const normalizeAddress = (addr) => {
+  if (!addr) return null;
+  const fullName = addr.full_name || addr.name || "";
+  const phone = addr.mobile_number || addr.phone || "";
+  const flat = addr.address_line_1 || addr.flat || "";
+  const area = addr.address_line_2 || addr.area || "";
+  const landmark = addr.landmark || "";
+  const city = addr.city || "";
+  const district = addr.district || addr.city || "";
+  const state = addr.state || "";
+  const pincode = String(addr.pincode || "").trim();
+  const type = addr.address_type || addr.type || "Home";
+  const isDefault = Boolean(addr.is_default !== undefined ? addr.is_default : addr.isDefault);
+
+  return {
+    id: addr.id,
+    full_name: fullName,
+    name: fullName,
+    mobile_number: phone,
+    phone: phone,
+    alternate_mobile_number: addr.alternate_mobile_number || "",
+    address_line_1: flat,
+    flat: flat,
+    address_line_2: area,
+    area: area,
+    landmark: landmark,
+    city: city,
+    district: district,
+    state: state,
+    pincode: pincode,
+    address_type: type,
+    type: type,
+    is_default: isDefault,
+    isDefault: isDefault,
+    created_at: addr.created_at,
+    updated_at: addr.updated_at,
+  };
+};
 
 export const addressService = {
+  /**
+   * Fetch current customer's saved addresses from the Django database
+   */
   fetchAddresses: async (email) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (!email) return [];
-
     try {
-      const stored = localStorage.getItem(`moxie_addresses_${email}`);
-      if (stored) {
-        return JSON.parse(stored);
+      const queryParam = email ? `?email=${encodeURIComponent(email)}` : "";
+      const res = await apiFetch(`/addresses/${queryParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          return data.map(normalizeAddress);
+        }
       }
-    } catch (e) {
-      console.error("Error reading addresses:", e);
+    } catch (err) {
+      console.error("Error fetching addresses from backend:", err);
     }
-
     return [];
   },
 
+  /**
+   * Create a new delivery address in the Django database
+   */
   addAddress: async (email, addressData) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    if (!email) return null;
-
-    const addresses = await addressService.fetchAddresses(email);
-    const newAddress = {
-      ...addressData,
-      id: String(Date.now()),
-      isDefault: addresses.length === 0 ? true : !!addressData.isDefault,
+    const payload = {
+      full_name: addressData.full_name || addressData.name,
+      mobile_number: addressData.mobile_number || addressData.phone,
+      alternate_mobile_number: addressData.alternate_mobile_number || "",
+      address_line_1: addressData.address_line_1 || addressData.flat,
+      address_line_2: addressData.address_line_2 || addressData.area || "",
+      landmark: addressData.landmark || "",
+      city: addressData.city,
+      district: addressData.district || addressData.city,
+      state: addressData.state,
+      pincode: addressData.pincode,
+      address_type: addressData.address_type || addressData.type || "Home",
+      is_default: Boolean(addressData.is_default !== undefined ? addressData.is_default : addressData.isDefault),
+      email: email || undefined,
     };
 
-    if (newAddress.isDefault) {
-      addresses.forEach((a) => (a.isDefault = false));
-    }
+    const res = await apiFetch("/addresses/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-    addresses.push(newAddress);
-    localStorage.setItem(`moxie_addresses_${email}`, JSON.stringify(addresses));
-    return newAddress;
-  },
-
-  updateAddress: async (email, addressId, addressData) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    if (!email || !addressId) return null;
-
-    const addresses = await addressService.fetchAddresses(email);
-    
-    if (addressData.isDefault) {
-      addresses.forEach((a) => {
-        if (a.id !== addressId) a.isDefault = false;
-      });
-    }
-
-    const updated = addresses.map((a) => {
-      if (a.id === addressId) {
-        return { ...a, ...addressData };
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      let errMsg = errData.error || errData.detail;
+      if (!errMsg && typeof errData === "object" && Object.keys(errData).length > 0) {
+        const firstKey = Object.keys(errData)[0];
+        const firstVal = errData[firstKey];
+        errMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
       }
-      return a;
-    });
-
-    localStorage.setItem(`moxie_addresses_${email}`, JSON.stringify(updated));
-    return updated.find((a) => a.id === addressId);
-  },
-
-  deleteAddress: async (email, addressId) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (!email || !addressId) return false;
-
-    const addresses = await addressService.fetchAddresses(email);
-    const filtered = addresses.filter((a) => a.id !== addressId);
-    
-    // If we deleted the default address, make another one default
-    if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
-      filtered[0].isDefault = true;
+      throw new Error(errMsg || "Failed to save address.");
     }
 
-    localStorage.setItem(`moxie_addresses_${email}`, JSON.stringify(filtered));
+    const created = await res.json();
+    return normalizeAddress(created);
+  },
+
+  /**
+   * Update an existing address in the Django database
+   */
+  updateAddress: async (email, addressId, addressData) => {
+    if (!addressId) return null;
+
+    const payload = {
+      full_name: addressData.full_name || addressData.name,
+      mobile_number: addressData.mobile_number || addressData.phone,
+      alternate_mobile_number: addressData.alternate_mobile_number || "",
+      address_line_1: addressData.address_line_1 || addressData.flat,
+      address_line_2: addressData.address_line_2 || addressData.area || "",
+      landmark: addressData.landmark || "",
+      city: addressData.city,
+      district: addressData.district || addressData.city,
+      state: addressData.state,
+      pincode: addressData.pincode,
+      address_type: addressData.address_type || addressData.type || "Home",
+      is_default: Boolean(addressData.is_default !== undefined ? addressData.is_default : addressData.isDefault),
+      email: email || undefined,
+    };
+
+    const res = await apiFetch(`/addresses/${addressId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      let errMsg = errData.error || errData.detail;
+      if (!errMsg && typeof errData === "object" && Object.keys(errData).length > 0) {
+        const firstKey = Object.keys(errData)[0];
+        const firstVal = errData[firstKey];
+        errMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+      }
+      throw new Error(errMsg || "Failed to update address.");
+    }
+
+    const updated = await res.json();
+    return normalizeAddress(updated);
+  },
+
+  /**
+   * Delete an address from the Django database
+   */
+  deleteAddress: async (email, addressId) => {
+    if (!addressId) return false;
+
+    const queryParam = email ? `?email=${encodeURIComponent(email)}` : "";
+    const res = await apiFetch(`/addresses/${addressId}/${queryParam}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.detail || "Failed to delete address.");
+    }
+
     return true;
   },
 
+  /**
+   * Set an address as the default address
+   */
   setDefaultAddress: async (email, addressId) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (!email || !addressId) return false;
+    if (!addressId) return false;
 
-    const addresses = await addressService.fetchAddresses(email);
-    addresses.forEach((a) => {
-      a.isDefault = a.id === addressId;
+    const queryParam = email ? `?email=${encodeURIComponent(email)}` : "";
+    const res = await apiFetch(`/addresses/${addressId}/set-default/${queryParam}`, {
+      method: "POST",
     });
 
-    localStorage.setItem(`moxie_addresses_${email}`, JSON.stringify(addresses));
-    return true;
-  }
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.detail || "Failed to set default address.");
+    }
+
+    const updated = await res.json();
+    return normalizeAddress(updated);
+  },
 };

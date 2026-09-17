@@ -1104,3 +1104,190 @@
     border-color: #475569 !important;
     color: #F8FAFC !important;
 }
+
+/* ==========================================================================
+   Product Video Upload & Preview Styling
+   ========================================================================== */
+.product-editor-page .variant-video-field {
+    margin-top: 14px !important;
+}
+
+.product-editor-page .variant-video-box {
+    width: 100% !important;
+    margin-top: 8px !important;
+}
+
+.product-editor-page .video-upload-dropzone {
+    position: relative !important;
+    border: 2px dashed #CBD5E1 !important;
+    border-radius: 12px !important;
+    padding: 20px 16px !important;
+    background: #F8FAFC !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-align: center !important;
+}
+
+.product-editor-page .video-upload-dropzone:hover {
+    border-color: #6366F1 !important;
+    background: #EEF2FF !important;
+}
+
+.product-editor-page .video-upload-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    pointer-events: none !important;
+}
+
+.product-editor-page .video-upload-text {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.product-editor-page .video-upload-title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1E293B !important;
+}
+
+.product-editor-page .video-upload-hint {
+    font-size: 11.5px !important;
+    color: #64748B !important;
+}
+
+.product-editor-page .video-file-input {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+}
+
+.product-editor-page .video-preview-card {
+    display: flex !important;
+    flex-direction: column !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 12px !important;
+    background: #F8FAFC !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+.product-editor-page .video-preview-player {
+    width: 100% !important;
+    max-height: 240px !important;
+    background: #000000 !important;
+    outline: none !important;
+    display: block !important;
+}
+
+.product-editor-page .video-preview-meta {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 14px !important;
+    background: #FFFFFF !important;
+    border-top: 1px solid #E2E8F0 !important;
+    gap: 12px !important;
+}
+
+.product-editor-page .video-preview-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.product-editor-page .video-preview-name {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #1E293B !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.product-editor-page .video-preview-size,
+.product-editor-page .video-preview-tag {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    background: #E2E8F0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    flex-shrink: 0 !important;
+}
+
+.product-editor-page .video-preview-tag {
+    background: #DCFCE7 !important;
+    color: #15803D !important;
+}
+
+.product-editor-page .video-remove-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #FEE2E2 !important;
+    color: #DC2626 !important;
+    border: 1px solid #FECACA !important;
+    border-radius: 6px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.product-editor-page .video-remove-btn:hover {
+    background: #DC2626 !important;
+    color: #FFFFFF !important;
+    border-color: #DC2626 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-upload-dropzone {
+    background: #111827 !important;
+    border-color: #374151 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-upload-dropzone:hover {
+    background: #1F2937 !important;
+    border-color: #6366F1 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-upload-title {
+    color: #F3F4F6 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-upload-hint {
+    color: #9CA3AF !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-preview-card {
+    border-color: #374151 !important;
+    background: #111827 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-preview-meta {
+    background: #1F2937 !important;
+    border-top-color: #374151 !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-preview-name {
+    color: #F9FAFB !important;
+}
+
+[data-theme="dark"] .product-editor-page .video-preview-size {
+    background: #374151 !important;
+    color: #D1D5DB !important;
+}

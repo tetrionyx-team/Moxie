@@ -22,7 +22,7 @@ from api.permissions_utils import (
     get_first_allowed_admin_url,
 )
 from api.models import StoreSettings, Order, Notification, Offer, AdminProfile
-from products.models import Product, Review
+from products.models import Product, Review, FeaturedProduct
 from categories.models import Category
 from banners.models import Banner
 from django.contrib.auth.models import User
@@ -309,6 +309,7 @@ def admin_offers_view(request):
             'id': o.id,
             'name': o.name,
             'title': o.title or '',
+            'emoji': o.emoji or '',
             'description': o.description or '',
             'offer_text': offer_text,
             'status': status_str,
@@ -353,6 +354,91 @@ def admin_offers_view(request):
         'csrf_token': get_token(request),
     }
     response = render(request, 'admin/offers.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@admin_permission_required('featured_products')
+def admin_featured_products_view(request):
+    featured_items = FeaturedProduct.objects.select_related('product').prefetch_related(
+        'product__images', 'product__variants__images'
+    ).all().order_by('sort_order', '-created_at')
+
+    featured_data = []
+    for f in featured_items:
+        p = f.product
+        prod_img = ''
+        if p:
+            for v in p.variants.all():
+                v_img = v.images.filter(is_primary=True).first() or v.images.first()
+                if v_img and v_img.image:
+                    prod_img = v_img.image.url
+                    break
+            if not prod_img:
+                prim = p.images.filter(is_primary=True).first() or p.images.first()
+                if prim and prim.image:
+                    prod_img = prim.image.url
+
+        display_img = f.display_image.url if f.display_image else ''
+        showcase_img = display_img or prod_img
+
+        featured_data.append({
+            'id': f.id,
+            'feature_type': f.feature_type,
+            'feature_type_display': f.get_feature_type_display(),
+            'badge_text': f.badge_text or '',
+            'sort_order': f.sort_order,
+            'is_active': f.is_active,
+            'start_date': str(f.start_date) if f.start_date else '',
+            'end_date': str(f.end_date) if f.end_date else '',
+            'display_image': display_img,
+            'showcase_image': showcase_img,
+            'product': {
+                'id': p.id if p else None,
+                'name': p.name if p else '',
+                'price': float(p.price) if p and p.price is not None else 0.0,
+                'discount_price': float(p.discount_price) if p and p.discount_price is not None else None,
+                'original_price': float(p.original_price) if p and p.original_price is not None else None,
+                'stock': p.stock if p else 0,
+                'is_active': p.is_active if p else False,
+                'image': prod_img,
+            } if p else None,
+        })
+
+    products_data = []
+    for p in Product.objects.all().prefetch_related('images', 'variants__images').order_by('name'):
+        prod_img = ''
+        for v in p.variants.all():
+            v_img = v.images.filter(is_primary=True).first() or v.images.first()
+            if v_img and v_img.image:
+                prod_img = v_img.image.url
+                break
+        if not prod_img:
+            prim = p.images.filter(is_primary=True).first() or p.images.first()
+            if prim and prim.image:
+                prod_img = prim.image.url
+
+        products_data.append({
+            'id': p.id,
+            'name': p.name,
+            'price': float(p.price) if p.price is not None else 0.0,
+            'discount_price': float(p.discount_price) if p.discount_price is not None else None,
+            'original_price': float(p.original_price) if p.original_price is not None else None,
+            'stock': p.stock,
+            'is_active': p.is_active,
+            'image': prod_img,
+        })
+
+    context = {
+        'title': 'Featured Products',
+        'total_featured_count': len(featured_data),
+        'featured_products_list': json.dumps(featured_data),
+        'products_list': json.dumps(products_data),
+        'csrf_token': get_token(request),
+    }
+    response = render(request, 'admin/featured_products.html', context)
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
@@ -548,6 +634,7 @@ urlpatterns = [
     path('admin/dashboard/', admin_dashboard_redirect, name='admin_dashboard_redirect'),
     path('admin/orders/', admin_orders_view, name='admin_orders_view'),
     path('admin/offers/', admin_offers_view, name='admin_offers_view'),
+    path('admin/featured-products/', admin_featured_products_view, name='admin_featured_products_view'),
     path('admin/messages/', admin_messages_view, name='admin_messages_view'),
     path('admin/users/', admin_users_view, name='admin_users_view'),
     path('admin/profile/', admin_profile_view, name='admin_profile_view'),

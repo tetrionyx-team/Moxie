@@ -349,12 +349,12 @@
 
             <form id="otp-form">
                 <div class="otp-boxes-wrapper" id="otp-inputs-row">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="0" aria-label="Digit 1" autocomplete="one-time-code">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="1" aria-label="Digit 2">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="2" aria-label="Digit 3">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="3" aria-label="Digit 4">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="4" aria-label="Digit 5">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="5" aria-label="Digit 6">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="0" aria-label="Digit 1" autocomplete="off">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="1" aria-label="Digit 2" autocomplete="off">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="2" aria-label="Digit 3" autocomplete="off">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="3" aria-label="Digit 4" autocomplete="off">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="4" aria-label="Digit 5" autocomplete="off">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="5" aria-label="Digit 6" autocomplete="off">
                 </div>
 
                 <div class="otp-meta-info">
@@ -461,7 +461,7 @@
     }
 
     function startCooldown(secs) {
-        cooldownSecs = secs || 30;
+        cooldownSecs = secs || 60;
         btnResend.style.display = 'none';
         cooldownText.style.display = 'inline';
         clearInterval(cooldownInterval);
@@ -491,7 +491,7 @@
         }
 
         btnSubmitCreds.disabled = true;
-        btnSubmitCreds.textContent = 'Verifying Credentials...';
+        btnSubmitCreds.textContent = 'Sending verification code...';
 
         fetch('/api/admin/login/', {
             method: 'POST',
@@ -507,18 +507,22 @@
             btnSubmitCreds.disabled = false;
             btnSubmitCreds.innerHTML = 'Sign In &rarr;';
             if (resObj.status !== 200) {
-                showError(resObj.data.error || 'Unable to sign in with those credentials.');
+                showError(resObj.data.error || 'Invalid admin credentials.');
                 return;
             }
 
-            if (resObj.data.status === 'pending_otp') {
+            if (resObj.data.status === 'pending_otp' || resObj.data.otp_required) {
                 document.getElementById('display-masked-email').textContent = resObj.data.masked_email || 'your registered email';
                 attemptsText.textContent = resObj.data.attempts_remaining || '5';
                 stepCreds.style.display = 'none';
                 stepOtp.style.display = 'block';
-                otpInputs.forEach(function(i) { i.value = ''; i.disabled = false; i.classList.remove('error', 'filled'); });
+                otpInputs.forEach(function(i) {
+                    i.value = '';
+                    i.disabled = false;
+                    i.classList.remove('error', 'filled');
+                });
                 startOtpTimer(resObj.data.expires_at);
-                startCooldown(resObj.data.resend_cooldown_seconds || 30);
+                startCooldown(resObj.data.resend_cooldown_seconds || 60);
                 setTimeout(function() { otpInputs[0]?.focus(); }, 100);
             } else {
                 window.location.href = resObj.data.first_allowed_url || nextUrl;
@@ -543,11 +547,6 @@
                 e.target.classList.remove('filled');
             }
             hideError();
-
-            var fullCode = otpInputs.map(function(i) { return i.value; }).join('');
-            if (fullCode.length === 6) {
-                submitOtp(fullCode);
-            }
         });
 
         input.addEventListener('keydown', function(e) {
@@ -579,9 +578,6 @@
             });
             var nextFocus = Math.min(paste.length, 5);
             otpInputs[nextFocus]?.focus();
-            if (paste.length === 6) {
-                submitOtp(paste);
-            }
         });
     });
 
@@ -668,7 +664,7 @@
             btnSubmitOtp.disabled = false;
             attemptsText.textContent = resObj.data.attempts_remaining || '5';
             startOtpTimer(resObj.data.expires_at);
-            startCooldown(resObj.data.resend_cooldown_seconds || 30);
+            startCooldown(resObj.data.resend_cooldown_seconds || 60);
             otpInputs[0]?.focus();
         })
         .catch(function() {

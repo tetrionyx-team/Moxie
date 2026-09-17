@@ -16,145 +16,19 @@ const getFallbackImage = (name, category) => {
   return defaultImg;
 };
 
-// Seed sample orders if master storage is completely empty
-const SEED_ORDERS = [
-  {
-    id: 1,
-    orderId: "MOX-0001",
-    trackingId: "MOXTRK0001",
-    customerId: 1,
-    customerName: "Harish Raja",
-    email: "harish@example.com",
-    mobile: "9876543210",
-    paymentMethod: "UPI",
-    paymentStatus: "Success",
-    address: "12 Main Road, Anna Nagar",
-    city: "Chennai",
-    district: "Chennai",
-    pinCode: "600040",
-    products: [
-      {
-        productId: 1,
-        productName: "Moxie Classic Leather Watch",
-        price: 1499,
-        quantity: 1,
-        size: "Regular",
-        color: "Brown",
-        image: watchImg,
-      },
-    ],
-    name: "Moxie Classic Leather Watch",
-    image: watchImg,
-    quantity: 1,
-    price: 1499,
-    subtotal: 1499,
-    discount: 0,
-    deliveryCharge: 0,
-    grandTotal: 1499,
-    total: 1499,
-    orderStatus: "Delivered",
-    status: "Delivered",
-    orderDate: "08 Sep 2026",
-    date: "08 Sep 2026",
-    createdAt: "2026-09-08T09:15:00.000Z",
-    updatedAt: "2026-09-08T17:30:00.000Z",
-    statusHistory: [
-      { status: "Confirmed", timestamp: "2026-09-08T09:15:00.000Z" },
-      { status: "Processing", timestamp: "2026-09-08T11:30:00.000Z" },
-      { status: "Packed", timestamp: "2026-09-08T13:45:00.000Z" },
-      { status: "Shipped", timestamp: "2026-09-08T15:00:00.000Z" },
-      { status: "Out for Delivery", timestamp: "2026-09-08T16:20:00.000Z" },
-      { status: "Delivered", timestamp: "2026-09-08T17:30:00.000Z" },
-    ],
-    shippingAddress: {
-      name: "Harish Raja",
-      phone: "9876543210",
-      flat: "12 Main Road",
-      area: "Anna Nagar",
-      address: "12 Main Road, Anna Nagar",
-      city: "Chennai",
-      district: "Chennai",
-      state: "Tamil Nadu",
-      pincode: "600040",
-    },
-    deliveryPartner: "Moxie Express Logistics",
-    expectedDelivery: "08 Sep 2026",
-  },
-  {
-    id: 2,
-    orderId: "MOX-0002",
-    trackingId: "MOXTRK0002",
-    customerId: 2,
-    customerName: "Harish Raja",
-    email: "harish@gmail.com",
-    mobile: "9876543211",
-    paymentMethod: "COD",
-    paymentStatus: "Pending",
-    address: "45 Lake View Road, Nungambakkam",
-    city: "Chennai",
-    district: "Chennai",
-    pinCode: "600034",
-    products: [
-      {
-        productId: 2,
-        productName: "Air Pro Wireless Earbuds",
-        price: 999,
-        quantity: 2,
-        size: "Standard",
-        color: "Matte Black",
-        image: budsImg,
-      },
-    ],
-    name: "Air Pro Wireless Earbuds",
-    image: budsImg,
-    quantity: 2,
-    price: 999,
-    subtotal: 1998,
-    discount: 0,
-    deliveryCharge: 100,
-    grandTotal: 2098,
-    total: 2098,
-    orderStatus: "Confirmed",
-    status: "Confirmed",
-    orderDate: "08 Sep 2026",
-    date: "08 Sep 2026",
-    createdAt: "2026-09-08T10:30:00.000Z",
-    updatedAt: "2026-09-08T10:30:00.000Z",
-    statusHistory: [
-      { status: "Confirmed", timestamp: "2026-09-08T10:30:00.000Z" },
-    ],
-    shippingAddress: {
-      name: "Harish Raja",
-      phone: "9876543211",
-      flat: "45 Lake View Road",
-      area: "Nungambakkam",
-      address: "45 Lake View Road, Nungambakkam",
-      city: "Chennai",
-      district: "Chennai",
-      state: "Tamil Nadu",
-      pincode: "600034",
-    },
-    deliveryPartner: "Moxie Express Logistics",
-    expectedDelivery: "11 Sep 2026",
-  },
-];
-
 export const getMasterOrders = () => {
   try {
     const raw = localStorage.getItem(ALL_ORDERS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (e) {
     console.error("Error reading master orders:", e);
   }
-  try {
-    localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(SEED_ORDERS));
-  } catch {}
-  return SEED_ORDERS;
+  return [];
 };
 
 export const saveMasterOrders = (orders) => {
@@ -170,23 +44,29 @@ export const orderService = {
   // Fetch orders for customer
   fetchOrders: async (email) => {
     // 1. Check API if available
-    let apiOrders = [];
     try {
       const res = await apiFetch("/customer/orders/");
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          apiOrders = data.map((o) => ({
+        if (Array.isArray(data)) {
+          const formattedOrders = data.map((o) => ({
             ...o,
-            image: o.image || getFallbackImage(o.name || o.productName),
+            image: o.image || (o.items && o.items[0]?.image) || getFallbackImage(o.name || o.productName),
           }));
+
+          if (email) {
+            try {
+              localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(formattedOrders));
+            } catch {}
+          }
+          return formattedOrders;
         }
       }
     } catch {
-      // Backend unavailable or offline
+      // Backend unavailable or offline, fallback to local storage
     }
 
-    // 2. Read from local master dataset
+    // 2. Read from local master dataset if offline
     const master = getMasterOrders();
     let localOrders = [];
     if (email) {
@@ -196,35 +76,8 @@ export const orderService = {
       );
     }
 
-    // Merge API and local orders, prioritizing latest status in master
-    const orderMap = new Map();
-    localOrders.forEach((o) => {
-      const key = String(o.orderId || o.id);
-      orderMap.set(key, o);
-    });
-
-    apiOrders.forEach((o) => {
-      const key = String(o.orderId || o.id || o.order_number);
-      if (!orderMap.has(key)) {
-        orderMap.set(key, o);
-      } else {
-        // Keep updated status from master if newer
-        const existing = orderMap.get(key);
-        orderMap.set(key, { ...o, ...existing });
-      }
-    });
-
-    const merged = Array.from(orderMap.values());
-    merged.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-
-    // Also persist per-email key for compatibility
-    if (email) {
-      try {
-        localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(merged));
-      } catch {}
-    }
-
-    return merged;
+    localOrders.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+    return localOrders;
   },
 
   // Fetch all orders for Admin
@@ -346,19 +199,34 @@ export const orderService = {
   },
 
   // Update order status & payment status
-  updateOrderStatus: async (orderId, newOrderStatus, newPaymentStatus) => {
+  updateOrderStatus: async (orderId, newOrderStatus, newPaymentStatus, reason = "") => {
+    const cleanId = String(orderId).replace(/^[A-Za-z]+-?/, "");
+
     // 1. Try Backend API
     try {
-      const cleanId = String(orderId).replace(/^[A-Za-z]+-?/, "");
-      await fetch(`/api/admin-orders/${cleanId}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_status: newOrderStatus,
-          payment_status: newPaymentStatus,
-        }),
-      });
-    } catch {}
+      if (newOrderStatus && newOrderStatus.toLowerCase() === "cancelled") {
+        let cancelRes = await apiFetch(`/customer/orders/${orderId}/cancel/`, {
+          method: "POST",
+          body: JSON.stringify({ reason }),
+        });
+        if (!cancelRes.ok && cleanId !== String(orderId)) {
+          cancelRes = await apiFetch(`/customer/orders/${cleanId}/cancel/`, {
+            method: "POST",
+            body: JSON.stringify({ reason }),
+          });
+        }
+      } else {
+        await apiFetch(`/admin-orders/${cleanId}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            order_status: newOrderStatus,
+            payment_status: newPaymentStatus,
+          }),
+        });
+      }
+    } catch (err) {
+      console.warn("API status update notice:", err);
+    }
 
     // 2. Update Master Dataset in localStorage
     const master = getMasterOrders();
@@ -366,7 +234,7 @@ export const orderService = {
     const nowIso = new Date().toISOString();
 
     const updatedList = master.map((o) => {
-      const match = String(o.id) === String(orderId) || String(o.orderId) === String(orderId);
+      const match = String(o.id) === String(orderId) || String(o.orderId) === String(orderId) || String(o.order_number) === String(orderId);
       if (match) {
         const history = Array.isArray(o.statusHistory) ? [...o.statusHistory] : [];
         const lastStatus = history.length > 0 ? history[history.length - 1].status : "";
@@ -381,7 +249,10 @@ export const orderService = {
         updatedOrder = {
           ...o,
           orderStatus: newOrderStatus || o.orderStatus,
+          order_status: newOrderStatus || o.order_status || o.orderStatus,
           status: newOrderStatus || o.status,
+          shipping_status: newOrderStatus && newOrderStatus.toUpperCase() === "CANCELLED" ? "CANCELLED" : (o.shipping_status || o.shippingStatus),
+          shippingStatus: newOrderStatus && newOrderStatus.toUpperCase() === "CANCELLED" ? "CANCELLED" : (o.shippingStatus || o.shipping_status),
           paymentStatus: newPaymentStatus || o.paymentStatus,
           statusHistory: history,
           updatedAt: nowIso,
@@ -401,7 +272,7 @@ export const orderService = {
       } catch {}
     }
 
-    return updatedOrder;
+    return updatedOrder || true;
   },
 
   // Place a new order
@@ -409,7 +280,6 @@ export const orderService = {
     const master = getMasterOrders();
     const nextSeq = master.length + 1;
     const orderNum = `MOX-${String(nextSeq).padStart(4, "0")}`;
-    const trackNum = `MOXTRK${String(nextSeq).padStart(4, "0")}`;
     const now = new Date();
     const nowIso = now.toISOString();
     const orderDateFormatted = now.toLocaleDateString("en-IN", {
@@ -453,8 +323,8 @@ export const orderService = {
       id: nextSeq,
       orderId: orderNum,
       order_number: orderNum,
-      trackingId: trackNum,
-      tracking_id: trackNum,
+      trackingId: "",
+      tracking_id: "",
       customerId: orderData.customerId || nextSeq,
       customerName,
       email: email || orderData.email || "customer@example.com",
@@ -510,12 +380,8 @@ export const orderService = {
         phone: mobile,
         initial: customerName.charAt(0).toUpperCase() || "C",
       },
-      deliveryPartner: "Moxie Express Logistics",
-      expectedDelivery: new Date(Date.now() + 4 * 86400000).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
+      deliveryPartner: "Awaiting Dispatch",
+      expectedDelivery: "",
     };
 
     const updated = [newOrder, ...master];
@@ -533,6 +399,6 @@ export const orderService = {
 
   // Cancel order
   cancelOrder: async (email, orderId, reason = "") => {
-    return await orderService.updateOrderStatus(orderId, "Cancelled");
+    return await orderService.updateOrderStatus(orderId, "Cancelled", undefined, reason);
   },
 };

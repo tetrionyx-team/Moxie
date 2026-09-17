@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { LuUserRound, LuPackage, LuHeart, LuLogOut } from "react-icons/lu";
+import { LuUserRound, LuPackage, LuHeart, LuLogOut, LuChevronRight } from "react-icons/lu";
 import "./AccountDropdown.css";
 
 /**
  * AccountDropdown
- * Premium cleaned-up dropdown menu shown below the Profile icon when logged in.
+ * Premium compact MOXIE-style dropdown menu shown below the Profile icon when logged in.
  */
 function AccountDropdown({ user, onLogout, onClose }) {
   // Close on Escape key
@@ -49,7 +49,7 @@ function AccountDropdown({ user, onLogout, onClose }) {
       aria-label="User account menu"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* 1. Profile Header: User Name ONLY (No Email) */}
+      {/* 1. Profile Header: Avatar + User Name + MOXIE Member Badge */}
       <div className="profile-dropdown-user">
         <div className="profile-avatar" aria-hidden="true">
           {user?.avatar || user?.image ? (
@@ -62,8 +62,11 @@ function AccountDropdown({ user, onLogout, onClose }) {
             <span className="profile-avatar-initials">{getInitials(userName)}</span>
           )}
         </div>
-        <div className="profile-user-name" title={userName}>
-          {userName}
+        <div className="profile-user-meta">
+          <div className="profile-user-name" title={userName}>
+            {userName}
+          </div>
+          <span className="profile-user-badge">MOXIE Member</span>
         </div>
       </div>
 
@@ -79,8 +82,11 @@ function AccountDropdown({ user, onLogout, onClose }) {
           role="menuitem"
           onClick={handleLinkClick}
         >
-          <LuUserRound className="profile-item-icon" aria-hidden="true" />
-          <span>My Account</span>
+          <div className="profile-item-left">
+            <LuUserRound className="profile-item-icon" aria-hidden="true" />
+            <span className="profile-item-text">My Account</span>
+          </div>
+          <LuChevronRight className="profile-item-chevron" aria-hidden="true" />
         </Link>
 
         <Link
@@ -90,8 +96,11 @@ function AccountDropdown({ user, onLogout, onClose }) {
           role="menuitem"
           onClick={handleLinkClick}
         >
-          <LuPackage className="profile-item-icon" aria-hidden="true" />
-          <span>My Orders</span>
+          <div className="profile-item-left">
+            <LuPackage className="profile-item-icon" aria-hidden="true" />
+            <span className="profile-item-text">My Orders</span>
+          </div>
+          <LuChevronRight className="profile-item-chevron" aria-hidden="true" />
         </Link>
 
         <Link
@@ -100,8 +109,11 @@ function AccountDropdown({ user, onLogout, onClose }) {
           role="menuitem"
           onClick={handleLinkClick}
         >
-          <LuHeart className="profile-item-icon" aria-hidden="true" />
-          <span>My Wishlist</span>
+          <div className="profile-item-left">
+            <LuHeart className="profile-item-icon" aria-hidden="true" />
+            <span className="profile-item-text">My Wishlist</span>
+          </div>
+          <LuChevronRight className="profile-item-chevron" aria-hidden="true" />
         </Link>
       </div>
 
@@ -115,9 +127,18 @@ function AccountDropdown({ user, onLogout, onClose }) {
         role="menuitem"
         onClick={handleLogoutClick}
       >
-        <LuLogOut className="profile-item-icon profile-logout-icon" aria-hidden="true" />
-        <span>Logout</span>
+        <div className="profile-item-left">
+          <LuLogOut className="profile-item-icon profile-logout-icon" aria-hidden="true" />
+          <span className="profile-item-text">Logout</span>
+        </div>
       </button>
+
+      {/* 4. Subtle Brand Footer */}
+      <div className="profile-dropdown-brand">
+        <span>MOXIE</span>
+        <span className="brand-dot">&middot;</span>
+        <span>Wear Your Mood</span>
+      </div>
     </div>
   );
 }

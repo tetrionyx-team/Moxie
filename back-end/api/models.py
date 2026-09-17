@@ -4,10 +4,54 @@ from products.models import Product, ProductVariant, Review
 from categories.models import Category
 
 
+class Address(models.Model):
+    ADDRESS_TYPES = (
+        ('Home', 'Home'),
+        ('Work', 'Work'),
+        ('Other', 'Other'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
+    full_name = models.CharField(max_length=255)
+    mobile_number = models.CharField(max_length=20)
+    alternate_mobile_number = models.CharField(max_length=20, blank=True, null=True)
+    address_line_1 = models.TextField()
+    address_line_2 = models.CharField(max_length=255, blank=True, null=True)
+    landmark = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100)
+    district = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    pincode = models.CharField(max_length=20)
+    address_type = models.CharField(max_length=20, choices=ADDRESS_TYPES, default='Home')
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_default', '-created_at']
+
+    def save(self, *args, **kwargs):
+        # If user has no other saved addresses, make this first one default
+        if self.user_id:
+            existing_count = Address.objects.filter(user_id=self.user_id).exclude(pk=self.pk).count()
+            if existing_count == 0:
+                self.is_default = True
+
+        super().save(*args, **kwargs)
+
+        # If this address is default, ensure all other addresses for this user are not default
+        if self.is_default and self.user_id:
+            Address.objects.filter(user_id=self.user_id).exclude(pk=self.pk).update(is_default=False)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.address_type} ({self.user.username})"
+
+
 class Order(models.Model):
     STATUS_CHOICES = (
         ('Pending', 'Pending'),
         ('Paid', 'Paid'),
+        ('Partially Paid', 'Partially Paid'),
         ('Failed', 'Failed'),
         ('Refunded', 'Refunded'),
     )
@@ -16,6 +60,7 @@ class Order(models.Model):
         ('Pending', 'Pending'),
         ('Confirmed', 'Confirmed'),
         ('Processing', 'Processing'),
+        ('Packed', 'Packed'),
         ('Shipped', 'Shipped'),
         ('Out for Delivery', 'Out for Delivery'),
         ('Delivered', 'Delivered'),
@@ -27,12 +72,25 @@ class Order(models.Model):
     shipping_name = models.CharField(max_length=255)
     shipping_phone = models.CharField(max_length=20)
     shipping_address = models.TextField()
+    shipping_address_line_1 = models.TextField(blank=True, default='')
+    shipping_address_line_2 = models.CharField(max_length=255, blank=True, default='')
+    shipping_landmark = models.CharField(max_length=255, blank=True, default='')
     shipping_city = models.CharField(max_length=100)
+    shipping_district = models.CharField(max_length=100, blank=True, default='')
+    shipping_state = models.CharField(max_length=100, blank=True, default='')
     shipping_pincode = models.CharField(max_length=20)
+    shipping_address_type = models.CharField(max_length=50, blank=True, default='Home')
 
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    shipping_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    balance_due = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    cod_advance_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    cod_advance_paid = models.BooleanField(default=False)
+    payment_method = models.CharField(max_length=50, default='UPI')
     tax_type = models.CharField(max_length=50, default='GST', blank=True, null=True)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
@@ -40,10 +98,35 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     order_status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='Pending')
 
+    # Courier & Tracking Information
+    TRACKING_SOURCE_CHOICES = (
+        ('ADMIN', 'Manual Admin'),
+        ('CARRIER_API', 'Carrier API'),
+    )
+    COURIER_CHOICES = (
+        ('ST_COURIER', 'ST Courier'),
+        ('INDIA_POST', 'India Post'),
+    )
+
+    courier_name = models.CharField(max_length=100, blank=True, default='')
+    tracking_id = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    shipping_status = models.CharField(max_length=50, blank=True, default='CONFIRMED')
+    tracking_source = models.CharField(max_length=30, choices=TRACKING_SOURCE_CHOICES, default='ADMIN')
+    carrier_status_raw = models.CharField(max_length=255, blank=True, default='')
+    tracking_location = models.CharField(max_length=255, blank=True, default='')
+    estimated_delivery = models.CharField(max_length=100, blank=True, default='')
+    shipped_at = models.DateTimeField(null=True, blank=True)
+    out_for_delivery_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    tracking_updated_at = models.DateTimeField(null=True, blank=True)
+    tracking_locked = models.BooleanField(default=False)
+    tracking_assigned_at = models.DateTimeField(null=True, blank=True)
+    tracking_receipt = models.ImageField(upload_to='tracking_receipts/', null=True, blank=True)
+
     razorpay_order_id = models.CharField(max_length=255, unique=True)
     razorpay_payment_id = models.CharField(max_length=255, null=True, blank=True)
     razorpay_signature = models.CharField(max_length=255, null=True, blank=True)
-    order_number = models.CharField(max_length=50, null=True, blank=True)
+    order_number = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     stock_decremented = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -53,17 +136,79 @@ class Order(models.Model):
         return f"Order {self.id} - {self.shipping_name} ({self.payment_status})"
 
 
+class OrderStatusHistory(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_history')
+    status = models.CharField(max_length=50)
+    location = models.CharField(max_length=255, blank=True, default='')
+    message = models.TextField(blank=True, default='')
+    source = models.CharField(max_length=50, default='ADMIN')  # ADMIN, ST_COURIER, INDIA_POST, SYSTEM
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Order #{self.order_id} - {self.status} ({self.created_at})"
+
+
+class NotificationLog(models.Model):
+    CHANNELS = (
+        ('WHATSAPP', 'WhatsApp'),
+        ('EMAIL', 'Email'),
+        ('SMS', 'SMS'),
+    )
+    STATUSES = (
+        ('PENDING', 'Pending'),
+        ('SENT', 'Sent'),
+        ('FAILED', 'Failed'),
+    )
+    MESSAGE_TYPES = (
+        ('ORDER_CONFIRMED', 'Order Confirmed'),
+        ('SHIPPED', 'Order Shipped'),
+        ('OUT_FOR_DELIVERY', 'Out for Delivery'),
+        ('DELIVERED', 'Order Delivered'),
+        ('CANCELLED', 'Order Cancelled'),
+    )
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='notification_logs', null=True, blank=True)
+    customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='notification_logs')
+    channel = models.CharField(max_length=20, choices=CHANNELS, default='WHATSAPP')
+    message_type = models.CharField(max_length=50, choices=MESSAGE_TYPES)
+    recipient = models.CharField(max_length=50)  # e.g. 919876543210
+    status = models.CharField(max_length=20, choices=STATUSES, default='PENDING')
+    provider_message_id = models.CharField(max_length=255, blank=True, default='')
+    idempotency_key = models.CharField(max_length=255, unique=True, db_index=True)
+    payload_summary = models.TextField(blank=True, default='')
+    error_code = models.CharField(max_length=100, blank=True, default='')
+    error_message = models.TextField(blank=True, default='')
+    retry_count = models.PositiveIntegerField(default=0)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.channel} {self.message_type} -> {self.recipient} ({self.status})"
+
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    product_name = models.CharField(max_length=255, blank=True, default='')
+    product_image = models.CharField(max_length=500, blank=True, default='')
     color_name = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
     def __str__(self):
-        name = self.product.name if self.product else "Unknown Product"
+        name = self.product_name or (self.product.name if self.product else "Unknown Product")
         return f"{self.quantity} x {name} (Order {self.order.id})"
 
 
@@ -71,6 +216,8 @@ class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile')
     mobile = models.CharField(max_length=20, null=True, blank=True)
     google_sub = models.CharField(max_length=255, null=True, blank=True)
+    avatar = models.TextField(null=True, blank=True)
+    profile_image = models.ImageField(upload_to='customer/profiles/', null=True, blank=True)
 
     def __str__(self):
         return f"CustomerProfile: {self.user.username}"
@@ -129,6 +276,7 @@ class StoreSettings(models.Model):
     city = models.CharField(max_length=100, default='Chennai')
     cod_available = models.BooleanField(default=True)
     cod_enabled = models.BooleanField(default=True)
+    cod_advance_amount = models.DecimalField(max_digits=10, decimal_places=2, default=100.0)
     country = models.CharField(max_length=100, default='India')
     delivery_area = models.CharField(max_length=100, default='All India (Pan India)')
     email_notifications_enabled = models.BooleanField(default=True)
@@ -216,6 +364,7 @@ class Offer(models.Model):
 
     name = models.CharField(max_length=255)
     title = models.CharField(max_length=255, null=True, blank=True)
+    emoji = models.CharField(max_length=20, blank=True, default='')
     description = models.TextField(blank=True, null=True)
     discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default='Percentage')
     start_date = models.DateField(null=True, blank=True)

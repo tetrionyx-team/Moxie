@@ -126,20 +126,68 @@
 /* Responsive Breakpoints */
 @media (max-width: 991px) {
   .offers-section {
-    padding: 36px 16px 44px 16px;
+    padding: 36px 16px 42px 16px;
   }
 
   .offers-grid {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 16px;
   }
 
   .offer-card {
-    min-height: 200px;
-    padding: 22px;
+    background: linear-gradient(145deg, #071426 0%, #0c213d 100%);
+    border: 1px solid rgba(213, 173, 98, 0.18);
+    min-height: 180px;
+    padding: 20px;
   }
 
   .offer-title {
     font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .offers-section {
+    padding: 28px 16px 34px 16px;
+  }
+
+  .offers-grid {
+    gap: 12px;
+  }
+
+  .offer-card {
+    min-height: 155px;
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .offer-info {
+    width: 58%;
+  }
+
+  .offer-tag {
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .offer-title {
+    font-size: 17px;
+    margin-bottom: 2px;
+  }
+
+  .offer-subtitle {
+    font-size: 11.5px;
+    margin-bottom: 10px;
+  }
+
+  .offer-btn {
+    font-size: 11px;
+    padding: 7px 15px;
+  }
+
+  .offer-img-container {
+    width: 42%;
+    right: 6px;
   }
 }

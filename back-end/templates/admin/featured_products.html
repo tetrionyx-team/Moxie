@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block bodyclass %}{{ block.super }} admin-featured-products-page{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/react/featuredProducts.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{{ first_allowed_url|default:'/admin/dashboard/' }}">Dashboard</a>
+    <span class="breadcrumb-separator">&rsaquo;</span>
+    <span class="current-page">Featured Products</span>
+</div>
+{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div id="react-featured-products-root"></div>
+
+<script id="featured-products-data" type="application/json">{{ featured_products_list|safe }}</script>
+<script id="products-data" type="application/json">{{ products_list|safe }}</script>
+
+<script>
+    window.DJANGO_CONTEXT = {
+        totalFeaturedCount: parseInt("{{ total_featured_count|default:0 }}"),
+        csrfToken: '{{ csrf_token }}',
+        featuredProductsList: [],
+        productsList: []
+    };
+
+    try {
+        window.DJANGO_CONTEXT.featuredProductsList = JSON.parse(document.getElementById('featured-products-data').textContent || '[]');
+    } catch(e) { window.DJANGO_CONTEXT.featuredProductsList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.productsList = JSON.parse(document.getElementById('products-data').textContent || '[]');
+    } catch(e) { window.DJANGO_CONTEXT.productsList = []; }
+</script>
+
+<script type="module" src="{% static 'admin/react/featuredProducts.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

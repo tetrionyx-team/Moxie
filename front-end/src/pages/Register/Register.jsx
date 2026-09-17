@@ -60,7 +60,7 @@ export default function Register() {
     setIsGoogleLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithGoogle("register");
       // Google registration creates customer directly & triggers Welcome to Moxie popup
       setTimeout(() => {
         navigate("/");

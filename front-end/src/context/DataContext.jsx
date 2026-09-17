@@ -42,6 +42,8 @@ const getFallbackImage = (categorySlug) => {
 export const DataProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredServerTime, setFeaturedServerTime] = useState(null);
   const [currentOffer, setCurrentOffer] = useState(null);
   const [activeOffers, setActiveOffers] = useState([]);
   const [offerLines, setOfferLines] = useState([]);
@@ -84,6 +86,21 @@ export const DataProvider = ({ children }) => {
         console.warn("Could not fetch active offers:", offersErr);
       }
 
+      // Fetch Featured Products (Hot Sale / Trending / Offer)
+      try {
+        const featRes = await fetch(`${API_URL}/featured-products/`);
+        if (featRes.ok) {
+          const featData = await featRes.json();
+          const featList = Array.isArray(featData) ? featData : (featData?.results || []);
+          setFeaturedProducts(featList);
+          if (featData?.server_time) {
+            setFeaturedServerTime(featData.server_time);
+          }
+        }
+      } catch (featErr) {
+        console.warn("Could not fetch featured products:", featErr);
+      }
+
       // Fetch categories from backend API
       const catData = await getCategories();
       const catList = Array.isArray(catData) ? catData : (catData?.results || []);
@@ -97,7 +114,7 @@ export const DataProvider = ({ children }) => {
       const prodData = await response.json();
       const prodList = Array.isArray(prodData) ? prodData : (prodData?.results || []);
 
-      // Map API products to frontend shape
+      // Map API products to frontend shape strictly from backend
       const mappedProducts = prodList.map((p, index) => {
         let backendImages = Array.isArray(p.images) && p.images.length > 0 ? p.images : [];
         if (backendImages.length === 0 && Array.isArray(p.variants)) {
@@ -108,7 +125,7 @@ export const DataProvider = ({ children }) => {
           });
         }
         const primaryImage = backendImages.find((img) => img.is_primary) || backendImages[0];
-        const imageUrl = getImageUrl(primaryImage?.image);
+        const imageUrl = getImageUrl(p.image || primaryImage?.image);
         const imageUrls = backendImages
           .map((img) => getImageUrl(img.image))
           .filter(Boolean);
@@ -117,20 +134,60 @@ export const DataProvider = ({ children }) => {
         const finalImage = imageUrl || fallback;
         const finalImages = imageUrls.length > 0 ? imageUrls : [finalImage];
 
-        const originalPrice = Number(p.price);
-        const salePrice = p.discount_price ? Number(p.discount_price) : originalPrice;
-        const discount = p.discount_price ? Math.round((1 - (salePrice / originalPrice)) * 100) : 0;
+        const rawPPrice = Number(p.price || 0);
+        const rawPDisc = p.discount_price !== undefined && p.discount_price !== null && p.discount_price !== "" && Number(p.discount_price) > 0
+          ? Number(p.discount_price)
+          : null;
+        const rawPOrig = p.original_price !== undefined && p.original_price !== null && p.original_price !== "" && Number(p.original_price) > 0
+          ? Number(p.original_price)
+          : null;
+
+        let sellingPrice = rawPPrice;
+        let originalPrice = null;
+
+        if (rawPDisc && rawPDisc > 0 && rawPDisc < rawPPrice) {
+          sellingPrice = rawPDisc;
+          originalPrice = rawPPrice;
+        } else if (rawPOrig && rawPOrig > rawPPrice) {
+          sellingPrice = rawPPrice;
+          originalPrice = rawPOrig;
+        } else if (rawPDisc && rawPDisc > rawPPrice) {
+          sellingPrice = rawPPrice;
+          originalPrice = rawPDisc;
+        }
+
+        const discountVal = originalPrice;
 
         const variants = (p.variants || []).map((v) => {
           const varImages = Array.isArray(v.images)
             ? v.images.map((img) => getImageUrl(img.image)).filter(Boolean)
             : [];
+          const vPrice = Number(v.price || rawPPrice);
+          const vDisc = v.discount_price !== undefined && v.discount_price !== null && v.discount_price !== "" && Number(v.discount_price) > 0
+            ? Number(v.discount_price)
+            : null;
+
+          let vSelling = vPrice;
+          let vOrig = null;
+
+          if (vDisc && vDisc > 0 && vDisc < vPrice) {
+            vSelling = vDisc;
+            vOrig = vPrice;
+          } else if (vDisc && vDisc > vPrice) {
+            vSelling = vPrice;
+            vOrig = vDisc;
+          } else if (originalPrice) {
+            vSelling = sellingPrice;
+            vOrig = originalPrice;
+          }
+
           return {
             ...v,
             images: varImages,
             stock: Number(v.stock || 0),
-            price: Number(v.price || salePrice),
-            discount_price: v.discount_price ? Number(v.discount_price) : null,
+            price: vSelling,
+            original_price: vOrig,
+            discount_price: vDisc,
             sizes: Array.isArray(v.sizes)
               ? v.sizes
               : typeof v.sizes === "string"
@@ -163,11 +220,15 @@ export const DataProvider = ({ children }) => {
           subcategory: p.subcategory_slug || "",
           subcategory_name: p.subcategory_name || (p.subcategory ? (typeof p.subcategory === "object" ? p.subcategory.name : p.subcategory) : ""),
           subcategory_slug: p.subcategory_slug || (p.subcategory ? (typeof p.subcategory === "object" ? p.subcategory.slug : p.subcategory) : ""),
-          price: salePrice,
-          oldPrice: p.discount_price ? originalPrice : null,
-          discount: discount,
-          rating: parseFloat((4.2 + (p.id % 5) * 0.15).toFixed(1)),
-          reviewCount: 30 + (p.id % 7) * 28,
+          price: sellingPrice,
+          original_price: originalPrice,
+          discount_price: originalPrice,
+          oldPrice: originalPrice,
+          discount: discountVal,
+          shipping_charge: Number(p.shipping_charge || 0),
+          rating: p.rating !== undefined && p.rating !== null ? Number(p.rating) : null,
+          average_rating: p.average_rating !== undefined && p.average_rating !== null ? Number(p.average_rating) : null,
+          reviewCount: Number(p.review_count || 0),
           image: finalImage,
           images: finalImages,
           stock: p.stock > 0,
@@ -200,7 +261,7 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   return (
-    <DataContext.Provider value={{ products, categories, currentOffer, activeOffers, offerLines, storeSettings, setStoreSettings, loading, error, refreshData: loadData }}>
+    <DataContext.Provider value={{ products, categories, featuredProducts, featuredServerTime, currentOffer, activeOffers, offerLines, storeSettings, setStoreSettings, loading, error, refreshData: loadData }}>
       {children}
     </DataContext.Provider>
   );

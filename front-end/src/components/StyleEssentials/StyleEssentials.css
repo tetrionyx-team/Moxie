@@ -386,7 +386,7 @@
 
 @media (max-width: 992px) {
   .style-essentials-section {
-    padding: 50px 0 58px;
+    padding: 48px 0 52px;
   }
 
   .style-essentials-title {
@@ -395,71 +395,63 @@
 
   .style-essentials-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 16px;
   }
 }
 
-@media (max-width: 600px) {
-  .style-essentials-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-
-  .style-essentials-view-all {
-    position: static;
-    transform: none;
-    font-size: 13px;
-  }
-
-  .style-essentials-view-all:hover {
-    transform: translateX(3px);
-  }
-
-  .style-essentials-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  .style-card-body {
-    padding: 12px 14px 14px;
-  }
-
-  .style-card-name {
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .style-current-price {
-    font-size: 18px;
-  }
-
-  .style-add-cart-btn {
-    height: 40px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 430px) {
+@media (max-width: 768px) {
   .style-essentials-section {
-    padding: 40px 0 48px;
+    padding: 36px 0 42px;
   }
 
   .style-essentials-container {
     padding: 0 16px;
   }
 
+  .style-essentials-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .style-essentials-header-center {
+    align-items: flex-start;
+    text-align: left;
+  }
+
   .style-essentials-title {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  .style-essentials-subtitle {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .style-essentials-line {
+    width: 40px;
+    height: 3px;
+    margin-top: 8px;
+  }
+
+  .style-essentials-view-all {
+    position: static;
+    transform: none;
+    font-size: 13px;
+    font-weight: 700;
   }
 
   .style-essentials-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
   }
+}
 
-  .style-card-media {
-    aspect-ratio: 1 / 0.88;
+@media (max-width: 350px) {
+  .style-essentials-grid {
+    gap: 8px;
   }
 }

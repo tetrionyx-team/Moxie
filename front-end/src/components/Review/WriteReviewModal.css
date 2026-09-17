@@ -204,3 +204,41 @@
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+@media (max-width: 600px) {
+  .review-modal-overlay {
+    padding: 12px;
+  }
+
+  .review-modal-card {
+    border-radius: 16px;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  .review-modal-head {
+    padding: 18px 18px 14px;
+  }
+
+  .review-modal-head h3 {
+    font-size: 18px;
+  }
+
+  .review-modal-body {
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .review-actions-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .review-submit-btn,
+  .review-cancel-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 12px;
+  }
+}

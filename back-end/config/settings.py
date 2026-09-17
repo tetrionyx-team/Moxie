@@ -41,24 +41,37 @@ if env_file.exists():
 
 
 # ============================================================
-# SECURITY
+# SECURITY & DEBUG
 # ============================================================
 
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    os.environ.get('SECRET_KEY', 'django-insecure-moxie-backend-prod-key-2026')
+DEBUG = os.environ.get('DJANGO_DEBUG', os.environ.get('DEBUG', 'False')).lower() in ('true', '1', 'yes')
+
+SECRET_KEY = os.environ.get('SECRET_KEY') or os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-moxie-local-dev-secret-key-2026'
+    else:
+        raise ValueError(
+            "CRITICAL SECURITY CONFIGURATION ERROR: 'SECRET_KEY' environment variable is not set. "
+            "In production (DEBUG=False), a valid SECRET_KEY is strictly required."
+        )
+
+# Allowed Hosts (Cleanly strips http/https prefixes and whitespace)
+allowed_hosts_raw = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,::1,moxie-backend-hexm.onrender.com')
 )
+ALLOWED_HOSTS = []
+for host in allowed_hosts_raw.split(','):
+    h = host.strip()
+    if h.startswith('https://'):
+        h = h[8:]
+    elif h.startswith('http://'):
+        h = h[7:]
+    h = h.split('/')[0]
+    if h and h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(h)
 
-DEBUG = os.environ.get('DJANGO_DEBUG', os.environ.get('DEBUG', 'True')).lower() in ('true', '1', 'yes')
-
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
-        'DJANGO_ALLOWED_HOSTS',
-        os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,::1')
-    ).split(',')
-    if host.strip()
-]
 
 
 # ============================================================
@@ -168,10 +181,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        conn_max_age=600 if 'postgres' in os.environ.get('DATABASE_URL', '').lower() else 0,
         conn_health_checks=True,
     )
 }
+
+if 'sqlite' in DATABASES['default'].get('ENGINE', ''):
+    DATABASES['default']['CONN_MAX_AGE'] = 0
+    DATABASES['default']['OPTIONS'] = {
+        'timeout': 60,
+        'transaction_mode': 'IMMEDIATE',
+    }
 
 
 # ============================================================
@@ -323,10 +343,18 @@ LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
 
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', os.environ.get('REACT_APP_GOOGLE_CLIENT_ID', ''))
+# Google & Firebase Authentication Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '').strip()
+FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', os.environ.get('REACT_APP_FIREBASE_PROJECT_ID', 'moxie-101')).strip()
 
+# Firebase Admin Service Account Configuration (Supports Render secret file)
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get(
+    'GOOGLE_APPLICATION_CREDENTIALS',
+    '/etc/secrets/firebase-service-account.json' if os.path.exists('/etc/secrets/firebase-service-account.json') else ''
+).strip()
 
+if GOOGLE_APPLICATION_CREDENTIALS and os.path.exists(GOOGLE_APPLICATION_CREDENTIALS):
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GOOGLE_APPLICATION_CREDENTIALS
 
 
 # ============================================================
@@ -334,36 +362,55 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', os.environ.get('REACT_APP_
 # ============================================================
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+    'django.core.mail.backends.smtp.EmailBackend'
 )
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com').strip()
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@moxie.com')
-EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tetrionyx@gmail.com').strip()
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '').strip().strip("'\"")
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MOXIE <tetrionyx@gmail.com>').strip()
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 15))
 
 
 # ============================================================
-# RAZORPAY CONFIGURATION
+# RAZORPAY CONFIGURATION (Backend Secrets)
 # ============================================================
 
-RAZORPAY_KEY_ID = os.environ.get(
-    'RAZORPAY_KEY_ID',
-    'rzp_test_placeholder_key_id'
-)
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '').strip()
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '').strip()
+RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '').strip()
 
-RAZORPAY_KEY_SECRET = os.environ.get(
-    'RAZORPAY_KEY_SECRET',
-    'placeholder_secret'
-)
 
-RAZORPAY_WEBHOOK_SECRET = os.environ.get(
-    'RAZORPAY_WEBHOOK_SECRET',
-    'placeholder_webhook_secret'
-)
+# ============================================================
+# WHATSAPP INTEGRATION (Optional Backend Configuration)
+# ============================================================
+
+WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '').strip()
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '').strip()
+WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID', '').strip()
+
+
+# ============================================================
+# CORS CONFIGURATION
+# ============================================================
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'ngrok-skip-browser-warning',
+]
+
+
 

@@ -25,7 +25,7 @@ const mockProducts = [
     subcategory_name: "T-Shirt",
     price: 1299,
     oldPrice: 1599,
-    discount: 19,
+    discount: 1599,
     stock: true,
     rawStock: 10,
     is_active: true,
@@ -136,17 +136,17 @@ describe("StyleEssentials Dynamic Component", () => {
     expect(screen.queryByText("Edifice Premium Gold Watch")).toBeNull();
   });
 
-  it("renders exact backend sizes for clothing (M, L, XL) and footwear (8, 9, 10)", () => {
+  it("renders exact backend sizes only for clothing (M, L, XL) and no sizes for footwear", () => {
     renderComponent();
     expect(screen.getByRole("radio", { name: "M" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "L" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "XL" })).toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "XXL" })).toBeNull();
 
-    expect(screen.getByRole("radio", { name: "8" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "9" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "10" })).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "11" })).toBeNull();
+    // Footwear/non-shirt products do not show size buttons on product cards
+    expect(screen.queryByRole("radio", { name: "8" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "9" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "10" })).toBeNull();
   });
 
   it("renders View All link pointing to style-essentials catalog", () => {
@@ -156,9 +156,10 @@ describe("StyleEssentials Dynamic Component", () => {
     expect(viewAllLink).toHaveAttribute("href", "/products?collection=style-essentials");
   });
 
-  it("shows real discount badge only when discount > 0 and oldPrice > price", () => {
+  it("shows strike-through price when discount/oldPrice > price", () => {
     renderComponent();
-    expect(screen.getByText("19% OFF")).toBeInTheDocument();
+    expect(screen.getByText("₹1,299")).toBeInTheDocument();
+    expect(screen.getByText("₹1,599")).toBeInTheDocument();
   });
 
   it("requires size selection before adding to cart when sizes exist", () => {

@@ -82,6 +82,10 @@ describe("ContactModal Component", () => {
     expect(screen.getAllByText(/9:00 AM/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTitle("Moxie Store Location Map")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Follow Moxie on Instagram" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open in Maps/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("maps.google.com")
+    );
   });
 
   test("closes modal when X button or Escape key or backdrop is clicked", () => {

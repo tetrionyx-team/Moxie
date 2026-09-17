@@ -20,6 +20,8 @@ import MobileBottomNav from "./components/MobileBottomNav/MobileBottomNav";
 
 import MaintenancePage from "./pages/Maintenance/MaintenancePage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
+import TrackOrderPage from "./pages/TrackOrder/TrackOrderPage";
+import LiveTrackingPage from "./pages/TrackOrder/LiveTrackingPage";
 
 import { useModal } from "./context/ModalContext";
 import { useData } from "./context/DataContext";
@@ -170,9 +172,16 @@ function App() {
 
         <Route path="/deals" element={<Deals />} />
 
+        {/* Tracking Routes */}
+        <Route path="/track-order" element={<TrackOrderPage />} />
+        <Route path="/track" element={<TrackOrderPage />} />
+        <Route path="/order-tracking" element={<TrackOrderPage />} />
+        <Route path="/track-order/live/:orderId" element={<LiveTrackingPage />} />
+        <Route path="/track/live/:orderId" element={<LiveTrackingPage />} />
+
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* Direct order-history routes */}
+        {/* Direct account routes */}
         <Route
           path="/orders"
           element={<ProfilePage defaultTab="orders" />}
@@ -181,6 +190,31 @@ function App() {
         <Route
           path="/my-orders"
           element={<ProfilePage defaultTab="orders" />}
+        />
+
+        <Route
+          path="/address"
+          element={<ProfilePage defaultTab="addresses" />}
+        />
+
+        <Route
+          path="/my-address"
+          element={<ProfilePage defaultTab="addresses" />}
+        />
+
+        <Route
+          path="/addresses"
+          element={<ProfilePage defaultTab="addresses" />}
+        />
+
+        <Route
+          path="/security"
+          element={<ProfilePage defaultTab="security" />}
+        />
+
+        <Route
+          path="/account-security"
+          element={<ProfilePage defaultTab="security" />}
         />
 
         {/* Admin redirect routes */}

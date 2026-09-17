@@ -95,10 +95,9 @@ describe("RecommendedForYou Watch Component", () => {
     const articles = screen.getAllByRole("article");
     expect(articles).toHaveLength(8); // Sliced to max 8 even though there are 9 watches
 
-    expect(screen.getAllByText("CASIO").length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByText("JACOB & CO")).toBeInTheDocument();
-    expect(screen.getByText("OBLIK")).toBeInTheDocument();
-    expect(screen.getByText("GARMIN")).toBeInTheDocument();
+    expect(screen.getByText("Edifice Men Chronograph Black Gold Watch")).toBeInTheDocument();
+    expect(screen.getByText("Jacob & Co Inspired Skeleton Orange Watch")).toBeInTheDocument();
+    expect(screen.getByText("Vertu Men Quartz Blue Dial Chronograph Leather Watch")).toBeInTheDocument();
     expect(screen.queryByText("Urban Street T-Shirt")).toBeNull(); // Clothing excluded
   });
 

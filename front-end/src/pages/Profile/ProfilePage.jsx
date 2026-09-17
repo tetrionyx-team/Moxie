@@ -23,7 +23,7 @@ import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
 import "../../components/Profile/Profile.css";
 
 export default function ProfilePage({ defaultTab = "profile" }) {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, updateUser } = useContext(AuthContext);
   const { storeSettings } = useData();
   const { openLogin } = useModal() || {};
 
@@ -38,7 +38,7 @@ export default function ProfilePage({ defaultTab = "profile" }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Support both navigation state and direct routes like /my-orders
+  // Support both navigation state and direct routes like /my-orders, /address, /security
   useEffect(() => {
     if (location.state?.tab) {
       setActiveTab(location.state.tab);
@@ -99,6 +99,10 @@ export default function ProfilePage({ defaultTab = "profile" }) {
     );
 
     setProfile(updated);
+    if (updateUser) {
+      updateUser(updated);
+    }
+    return updated;
   };
 
   // Order actions
@@ -108,8 +112,8 @@ export default function ProfilePage({ defaultTab = "profile" }) {
   };
 
   const handleTrackOrder = (order) => {
-    setSelectedOrder(order);
-    setActiveTab("track-order");
+    const orderCode = order.order_number || order.orderId || (order.id ? `MOX-${String(order.id).padStart(4, "0")}` : "MOX-0001");
+    navigate(`/track-order?order=${encodeURIComponent(orderCode)}`);
   };
 
   const handleCancelOrder = async (orderId) => {
@@ -122,7 +126,6 @@ export default function ProfilePage({ defaultTab = "profile" }) {
 
     if (success) {
       const ords = await orderService.fetchOrders(user.email);
-
       setOrders(ords);
 
       if (selectedOrder?.id === orderId) {
@@ -138,79 +141,45 @@ export default function ProfilePage({ defaultTab = "profile" }) {
     if (!user?.email) return;
 
     await addressService.addAddress(user.email, addrData);
-
-    const addrs = await addressService.fetchAddresses(
-      user.email
-    );
-
+    const addrs = await addressService.fetchAddresses(user.email);
     setAddresses(addrs);
   };
 
   const handleUpdateAddress = async (addrId, addrData) => {
     if (!user?.email) return;
 
-    await addressService.updateAddress(
-      user.email,
-      addrId,
-      addrData
-    );
-
-    const addrs = await addressService.fetchAddresses(
-      user.email
-    );
-
+    await addressService.updateAddress(user.email, addrId, addrData);
+    const addrs = await addressService.fetchAddresses(user.email);
     setAddresses(addrs);
   };
 
   const handleDeleteAddress = async (addrId) => {
     if (!user?.email) return;
 
-    await addressService.deleteAddress(
-      user.email,
-      addrId
-    );
-
-    const addrs = await addressService.fetchAddresses(
-      user.email
-    );
-
+    await addressService.deleteAddress(user.email, addrId);
+    const addrs = await addressService.fetchAddresses(user.email);
     setAddresses(addrs);
   };
 
   const handleSetDefaultAddress = async (addrId) => {
     if (!user?.email) return;
 
-    await addressService.setDefaultAddress(
-      user.email,
-      addrId
-    );
-
-    const addrs = await addressService.fetchAddresses(
-      user.email
-    );
-
+    await addressService.setDefaultAddress(user.email, addrId);
+    const addrs = await addressService.fetchAddresses(user.email);
     setAddresses(addrs);
   };
 
   // Security actions
   const handleDeleteAccount = () => {
-    localStorage.removeItem(
-      `moxie_profile_${user.email}`
-    );
-
-    localStorage.removeItem(
-      `moxie_orders_${user.email}`
-    );
-
-    localStorage.removeItem(
-      `moxie_addresses_${user.email}`
-    );
+    localStorage.removeItem(`moxie_profile_${user.email}`);
+    localStorage.removeItem(`moxie_orders_${user.email}`);
+    localStorage.removeItem(`moxie_addresses_${user.email}`);
 
     logout();
     navigate("/");
   };
 
-  // Keep Main/Harish logout confirmation modal
+  // Logout confirmation modal
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -226,22 +195,11 @@ export default function ProfilePage({ defaultTab = "profile" }) {
   const renderActiveSection = () => {
     if (loading) {
       return (
-        <div className="text-center py-5">
-          <div
-            className="spinner-border text-warning"
-            role="status"
-          >
-            <span className="visually-hidden">
-              Loading account...
-            </span>
+        <div className="profile-loading-state">
+          <div className="profile-spinner" role="status">
+            <span className="sr-only">Loading account...</span>
           </div>
-
-          <p
-            className="mt-3 text-muted"
-            style={{ fontSize: "14px" }}
-          >
-            Loading your account details...
-          </p>
+          <p className="profile-loading-text">Loading your account details...</p>
         </div>
       );
     }
@@ -316,68 +274,53 @@ export default function ProfilePage({ defaultTab = "profile" }) {
   };
 
   return (
-    <main className="profile-page-container container page-shell">
-      {/* Mobile Select Tab Navigation */}
-      <div className="profile-mobile-nav">
-        <select
-          className="profile-mobile-select"
-          value={
-            activeTab === "order-details" ||
-            activeTab === "track-order"
-              ? "orders"
-              : activeTab
-          }
-          onChange={(e) => {
-            if (e.target.value === "wishlist") {
-              navigate("/wishlist");
-            } else {
-              setActiveTab(e.target.value);
+    <div className="account-page-wrapper">
+      <main className="account-main-layout">
+        {/* Mobile Tab Select Navigation */}
+        <div className="profile-mobile-nav">
+          <select
+            className="profile-mobile-select"
+            value={
+              activeTab === "order-details" || activeTab === "track-order"
+                ? "orders"
+                : activeTab
             }
-          }}
-        >
-          <option value="profile">
-            My Profile
-          </option>
-
-          <option value="orders">
-            My Orders
-          </option>
-
-          <option value="wishlist">
-            My Wishlist
-          </option>
-
-          <option value="addresses">
-            My Addresses
-          </option>
-
-          <option value="security">
-            Account & Security
-          </option>
-        </select>
-      </div>
-
-      <div className="profile-layout-grid">
-        <ProfileSidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          profile={profile}
-          onLogout={handleLogoutClick}
-        />
-
-        <div className="profile-content-card">
-          {renderActiveSection()}
+            onChange={(e) => {
+              if (e.target.value === "wishlist") {
+                navigate("/wishlist");
+              } else {
+                setActiveTab(e.target.value);
+              }
+            }}
+          >
+            <option value="profile">My Profile</option>
+            <option value="orders">My Orders</option>
+            <option value="wishlist">My Wishlist</option>
+            <option value="addresses">My Address</option>
+            <option value="security">Account & Security</option>
+          </select>
         </div>
-      </div>
 
-      <LogoutConfirmModal
-        isOpen={showLogoutModal}
-        onClose={() =>
-          setShowLogoutModal(false)
-        }
-        onConfirm={handleConfirmLogout}
-      />
-    </main>
+        {/* 2-Column Grid Layout */}
+        <div className="account-layout-grid">
+          <ProfileSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            profile={profile}
+            onLogout={handleLogoutClick}
+          />
+
+          <section className="account-content-panel">
+            {renderActiveSection()}
+          </section>
+        </div>
+
+        <LogoutConfirmModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+        />
+      </main>
+    </div>
   );
-
 }

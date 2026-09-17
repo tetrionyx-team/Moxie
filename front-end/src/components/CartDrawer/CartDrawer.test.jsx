@@ -39,9 +39,37 @@ describe("CartDrawer Component", () => {
       </DataProvider>
     );
 
-    expect(screen.getByText(/Your Cart \(0\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Your cart is empty/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /continue shopping/i })).toBeInTheDocument();
+    expect(screen.getByText(/Shopping Bag \(0\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/YOUR PICKS, YOUR STYLE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your MOXIE bag is waiting/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /explore collection/i })).toBeInTheDocument();
+  });
+
+  it("navigates to products on Explore Collection click in empty state", () => {
+    const mockCloseCart = jest.fn();
+    render(
+      <DataProvider>
+        <CartContext.Provider
+          value={{
+            cart: [],
+            cartCount: 0,
+            subtotal: 0,
+            isCartOpen: true,
+            closeCart: mockCloseCart,
+            updateQuantity: jest.fn(),
+            removeFromCart: jest.fn(),
+          }}
+        >
+          <CartDrawer />
+        </CartContext.Provider>
+      </DataProvider>
+    );
+
+    const exploreBtn = screen.getByRole("button", { name: /explore collection/i });
+    fireEvent.click(exploreBtn);
+
+    expect(mockCloseCart).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/products");
   });
 
   it("renders real cart items with details, subtotal and action buttons", () => {
@@ -77,10 +105,10 @@ describe("CartDrawer Component", () => {
       </DataProvider>
     );
 
-    expect(screen.getByText("Your Cart (1)")).toBeInTheDocument();
+    expect(screen.getByText("Shopping Bag (1)")).toBeInTheDocument();
     expect(screen.getByText("Edifice Men Quartz Black Watch")).toBeInTheDocument();
     expect(screen.getByText("CASIO")).toBeInTheDocument();
-    expect(screen.getByText("Black | One Size")).toBeInTheDocument();
+    expect(screen.getByText("Black | Size: One Size")).toBeInTheDocument();
     expect(screen.getAllByText("₹7,995")).toHaveLength(2);
     expect(screen.getByRole("button", { name: /proceed to checkout/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /view full cart/i })).toBeInTheDocument();

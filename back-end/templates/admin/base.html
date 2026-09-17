@@ -35,6 +35,7 @@
 
             <!-- Navigation Menu -->
             <div class="sidebar-nav-menu">
+                {% if can_dashboard %}
                 <a href="{% url 'admin:index' %}"
                     class="sidebar-menu-item {% if request.path == '/admin/' %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -45,7 +46,9 @@
                     </svg>
                     <span>Dashboard</span>
                 </a>
+                {% endif %}
 
+                {% if can_products %}
                 <a href="/admin/products/product/"
                     class="sidebar-menu-item {% if '/products/product/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -56,7 +59,9 @@
                     </svg>
                     <span>Products</span>
                 </a>
+                {% endif %}
 
+                {% if can_categories %}
                 <a href="/admin/categories/category/"
                     class="sidebar-menu-item {% if '/categories/category/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -64,7 +69,9 @@
                     </svg>
                     <span>Categories</span>
                 </a>
+                {% endif %}
 
+                {% if can_banners %}
                 <a href="/admin/banners/banner/"
                     class="sidebar-menu-item {% if '/banners/banner/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -74,7 +81,19 @@
                     </svg>
                     <span>Banners</span>
                 </a>
+                {% endif %}
 
+                {% if can_featured_products %}
+                <a href="/admin/featured-products/"
+                    class="sidebar-menu-item {% if '/admin/featured-products/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                    </svg>
+                    <span>Featured Products</span>
+                </a>
+                {% endif %}
+
+                {% if can_reviews %}
                 <a href="/admin/products/review/"
                     class="sidebar-menu-item {% if '/products/review/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -82,7 +101,9 @@
                     </svg>
                     <span>Reviews</span>
                 </a>
+                {% endif %}
 
+                {% if can_offers %}
                 <a href="/admin/offers/"
                     class="sidebar-menu-item {% if '/admin/offers/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -91,7 +112,9 @@
                     </svg>
                     <span>Offers</span>
                 </a>
+                {% endif %}
 
+                {% if can_orders %}
                 <a href="/admin/orders/"
                     class="sidebar-menu-item {% if '/admin/orders/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -101,7 +124,9 @@
                     </svg>
                     <span>Orders</span>
                 </a>
+                {% endif %}
 
+                {% if can_customers %}
                 <a href="/admin/customers/"
                     class="sidebar-menu-item {% if '/admin/customers/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -110,7 +135,9 @@
                     </svg>
                     <span>Customers</span>
                 </a>
+                {% endif %}
 
+                {% if can_messages %}
                 <a href="/admin/messages/"
                     class="sidebar-menu-item {% if '/admin/messages/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -120,7 +147,9 @@
                     <span>Messages</span>
                     <span id="messages-sidebar-badge" class="badge" style="display: none;">0</span>
                 </a>
+                {% endif %}
 
+                {% if can_admin_users %}
                 <a href="/admin/users/"
                     class="sidebar-menu-item {% if '/admin/users/' in request.path or '/auth/user/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -129,7 +158,9 @@
                     </svg>
                     <span>Users</span>
                 </a>
+                {% endif %}
 
+                {% if can_settings %}
                 <a href="/admin/settings/"
                     class="sidebar-menu-item {% if '/admin/settings/' in request.path %}active{% endif %}">
                     <svg viewBox="0 0 24 24">
@@ -139,6 +170,18 @@
                     </svg>
                     <span>Settings</span>
                 </a>
+                {% endif %}
+
+                {% if not is_super_admin %}
+                <a href="/admin/profile/"
+                    class="sidebar-menu-item {% if '/admin/profile/' in request.path %}active{% endif %}">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </a>
+                {% endif %}
 
                 <form id="sidebar-logout-form" action="{% url 'admin:logout' %}" method="post"
                     style="margin: 0; padding: 0;">

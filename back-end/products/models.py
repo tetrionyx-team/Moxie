@@ -9,7 +9,9 @@ class Product(models.Model):
 
     category = models.ForeignKey(
         Category,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='products'
     )
 
@@ -23,6 +25,13 @@ class Product(models.Model):
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    original_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
     discount_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -30,7 +39,19 @@ class Product(models.Model):
         blank=True
     )
 
+    shipping_charge = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+
     stock = models.PositiveIntegerField(default=0)
+
+    video = models.FileField(
+        upload_to='products/videos/',
+        blank=True,
+        null=True
+    )
 
     is_active = models.BooleanField(default=True)
 
@@ -66,6 +87,11 @@ class ProductVariant(models.Model):
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock = models.PositiveIntegerField(default=0)
     sizes = models.JSONField(default=list, blank=True)
+    video = models.FileField(
+        upload_to='variant_products/videos/',
+        blank=True,
+        null=True
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -106,3 +132,50 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.rating}"
+
+
+class FeaturedProduct(models.Model):
+    FEATURE_TYPES = [
+        ("HOT_SALE", "Hot Sale"),
+        ("TRENDING", "Trending"),
+        ("OFFER", "Offer"),
+    ]
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="featured_entries"
+    )
+    feature_type = models.CharField(
+        max_length=20,
+        choices=FEATURE_TYPES,
+        default="HOT_SALE"
+    )
+    display_image = models.ImageField(
+        upload_to="featured_products/",
+        blank=True,
+        null=True
+    )
+    badge_text = models.CharField(
+        max_length=50,
+        blank=True
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+    end_date = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', '-created_at']
+        unique_together = ('product', 'feature_type')
+
+    def __str__(self):
+        return f"{self.product.name} ({self.get_feature_type_display()})"

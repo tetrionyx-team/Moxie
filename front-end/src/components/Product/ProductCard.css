@@ -1,251 +1,417 @@
-/* Product Card Styles */
-.product-card {
-  background: #ffffff;
-  border: 1px solid #edf0f3;
-  border-radius: 14px;
+/* ==========================================================================
+   MOXIE LUXURY PRODUCT CARD STYLES
+   Brand Colors:
+   - Deep Navy: #071426 / #0E1726
+   - Premium Gold: #C99B45 / #D4AF63 / #D4A054
+   - Warm Cream / Ivory: #FAF7F2 / #FBF7EF
+   - White: #FFFFFF
+   - Muted Grey text: #667085 / #8E9AA8
+   - Border Grey: #ECE4D8
+   ========================================================================== */
+
+.moxie-premium-card {
+  background: #FAF7F2;
+  border: 1px solid #ECE4D8;
+  border-radius: 22px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  box-shadow: 0 4px 18px rgba(7, 20, 38, 0.04);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s ease,
+              border-color 0.28s ease;
+  height: 100%;
 }
 
-.product-card:hover {
+.moxie-premium-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
-  border-color: #cbd5e1;
+  box-shadow: 0 14px 32px rgba(7, 20, 38, 0.09);
+  border-color: #DFD5C6;
 }
 
-.product-card-link {
+.premium-card-link {
   text-decoration: none;
   color: inherit;
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex: 1;
 }
 
-.product-card-media,
-.product-image-container {
+/* ==========================================================================
+   1. PRODUCT IMAGE AREA
+   ========================================================================== */
+.premium-card-media {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: #f3f4f4;
+  background: #F3EDE3;
   overflow: hidden;
-  border-radius: 12px 12px 0 0;
-  margin: 0;
-  padding: 0;
+  border-radius: 20px 20px 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
+  padding: 0;
 }
 
-.product-card-media > img,
-.product-image-container img {
+.premium-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
-  margin: 0;
   padding: 0;
-  border: none;
-  max-width: none;
-  max-height: none;
+  margin: 0;
+  box-sizing: border-box;
   transition: transform 0.35s ease;
 }
 
-.product-card:hover .product-card-media > img,
-.product-card:hover .product-image-container img {
-  transform: scale(1.05);
+.moxie-premium-card:hover .premium-card-img {
+  transform: scale(1.04);
 }
 
-.discount-badge,
-.new-badge {
+/* Wishlist Heart Button (Top-Right) */
+.premium-heart-btn {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  border-radius: 5px;
-  padding: 3px 7px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-.discount-badge {
-  background: #050505;
-  color: #ffffff;
-}
-
-.new-badge {
-  top: 32px;
-  background: #c9a35c;
-  color: #ffffff;
-}
-
-.card-heart {
-  position: absolute;
-  z-index: 2;
-  right: 10px;
-  top: 10px;
-  width: 32px;
-  height: 32px;
+  top: 12px;
+  right: 14px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 1px solid #e3e3e3;
   background: rgba(255, 255, 255, 0.95);
-  font-size: 16px;
+  border: 1px solid rgba(220, 210, 195, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   display: grid;
   place-items: center;
   cursor: pointer;
+  color: #071426;
+  padding: 0;
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.card-heart:hover {
-  transform: scale(1.1);
-  background: #ffffff;
+.premium-heart-btn:hover {
+  transform: scale(1.08);
+  background: #FFFFFF;
 }
 
-.card-heart.active {
-  color: #ff4b5c;
+.premium-heart-btn.active {
+  color: #E11D48;
 }
 
-.card-info {
-  padding: 12px 14px 10px;
+.premium-heart-icon {
+  display: block;
+}
+
+/* ==========================================================================
+   2. CARD BODY & TYPOGRAPHY
+   ========================================================================== */
+.premium-card-body {
+  padding: 16px 18px 14px;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
+  flex: 1;
 }
 
-.product-category {
-  font-size: 11px;
-  color: #888888;
+.premium-card-title {
+  font-size: 18px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 2px;
-}
-
-.product-title {
+  color: #071426;
   margin: 0 0 6px;
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 700;
-  color: #111111;
-  text-decoration: none;
+  line-height: 1.3;
+  font-family: 'Playfair Display', Georgia, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, serif;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 38px;
+  text-overflow: ellipsis;
 }
 
-.product-title:hover {
-  color: #c9a35c;
+/* Short Product Description */
+.moxie-card-desc {
+  font-size: 12.5px;
+  color: #667085;
+  margin: 0 0 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 36px;
 }
 
-.price-row {
+/* ==========================================================================
+   3. SIZE SELECTOR (SHIRTS ONLY)
+   ========================================================================== */
+.premium-size-section {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: auto;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
-.price-row strong {
-  font-size: 15px;
-  font-weight: 800;
-  color: #111111;
+.premium-size-options {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.price-row del {
-  color: #999999;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stock-status {
-  font-size: 11px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stock-status.available {
-  color: #198044;
-}
-
-.stock-status.unavailable {
-  color: #c53939;
-}
-
-.add-cart-button {
-  margin: 0 12px 12px;
-  border: 0;
+.premium-size-btn {
+  min-width: 32px;
+  height: 30px;
   border-radius: 8px;
-  padding: 10px;
-  background: #111111;
-  color: #ffffff;
-  font-weight: 700;
+  background: #FFFFFF;
+  border: 1px solid #E2DACB;
+  color: #071426;
   font-size: 12px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
 }
 
-.add-cart-button:hover:not(:disabled) {
-  background: #c9a35c;
-  color: #ffffff;
-  transform: translateY(-1px);
+.premium-size-btn:hover {
+  border-color: #C99B45;
+  background: #FFFDF9;
 }
 
-.add-cart-button.added {
-  background: #198044;
-  color: #ffffff;
+.premium-size-btn.selected {
+  background: #071426;
+  border: 1.5px solid #C99B45;
+  color: #FFFFFF;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(7, 20, 38, 0.2);
 }
 
-.add-cart-button:disabled {
-  background: #e9e9e9;
-  color: #999999;
+/* ==========================================================================
+   4. PRICE SECTION
+   ========================================================================== */
+.product-price-row,
+.premium-price-section {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #EFE8DD;
+}
+
+.product-current-price,
+.premium-current-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #071426;
+  line-height: 1;
+}
+
+.product-original-price,
+.premium-old-price {
+  font-size: 14px;
+  font-weight: 500;
+  color: #98A2B3;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+/* ==========================================================================
+   5. PREMIUM ADD TO CART BUTTON
+   ========================================================================== */
+.premium-btn-wrapper {
+  padding: 0 18px 18px;
+}
+
+.premium-add-cart-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  background: #071426;
+  color: #FFFFFF;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 18px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.16);
+  box-sizing: border-box;
+}
+
+.premium-bag-icon {
+  color: #C99B45;
+  flex-shrink: 0;
+}
+
+.premium-btn-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(201, 155, 69, 0.4);
+  flex-shrink: 0;
+}
+
+.premium-btn-text {
+  color: #FFFFFF;
+  flex: 1;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.premium-arrow-icon {
+  color: #C99B45;
+  flex-shrink: 0;
+}
+
+.premium-add-cart-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(7, 20, 38, 0.28), 0 0 12px rgba(201, 155, 69, 0.2);
+  background: #0d1e33;
+}
+
+.premium-add-cart-btn.added {
+  background: #142338;
+  border: 1px solid #C99B45;
+}
+
+.premium-add-cart-btn:disabled {
+  background: #E5E7EB;
+  color: #9CA3AF;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-@media (max-width: 500px) {
-  .product-card {
-    border-radius: 10px;
+/* ==========================================================================
+   6. RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 768px) {
+  .moxie-premium-card {
+    border-radius: 16px;
   }
-  .product-card-body {
-    padding: 10px 10px 8px;
+  .premium-card-body {
+    padding: 12px 12px 10px;
   }
-  .product-card h3 {
-    font-size: 13px;
+  .premium-card-title {
+    font-size: 15px;
+    min-height: 38px;
+    margin-bottom: 4px;
   }
-  .discount-badge {
-    top: 6px;
-    left: 6px;
-    font-size: 8px;
+  .moxie-card-desc {
+    font-size: 12px;
+    margin-bottom: 8px;
+    min-height: 32px;
+    -webkit-line-clamp: 2;
   }
-  .new-badge {
+  .premium-size-section {
+    margin-bottom: 8px;
+    gap: 4px;
+  }
+  .premium-size-btn {
+    min-width: 26px;
+    height: 24px;
+    font-size: 10.5px;
+    padding: 0 5px;
+  }
+  .product-price-row,
+  .premium-price-section {
+    padding-top: 8px;
+    gap: 6px;
+  }
+  .product-current-price,
+  .premium-current-price {
+    font-size: 16.5px;
+  }
+  .product-original-price,
+  .premium-old-price {
+    font-size: 12px;
+  }
+  .premium-btn-wrapper {
+    padding: 0 10px 12px;
+  }
+  .premium-add-cart-btn {
+    height: 38px;
+    font-size: 11px;
+    padding: 0 8px;
+    gap: 5px;
+    white-space: nowrap;
+    letter-spacing: 0.6px;
+  }
+  .premium-btn-text {
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  .premium-btn-sep {
     display: none;
   }
-  .card-heart {
-    top: 6px;
-    right: 6px;
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
+  .premium-bag-icon {
+    width: 14px;
+    height: 14px;
   }
-  .price-row strong {
-    font-size: 14px;
-  }
-  .price-row del {
-    font-size: 10px;
-  }
-  .add-cart-button {
-    margin: 0 8px 8px;
-    padding: 8px 6px;
-    font-size: 11px;
-    border-radius: 6px;
+  .premium-arrow-icon {
+    width: 13px;
+    height: 13px;
   }
 }
 
+@media (max-width: 480px) {
+  .moxie-premium-card {
+    border-radius: 14px;
+  }
+  .premium-card-media {
+    border-radius: 14px 14px 0 0;
+  }
+  .premium-card-body {
+    padding: 10px 10px 8px;
+  }
+  .premium-card-title {
+    font-size: 14px;
+    min-height: 36px;
+  }
+  .moxie-card-desc {
+    font-size: 11.5px;
+  }
+  .product-current-price,
+  .premium-current-price {
+    font-size: 15.5px;
+  }
+  .product-original-price,
+  .premium-old-price {
+    font-size: 11.5px;
+  }
+  .premium-btn-wrapper {
+    padding: 0 8px 10px;
+  }
+  .premium-add-cart-btn {
+    height: 36px;
+    font-size: 10.5px;
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .premium-btn-text {
+    font-size: 10.5px;
+    letter-spacing: 0.4px;
+  }
+  .premium-heart-btn {
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+  }
+  .premium-heart-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+}

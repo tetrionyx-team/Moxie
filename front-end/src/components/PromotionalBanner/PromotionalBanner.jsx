@@ -16,11 +16,14 @@ export default function PromotionalBanner() {
         className="moxie-sticky-banner banner-one"
         aria-label="Tonino Lamborghini Luxury Chronograph Watch"
       >
-        <img
-          src={banner1}
-          alt="Tonino Lamborghini Luxury Chronograph Watch"
-          loading="eager"
-        />
+        <div className="mobile-banner-media">
+          <img
+            src={banner1}
+            alt="Tonino Lamborghini Luxury Chronograph Watch"
+            className="mobile-banner-image"
+            loading="eager"
+          />
+        </div>
         <div className="banner-overlay" />
         <div className="banner-content">
           <Link
@@ -39,11 +42,14 @@ export default function PromotionalBanner() {
         className="moxie-sticky-banner banner-two"
         aria-label="Casio G-SHOCK GA-2100 Series Watch"
       >
-        <img
-          src={banner2}
-          alt="Casio G-SHOCK GA-2100 Series Watch"
-          loading="eager"
-        />
+        <div className="mobile-banner-media">
+          <img
+            src={banner2}
+            alt="Casio G-SHOCK GA-2100 Series Watch"
+            className="mobile-banner-image"
+            loading="eager"
+          />
+        </div>
         <div className="banner-overlay" />
         <div className="banner-content">
           <Link
@@ -62,11 +68,14 @@ export default function PromotionalBanner() {
         className="moxie-sticky-banner banner-three"
         aria-label="Mahindra Thar Die-Cast Metal Model 1:18 Scale"
       >
-        <img
-          src={banner3}
-          alt="Mahindra Thar Die-Cast Metal Model 1:18 Scale"
-          loading="eager"
-        />
+        <div className="mobile-banner-media">
+          <img
+            src={banner3}
+            alt="Mahindra Thar Die-Cast Metal Model 1:18 Scale"
+            className="mobile-banner-image"
+            loading="eager"
+          />
+        </div>
         <div className="banner-overlay" />
         <div className="banner-content">
           <Link

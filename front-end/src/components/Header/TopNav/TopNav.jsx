@@ -2,6 +2,7 @@ import Simplification from "../../../assets/icons/Simplification.svg";
 import Track from "../../../assets/icons/track.svg";
 import Box from "../../../assets/icons/box.svg";
 import Help from "../../../assets/icons/help.svg";
+import { Link } from "react-router-dom";
 import "./TopNav.css";
 function TopNav() {
     return (
@@ -26,7 +27,7 @@ function TopNav() {
                     />
                     <p className="mb-0 ms-2">Free Shipping on orders above ₹999</p>
                 </div>
-                <div className="d-flex align-items-center">
+                <Link to="/track-order" className="d-flex align-items-center" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                     <img
                         src={Box}
                         alt="Box"
@@ -34,7 +35,7 @@ function TopNav() {
                         height="14"
                     />
                     <p className="mb-0 ms-2">TRACK ORDER</p>
-                </div>
+                </Link>
                 <div className="d-flex align-items-center">
                     <img
                         src={Help}

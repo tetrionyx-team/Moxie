@@ -102,7 +102,7 @@ function SignInModal({ onClose, initialMode = "login" }) {
     setIsGoogleLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(mode === "register" ? "register" : "login");
       // LoginSuccessPopup (Welcome to Moxie / Welcome Back) is handled globally via AuthContext
       setTimeout(() => {
         onClose();

@@ -6,11 +6,6 @@
 
 const getEnv = (key, fallback = "") => {
   try {
-    if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env[key]) {
-      return import.meta.env[key];
-    }
-  } catch {}
-  try {
     if (typeof process !== "undefined" && process.env) {
       if (process.env[key]) return process.env[key];
       const reactKey = key.startsWith("VITE_") ? key.replace("VITE_", "REACT_APP_") : key;

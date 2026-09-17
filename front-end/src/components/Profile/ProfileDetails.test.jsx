@@ -25,7 +25,7 @@ describe("ProfileDetails component (Simplified Profile Page with Photo Upload)",
 
     // Page title and subtitle
     expect(screen.getByRole("heading", { name: "My Profile" })).toBeInTheDocument();
-    expect(screen.getByText("Manage your personal information.")).toBeInTheDocument();
+    expect(screen.getByText(/Manage your personal information/i)).toBeInTheDocument();
 
     // Section title
     expect(screen.getByRole("heading", { name: "Personal Information" })).toBeInTheDocument();

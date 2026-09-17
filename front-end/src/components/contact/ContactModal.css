@@ -1,19 +1,31 @@
 /* ===================================================
-   MOXIE — BALANCED LUXURY CONTACT US MODAL
+   MOXIE — LUXURY BRAND CONTACT US MODAL
+   Design System:
+   - Deep Navy: #071426
+   - Secondary Navy: #102238
+   - MOXIE Gold: #C99B45
+   - Soft Gold: #D5AD62
+   - Warm Cream: #FBF7EF
+   - Soft Cream: #F5EFE4
+   - White: #FFFFFF
+   - Main Text: #071426
+   - Muted Text: #667085
+   - Soft Border: rgba(7, 20, 38, 0.12)
+   - Gold Border: rgba(201, 155, 69, 0.35)
    =================================================== */
 
 .contact-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  background: rgba(7, 20, 38, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes modalFadeIn {
@@ -26,26 +38,27 @@
 }
 
 .contact-modal-card {
-  width: min(94vw, 920px);
+  width: min(94vw, 940px);
   max-height: 90vh;
   overflow-y: auto;
-  border-radius: 18px;
-  background: #ffffff;
-  color: #111111;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  border-radius: 22px;
+  background: #FBF7EF;
+  color: #071426;
+  border: 1px solid rgba(201, 155, 69, 0.20);
+  box-shadow: 0 24px 70px rgba(7, 20, 38, 0.22);
   padding: 24px 28px 22px;
   position: relative;
   display: flex;
   flex-direction: column;
-  animation: cardSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cardSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: rgba(201, 155, 69, 0.3) transparent;
 }
 
 @keyframes cardSlideUp {
   from {
     opacity: 0;
-    transform: scale(0.97) translateY(6px);
+    transform: scale(0.97) translateY(8px);
   }
   to {
     opacity: 1;
@@ -57,12 +70,15 @@
   width: 6px;
 }
 .contact-modal-card::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: rgba(201, 155, 69, 0.3);
   border-radius: 4px;
+}
+.contact-modal-card::-webkit-scrollbar-thumb:hover {
+  background: #C99B45;
 }
 
 /* ---------------------------------------------------
-   Header & Title Rows
+   1 & 2. Header & Title Rows
    --------------------------------------------------- */
 .contact-modal-header {
   display: flex;
@@ -75,79 +91,84 @@
 .title-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .gold-accent-pill {
   width: 16px;
   height: 4px;
-  background: #FDB101;
+  background: #C99B45;
   border-radius: 2px;
   display: inline-block;
   flex-shrink: 0;
 }
 
 .contact-modal-title {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 800;
-  color: #111111;
+  color: #071426;
   margin: 0;
   letter-spacing: -0.3px;
   line-height: 1.2;
 }
 
 .title-accent {
-  color: #FDB101;
+  color: #C99B45;
 }
 
 .contact-modal-subtitle {
   font-size: 12.5px;
-  color: #6b7280;
-  margin: 2px 0 0 0;
+  color: #667085;
+  margin: 3px 0 0 0;
   line-height: 1.35;
+  font-weight: 400;
 }
 
+/* 12. Close Button */
 .contact-modal-close-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #374151;
+  border: 1px solid rgba(7, 20, 38, 0.12);
+  background: #FFFFFF;
+  color: #071426;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(7, 20, 38, 0.04);
 }
 
 .contact-modal-close-btn:hover {
-  background: #111111;
-  color: #ffffff;
-  border-color: #111111;
+  background: rgba(201, 155, 69, 0.10);
+  border-color: #C99B45;
+  color: #C99B45;
   transform: rotate(90deg);
 }
 
 /* Success Toast */
 .contact-success-banner {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
+  background: #FFFFFF;
+  border: 1px solid rgba(201, 155, 69, 0.35);
+  border-left: 4px solid #C99B45;
+  color: #071426;
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12.5px;
   font-weight: 600;
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.05);
 }
 
 .success-icon {
-  font-size: 16px;
-  color: #059669;
+  font-size: 17px;
+  color: #C99B45;
   flex-shrink: 0;
 }
 
@@ -157,7 +178,7 @@
 .contact-modal-top-grid {
   display: grid;
   grid-template-columns: 1.15fr 0.95fr;
-  gap: 20px;
+  gap: 18px;
   margin-bottom: 14px;
   align-items: start;
 }
@@ -166,22 +187,24 @@
   margin-bottom: 8px;
 }
 
+/* 7. Get in Touch Heading */
 .section-title {
   font-size: 15px;
   font-weight: 700;
-  color: #111111;
+  color: #071426;
   margin: 0;
+  letter-spacing: -0.2px;
 }
 
 .section-subtitle {
   font-size: 11.5px;
-  color: #6b7280;
-  margin: 1px 0 0 0;
+  color: #667085;
+  margin: 2px 0 0 0;
   line-height: 1.3;
 }
 
 /* ---------------------------------------------------
-   Form Elements
+   4 & 5. Form Elements & Icons
    --------------------------------------------------- */
 .contact-form {
   display: flex;
@@ -198,7 +221,7 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .input-wrap {
@@ -209,36 +232,44 @@
 
 .input-icon {
   position: absolute;
-  left: 10px;
-  color: #6b7280;
+  left: 12px;
+  color: #667085;
   font-size: 14px;
   pointer-events: none;
+  transition: color 0.2s ease;
 }
 
 .form-input {
   width: 100%;
-  padding: 7px 10px 7px 32px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 8px 10px 8px 34px;
+  border: 1px solid rgba(7, 20, 38, 0.14);
+  border-radius: 12px;
   font-size: 12.5px;
-  color: #111111;
-  background: #ffffff;
+  color: #071426;
+  background: #FFFFFF;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-weight: 500;
 }
 
 .form-input::placeholder {
-  color: #9ca3af;
+  color: #98A2B3;
+  font-weight: 400;
 }
 
 .form-input:focus {
-  border-color: #FDB101;
-  box-shadow: 0 0 0 2px rgba(253, 177, 1, 0.2);
+  border-color: #C99B45;
+  box-shadow: 0 0 0 3px rgba(201, 155, 69, 0.12);
+  background: #FFFFFF;
+}
+
+.input-wrap:focus-within .input-icon {
+  color: #C99B45;
 }
 
 .input-wrap.has-error .form-input {
-  border-color: #ef4444;
-  background: #fff8f8;
+  border-color: #dc2626;
+  background: #FFF8F8;
 }
 
 .textarea-wrap {
@@ -249,49 +280,57 @@
 
 .textarea-icon {
   position: absolute;
-  left: 10px;
-  top: 8px;
-  color: #6b7280;
+  left: 12px;
+  top: 9px;
+  color: #667085;
   font-size: 14px;
   pointer-events: none;
+  transition: color 0.2s ease;
 }
 
 .form-textarea {
   width: 100%;
-  padding: 7px 10px 18px 32px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 8px 10px 18px 34px;
+  border: 1px solid rgba(7, 20, 38, 0.14);
+  border-radius: 12px;
   font-size: 12.5px;
-  color: #111111;
-  background: #ffffff;
+  color: #071426;
+  background: #FFFFFF;
   outline: none;
   resize: none;
   height: 56px;
   min-height: 56px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   font-family: inherit;
+  font-weight: 500;
 }
 
 .form-textarea::placeholder {
-  color: #9ca3af;
+  color: #98A2B3;
+  font-weight: 400;
 }
 
 .form-textarea:focus {
-  border-color: #FDB101;
-  box-shadow: 0 0 0 2px rgba(253, 177, 1, 0.2);
+  border-color: #C99B45;
+  box-shadow: 0 0 0 3px rgba(201, 155, 69, 0.12);
+  background: #FFFFFF;
+}
+
+.textarea-wrap:focus-within .textarea-icon {
+  color: #C99B45;
 }
 
 .textarea-wrap.has-error .form-textarea {
-  border-color: #ef4444;
-  background: #fff8f8;
+  border-color: #dc2626;
+  background: #FFF8F8;
 }
 
 .char-counter {
   position: absolute;
-  right: 8px;
-  bottom: 2px;
+  right: 10px;
+  bottom: 3px;
   font-size: 10px;
-  color: #9ca3af;
+  color: #98A2B3;
   font-weight: 500;
 }
 
@@ -299,38 +338,55 @@
   font-size: 10.5px;
   color: #dc2626;
   font-weight: 500;
+  margin-top: 1px;
 }
 
+/* 6. Send Message Button */
 .contact-submit-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: #FDB101;
-  color: #111111;
-  border: none;
-  border-radius: 8px;
+  gap: 7px;
+  padding: 9px 16px;
+  background: #071426;
+  color: #FFFFFF;
+  border: 1px solid #071426;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   margin-top: 2px;
-}
-
-.contact-submit-btn:hover {
-  background: #f7a900;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(253, 177, 1, 0.3);
+  box-shadow: 0 4px 12px rgba(7, 20, 38, 0.10);
 }
 
 .btn-send-icon {
   font-size: 14px;
+  color: #C99B45;
+  transition: all 0.22s ease;
+}
+
+.contact-submit-btn:hover {
+  background: #C99B45;
+  color: #071426;
+  border-color: #C99B45;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(201, 155, 69, 0.32);
+}
+
+.contact-submit-btn:hover .btn-send-icon {
+  color: #071426;
+  transform: translateX(2px);
+}
+
+.contact-submit-btn:active {
+  transform: translateY(0);
 }
 
 /* ---------------------------------------------------
-   Right: Info Cards
+   8, 9 & 10. Right Column: Contact Info Cards
    --------------------------------------------------- */
 .contact-cards-grid {
   display: grid;
@@ -343,30 +399,41 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 7px 10px;
-  transition: all 0.2s ease;
+  background: #FFFFFF;
+  border: 1px solid rgba(7, 20, 38, 0.10);
+  border-radius: 14px;
+  padding: 8px 10px;
+  box-shadow: 0 8px 24px rgba(7, 20, 38, 0.04);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .info-card:hover {
-  border-color: #FDB101;
-  background: #fffdf7;
+  border-color: rgba(201, 155, 69, 0.40);
+  background: #FFFFFF;
+  box-shadow: 0 10px 24px rgba(7, 20, 38, 0.08);
+  transform: translateY(-1px);
 }
 
 .info-card-icon-circle {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #FDB101;
-  color: #111111;
+  background: rgba(201, 155, 69, 0.12);
+  border: 1px solid rgba(201, 155, 69, 0.25);
+  color: #C99B45;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   flex-shrink: 0;
   margin-top: 1px;
+  transition: all 0.2s ease;
+}
+
+.info-card:hover .info-card-icon-circle {
+  background: #C99B45;
+  color: #071426;
+  border-color: #C99B45;
 }
 
 .info-card-content {
@@ -379,15 +446,15 @@
 .info-card-title {
   font-size: 11.5px;
   font-weight: 700;
-  color: #111111;
+  color: #071426;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .info-card-desc {
   font-size: 11px;
   line-height: 1.35;
-  color: #4b5563;
+  color: #667085;
   margin: 0;
 }
 
@@ -403,93 +470,185 @@
 }
 
 .info-link {
-  color: #111111;
+  color: #071426;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 11px;
+  transition: color 0.18s ease;
 }
 
 .info-link:hover {
-  color: #FDB101;
+  color: #C99B45;
   text-decoration: underline;
 }
 
 .info-sep {
-  color: #9ca3af;
+  color: rgba(7, 20, 38, 0.3);
 }
 
 .info-card-hours-sub {
   font-size: 10.5px;
-  color: #6b7280;
-  margin-top: 1px;
-  line-height: 1.2;
+  color: #667085;
+  margin-top: 2px;
+  line-height: 1.25;
 }
 
-/* Follow Us Box */
+/* ---------------------------------------------------
+   11. Follow Us Section
+   --------------------------------------------------- */
 .follow-us-box {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 7px 10px;
+  background: #FFFFFF;
+  border: 1px solid rgba(7, 20, 38, 0.10);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(7, 20, 38, 0.04);
+  padding: 8px 10px;
+  transition: all 0.2s ease;
+}
+
+.follow-us-box:hover {
+  border-color: rgba(201, 155, 69, 0.35);
 }
 
 .follow-us-title {
   font-size: 12px;
   font-weight: 700;
-  color: #111111;
+  color: #071426;
   margin: 0;
   line-height: 1.2;
 }
 
 .follow-us-desc {
   font-size: 11px;
-  color: #6b7280;
-  margin: 1px 0 5px 0;
+  color: #667085;
+  margin: 2px 0 6px 0;
   line-height: 1.25;
+}
+
+.follow-us-links {
+  display: flex;
+  align-items: center;
 }
 
 .instagram-follow-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ffffff;
-  color: #111111;
-  border: 1px solid #e5e7eb;
-  padding: 4px 10px;
-  border-radius: 6px;
+  gap: 6px;
+  background: #FBF7EF;
+  color: #071426;
+  border: 1px solid rgba(201, 155, 69, 0.35);
+  padding: 5px 12px;
+  border-radius: 8px;
   font-size: 11.5px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.instagram-follow-btn:hover {
-  border-color: #FDB101;
-  background: #fffdf5;
-  color: #111111;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ig-icon {
   font-size: 13px;
-  color: #e1306c;
+  color: #C99B45;
+  transition: color 0.2s ease;
+}
+
+.instagram-follow-btn:hover {
+  background: #071426;
+  color: #FFFFFF;
+  border-color: #071426;
+  box-shadow: 0 4px 12px rgba(7, 20, 38, 0.15);
+  transform: translateY(-1px);
+}
+
+.instagram-follow-btn:hover .ig-icon {
+  color: #C99B45;
 }
 
 /* ---------------------------------------------------
-   Full-Width Map Section
+   13 & 14. Full-Width Map Section & Open in Maps Button
    --------------------------------------------------- */
 .contact-modal-map-wrap {
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .contact-map-container {
   width: 100%;
-  height: 220px;
-  min-height: 200px;
-  border-radius: 12px;
+  height: 200px;
+  min-height: 180px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  background: #f3f4f6;
+  border: 1px solid rgba(201, 155, 69, 0.28);
+  box-shadow: 0 12px 30px rgba(7, 20, 38, 0.08);
+  position: relative;
+  background: #F5EFE4;
+}
+
+.contact-map-header-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.map-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(7, 20, 38, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 155, 69, 0.30);
+  pointer-events: auto;
+  box-shadow: 0 4px 10px rgba(7, 20, 38, 0.20);
+}
+
+.map-badge-icon {
+  color: #C99B45;
+  font-size: 13px;
+}
+
+.open-maps-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #071426;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(7, 20, 38, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.maps-btn-icon {
+  color: #C99B45;
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.open-maps-btn:hover {
+  background: #C99B45;
+  color: #071426;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(201, 155, 69, 0.35);
+}
+
+.open-maps-btn:hover .maps-btn-icon {
+  color: #071426;
 }
 
 .contact-map-container iframe {
@@ -500,17 +659,19 @@
 }
 
 /* ---------------------------------------------------
-   Responsive Breakpoints
+   18. Responsive Breakpoints
    --------------------------------------------------- */
 @media (max-width: 768px) {
   .contact-modal-card {
     padding: 18px 16px;
-    width: 95vw;
+    width: min(94vw, calc(100% - 24px));
+    max-height: 90dvh;
+    border-radius: 18px;
   }
 
   .contact-modal-top-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
   }
 
   .contact-map-container {
@@ -521,7 +682,8 @@
 @media (max-width: 480px) {
   .contact-modal-card {
     padding: 16px 14px;
-    max-height: 92vh;
+    width: calc(100% - 24px);
+    max-height: 90dvh;
   }
 
   .form-row-two-col {
@@ -535,7 +697,7 @@
   }
 
   .contact-map-container {
-    height: 150px;
-    min-height: 140px;
+    height: 140px;
+    min-height: 130px;
   }
 }

@@ -1,13 +1,152 @@
-import React from "react";
-import { LuCheck, LuTruck, LuPackage, LuClock, LuCircleCheck, LuBan, LuSparkles } from "react-icons/lu";
+import React, { useState, useEffect, useCallback } from "react";
+import { LuCheck, LuTruck, LuPackage, LuClock, LuCircleCheck, LuBan, LuCopy, LuRefreshCw } from "react-icons/lu";
+import { apiFetch } from "../../api/apiConfig";
 
-export default function TrackOrder({ order, onBack }) {
+export default function TrackOrder({ order: initialOrder, onBack }) {
+  const [order, setOrder] = useState(initialOrder);
+  const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Sync if initialOrder prop changes
+  useEffect(() => {
+    if (initialOrder) {
+      setOrder(initialOrder);
+    }
+  }, [initialOrder]);
+
+  // Refresh latest order details from backend
+  const refreshTracking = useCallback(async (isSilent = false) => {
+    if (!initialOrder) return;
+    const targetOrderId = String(
+      initialOrder.order_number ||
+      initialOrder.orderId ||
+      initialOrder.tracking_id ||
+      initialOrder.trackingId ||
+      initialOrder.id ||
+      initialOrder.rawId ||
+      ""
+    ).trim();
+
+    if (!targetOrderId) return;
+    if (!isSilent) setRefreshing(true);
+
+    try {
+      // 1. Try unified tracking lookup endpoint
+      const lookupRes = await apiFetch(`/tracking/lookup/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracking_query: targetOrderId }),
+      });
+      if (lookupRes.ok) {
+        const trackData = await lookupRes.json();
+        if (trackData && trackData.success) {
+          setOrder((prev) => ({
+            ...(prev || {}),
+            ...trackData,
+            orderStatus: trackData.order_status || trackData.status,
+            status: trackData.order_status || trackData.status,
+            shippingStatus: trackData.order_status,
+            trackingId: trackData.tracking_number || trackData.trackingId,
+            courier_name: trackData.courier_display_name || trackData.courier_name,
+            statusHistory: trackData.status_history || prev?.statusHistory,
+          }));
+          return;
+        }
+      }
+
+      // 2. Try dedicated public tracking endpoint
+      const trackRes = await apiFetch(`/orders/${encodeURIComponent(targetOrderId)}/track/`);
+      if (trackRes.ok) {
+        const trackData = await trackRes.json();
+        if (trackData && trackData.success !== false) {
+          setOrder((prev) => ({
+            ...(prev || {}),
+            ...trackData,
+            orderStatus: trackData.orderStatus || trackData.status,
+            status: trackData.status || trackData.orderStatus,
+            shippingStatus: trackData.shippingStatus || trackData.orderStatus,
+          }));
+          return;
+        }
+      }
+
+      // 2. Fallback to customer orders endpoint
+      const emailParam = initialOrder.email || (initialOrder.customer && initialOrder.customer.email) ? `?email=${encodeURIComponent(initialOrder.email || initialOrder.customer.email)}` : "";
+      const res = await apiFetch(`/customer/orders/${emailParam}`);
+      if (res.ok) {
+        const ordersList = await res.json();
+        if (Array.isArray(ordersList)) {
+          const matched = ordersList.find((o) => {
+            const oCode = String(o.id || o.orderId || o.order_number || "").toLowerCase();
+            const tCode = targetOrderId.toLowerCase();
+            const oRaw = String(o.rawId || o.id || "").replace(/^[^\d]+/, "");
+            const tRaw = targetOrderId.replace(/^[^\d]+/, "");
+            return oCode === tCode || (oRaw && tRaw && oRaw === tRaw);
+          });
+          if (matched) {
+            setOrder((prev) => ({
+              ...(prev || {}),
+              ...matched,
+            }));
+          }
+        }
+      }
+    } catch {
+      // Keep existing data on network fail
+    } finally {
+      if (!isSilent) setRefreshing(false);
+    }
+  }, [initialOrder]);
+
+  // Auto-refresh: on mount, on window focus, and 5-second polling interval for real-time tracking
+  useEffect(() => {
+    refreshTracking(true);
+
+    const onFocus = () => refreshTracking(true);
+    window.addEventListener("focus", onFocus);
+
+    const onStorageUpdate = (e) => {
+      if (e?.detail?.orders && Array.isArray(e.detail.orders) && initialOrder) {
+        const tCode = String(initialOrder.order_number || initialOrder.orderId || initialOrder.id || "").toLowerCase();
+        const found = e.detail.orders.find(
+          (o) =>
+            String(o.orderId || o.order_number || o.id || "").toLowerCase() === tCode
+        );
+        if (found) {
+          setOrder((prev) => ({ ...(prev || {}), ...found }));
+        }
+      }
+      refreshTracking(true);
+    };
+    window.addEventListener("moxie_orders_updated", onStorageUpdate);
+
+    const interval = setInterval(() => {
+      refreshTracking(true);
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("moxie_orders_updated", onStorageUpdate);
+      clearInterval(interval);
+    };
+  }, [refreshTracking, initialOrder]);
+
   if (!order) return null;
 
-  const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, '0')}` : "MOX-0001");
-  const trackingId = order.trackingId || order.tracking_id || `MOXTRK${String(order.id || '0001').padStart(4, '0')}`;
-  const currentStatus = order.orderStatus || order.status || "Confirmed";
+  const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, "0")}` : "MOX-0001");
+  const trackingId = order.trackingId || order.tracking_id || order.trackingNumber || order.tracking_number || "";
+  const rawCourier = order.courier || order.courier_name || order.deliveryPartner || "";
+  const courierName = rawCourier === "ST_COURIER" ? "ST Courier" : rawCourier === "INDIA_POST" ? "India Post" : rawCourier;
+  const currentStatus = String(order.orderStatus || order.status || order.shippingStatus || "Confirmed").trim();
   const isCancelled = currentStatus.toLowerCase() === "cancelled";
+
+  const handleCopyTracking = () => {
+    if (!trackingId) return;
+    navigator.clipboard?.writeText(trackingId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   const steps = [
     { label: "Confirmed", icon: LuCircleCheck },
@@ -19,20 +158,26 @@ export default function TrackOrder({ order, onBack }) {
   ];
 
   const getStatusIndex = (status) => {
-    const s = (status || "").toLowerCase().trim();
+    const s = (status || "").toLowerCase().trim().replace(/[-_]/g, " ");
     switch (s) {
       case "placed":
+      case "pending":
       case "confirmed":
         return 0;
       case "processing":
+      case "in progress":
         return 1;
       case "packed":
+      case "packing":
         return 2;
       case "shipped":
+      case "dispatched":
+      case "in transit":
         return 3;
       case "out for delivery":
         return 4;
       case "delivered":
+      case "completed":
         return 5;
       default:
         return 0;
@@ -43,13 +188,41 @@ export default function TrackOrder({ order, onBack }) {
 
   // Helper to extract timestamp from statusHistory or timeline
   const getStepTimestamp = (stepLabel, stepIdx) => {
-    if (Array.isArray(order.statusHistory)) {
-      const match = order.statusHistory.find(
-        (h) => (h.status || "").toLowerCase().trim() === stepLabel.toLowerCase().trim()
+    const normStep = stepLabel.toLowerCase().replace(/[\s_-]+/g, "");
+    const historyList = Array.isArray(order.statusHistory || order.status_history)
+      ? (order.statusHistory || order.status_history)
+      : [];
+
+    if (historyList.length > 0) {
+      const match = historyList.find(
+        (h) => (h.status || "").toLowerCase().replace(/[\s_-]+/g, "") === normStep
       );
-      if (match && match.timestamp) {
+      if (match && (match.timestamp || match.date || match.raw_date)) {
         try {
-          const d = new Date(match.timestamp);
+          const d = new Date(match.timestamp || match.raw_date || match.date);
+          if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            });
+          }
+        } catch {}
+      }
+    }
+
+    if (order.timeline) {
+      const val = order.timeline[normStep] || order.timeline[normStep === "outfordelivery" ? "outForDelivery" : normStep];
+      if (val) return val;
+    }
+
+    // Step 0 (Confirmed) timestamp
+    if (stepIdx === 0 && (order.orderDate || order.date || order.createdAt)) {
+      try {
+        const d = new Date(order.createdAt || order.date || order.orderDate);
+        if (!isNaN(d.getTime())) {
           return d.toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",
@@ -57,18 +230,25 @@ export default function TrackOrder({ order, onBack }) {
             minute: "2-digit",
             hour12: true,
           });
-        } catch {}
-      }
+        }
+      } catch {}
+      return `${order.orderDate || order.date || "Confirmed"}`;
     }
 
-    if (order.timeline) {
-      const key = stepLabel.toLowerCase().replace(/\s+/g, "");
-      const val = order.timeline[key] || order.timeline[key === "outfordelivery" ? "outForDelivery" : key];
-      if (val) return val;
-    }
-
-    if (stepIdx <= currentStepIndex) {
-      return `${order.orderDate || order.date || "Today"}`;
+    // Active step timestamp if updated recently
+    if (stepIdx === currentStepIndex && (order.tracking_updated_at || order.updatedAt)) {
+      try {
+        const d = new Date(order.tracking_updated_at || order.updatedAt);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+        }
+      } catch {}
     }
 
     return null;
@@ -87,13 +267,23 @@ export default function TrackOrder({ order, onBack }) {
 
   return (
     <div className="track-order-wrapper">
-      <div className="panel-header">
+      <div className="panel-header d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex align-items-center gap-3">
           <button className="secondary-btn btn-sm py-1 px-2" onClick={onBack}>
             ← Back
           </button>
-          <h2 style={{ fontSize: "20px" }}>Track Order #{displayOrderId}</h2>
+          <h2 style={{ fontSize: "20px", margin: 0 }}>Track Order #{displayOrderId}</h2>
         </div>
+        <button
+          type="button"
+          className="secondary-btn btn-sm py-1 px-3 d-flex align-items-center gap-2"
+          onClick={() => refreshTracking(false)}
+          disabled={refreshing}
+          title="Fetch latest tracking status from backend"
+        >
+          <LuRefreshCw className={refreshing ? "spin-icon" : ""} size={14} />
+          <span>{refreshing ? "Refreshing..." : "Refresh Tracking"}</span>
+        </button>
       </div>
 
       {/* ── CANCELLED STATE ── */}
@@ -117,7 +307,7 @@ export default function TrackOrder({ order, onBack }) {
       ) : (
         <>
           {/* ── OUT FOR DELIVERY BANNER ── */}
-          {currentStatus.toLowerCase() === "out for delivery" && (
+          {(currentStatus.toLowerCase() === "out for delivery" || currentStatus.toLowerCase() === "out_for_delivery") && (
             <div className="p-3 mb-4 rounded-3 d-flex align-items-center gap-3" style={{ background: "linear-gradient(135deg, #fbf7ee 0%, #f4eacc 100%)", border: "1.5px solid #dfba73", color: "#785817" }}>
               <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "#dfba73", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
                 <LuTruck />
@@ -127,7 +317,7 @@ export default function TrackOrder({ order, onBack }) {
                   Your order is out for delivery.
                 </h4>
                 <p style={{ margin: 0, fontSize: "13.5px", color: "#785817" }}>
-                  Your order is on the way and should arrive soon. Tracking ID: <strong>{trackingId}</strong>
+                  Courier: <strong>{courierName}</strong> | Tracking ID: <strong>{trackingId}</strong>
                 </p>
               </div>
             </div>
@@ -144,7 +334,7 @@ export default function TrackOrder({ order, onBack }) {
                   Delivered successfully
                 </h4>
                 <p style={{ margin: 0, fontSize: "13.5px", color: "#15803d" }}>
-                  Thank you for shopping with Moxie. Hope you love your new style!
+                  Delivered via {courierName}. Thank you for shopping with Moxie!
                 </p>
               </div>
             </div>
@@ -205,17 +395,45 @@ export default function TrackOrder({ order, onBack }) {
           </div>
           <div className="meta-row">
             <span className="meta-label">Tracking ID:</span>
-            <span className="meta-val" style={{ fontFamily: "monospace", fontWeight: "700", color: "#c9a35c" }}>
-              {trackingId}
+            <span className="meta-val" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontFamily: "monospace", fontWeight: "700", color: "#c9a35c" }}>
+                {trackingId}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyTracking}
+                title="Copy tracking ID"
+                style={{
+                  border: "none",
+                  background: copied ? "#22c55e" : "#f1f5f9",
+                  color: copied ? "#fff" : "#475569",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px",
+                }}
+              >
+                {copied ? <LuCheck size={12} /> : <LuCopy size={12} />}
+                <span>{copied ? "Copied" : "Copy"}</span>
+              </button>
             </span>
           </div>
           <div className="meta-row">
-            <span className="meta-label">Delivery Partner:</span>
-            <span className="meta-val">{order.deliveryPartner || "Moxie Logistics"}</span>
+            <span className="meta-label">Courier Partner:</span>
+            <span className="meta-val" style={{ fontWeight: "600" }}>{courierName}</span>
           </div>
+          {order.trackingLocation && (
+            <div className="meta-row">
+              <span className="meta-label">Current Location:</span>
+              <span className="meta-val" style={{ color: "#0284c7", fontWeight: "600" }}>{order.trackingLocation}</span>
+            </div>
+          )}
           <div className="meta-row">
             <span className="meta-label">Est. Delivery:</span>
-            <span className="meta-val">{order.expectedDelivery || "3-5 Business Days"}</span>
+            <span className="meta-val">{order.estimatedDelivery || order.expectedDelivery || "3-5 Business Days"}</span>
           </div>
         </div>
 
@@ -233,6 +451,27 @@ export default function TrackOrder({ order, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* History Log Table if available */}
+      {Array.isArray(order.statusHistory) && order.statusHistory.length > 0 && (
+        <div className="mt-4 p-3 border rounded-3 bg-white">
+          <h4 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "12px", color: "#1e293b" }}>
+            Status & Location Updates
+          </h4>
+          <div className="d-flex flex-column gap-2">
+            {order.statusHistory.map((h, i) => (
+              <div key={i} className="d-flex justify-content-between align-items-center p-2 rounded" style={{ background: "#f8fafc", fontSize: "12.5px" }}>
+                <div>
+                  <strong style={{ color: "#0f172a" }}>{h.status}</strong>
+                  {h.location && <span className="ms-2 text-muted">• {h.location}</span>}
+                  {h.message && <div style={{ fontSize: "11.5px", color: "#64748b" }}>{h.message}</div>}
+                </div>
+                <span className="text-muted" style={{ fontSize: "11.5px" }}>{h.date || h.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 from django.contrib import admin
+from api.permissions_utils import StaffPermissionAdminMixin
 from .models import Banner
 
 
 @admin.register(Banner)
-class BannerAdmin(admin.ModelAdmin):
+class BannerAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
+    required_module = 'banners'
     list_display = (
         'title',
         'display_order',

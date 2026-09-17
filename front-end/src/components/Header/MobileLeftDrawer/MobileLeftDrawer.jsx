@@ -104,14 +104,14 @@ export default function MobileLeftDrawer({ isOpen, onClose }) {
       <div
         className={`mobile-drawer-backdrop ${isOpen ? "open" : ""}`}
         onClick={onClose}
-        aria-hidden={!isOpen}
+        aria-hidden="true"
       />
 
       {/* Left Slide-in Drawer Container */}
       <aside
         className={`mobile-left-drawer ${isOpen ? "open" : ""}`}
         aria-label="Mobile Navigation Menu"
-        aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
       >
         {/* Drawer Header */}
         <div className="drawer-header">
@@ -128,33 +128,20 @@ export default function MobileLeftDrawer({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* User Greeting / Auth Bar */}
-        <div className="drawer-auth-banner">
-          <div className="drawer-user-avatar">
-            <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
+        {/* User Greeting Bar (Shown only when logged in) */}
+        {(user || isLoggedIn) && (
+          <div className="drawer-auth-banner">
+            <div className="drawer-user-avatar">
+              <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
+            </div>
+            <div className="drawer-user-info">
+              <span className="drawer-greeting">WELCOME BACK</span>
+              <strong className="drawer-username">
+                {user?.first_name || user?.name || user?.username || "Moxie Member"}
+              </strong>
+            </div>
           </div>
-          <div className="drawer-user-info">
-            {user || isLoggedIn ? (
-              <>
-                <span className="drawer-greeting">WELCOME BACK</span>
-                <strong className="drawer-username">
-                  {user?.first_name || user?.name || user?.username || "Moxie Member"}
-                </strong>
-              </>
-            ) : (
-              <>
-                <span className="drawer-greeting">EXPERIENCE LUXURY</span>
-                <button
-                  type="button"
-                  className="drawer-signin-link"
-                  onClick={handleAuthClick}
-                >
-                  Sign In / Register →
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Drawer Scrollable Navigation Area */}
         <nav className="drawer-nav-list">

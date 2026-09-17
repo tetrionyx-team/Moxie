@@ -1,18 +1,33 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaXTwitter } from "react-icons/fa6";
-import { FiMapPin, FiPhone, FiMail, FiClock, FiArrowUp } from "react-icons/fi";
+import { FiMapPin, FiPhone, FiMail, FiClock, FiArrowUp, FiChevronDown } from "react-icons/fi";
 import MoxieLogo from "../../assets/logo/moxie.png";
 import ContactModal from "../contact/ContactModal";
+import PrivacyPolicyModal from "../PrivacyPolicy/PrivacyPolicyModal";
+import TermsConditionsModal from "../TermsConditions/TermsConditionsModal";
+import RefundPolicyModal from "../RefundPolicy/RefundPolicyModal";
+import ShippingPolicyModal from "../ShippingPolicy/ShippingPolicyModal";
 import "./Footer.css";
 
 export default function Footer() {
   const [contactOpen, setContactOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [shippingOpen, setShippingOpen] = useState(false);
+
+  // Mobile Accordion state: only one open at a time ('categories' | 'service' | null)
+  const [mobileAccordion, setMobileAccordion] = useState(null);
+
+  const toggleAccordion = (section) => {
+    setMobileAccordion((prev) => (prev === section ? null : section));
+  };
 
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth"
+      behavior: "smooth",
     });
   };
 
@@ -24,7 +39,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-container">
-        {/* Main 4-Column Grid */}
+        {/* Main Grid */}
         <div className="footer-grid">
           {/* COLUMN 1 — MOXIE BRAND */}
           <div className="footer-column brand-column">
@@ -78,13 +93,32 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* COLUMN 2 — CATEGORIES */}
-          <div className="footer-column nav-column">
-            <div className="column-heading-wrap">
-              <h3 className="column-heading">Categories</h3>
-              <div className="heading-gold-line" aria-hidden="true" />
-            </div>
-            <nav aria-label="Categories navigation">
+          {/* COLUMN 2 — CATEGORIES (ACCORDION ON MOBILE) */}
+          <div
+            className={`footer-column nav-column categories-column ${
+              mobileAccordion === "categories" ? "is-open" : ""
+            }`}
+          >
+            <button
+              type="button"
+              className="column-heading-btn"
+              onClick={() => toggleAccordion("categories")}
+              aria-expanded={mobileAccordion === "categories"}
+              aria-controls="footer-categories-nav"
+            >
+              <div className="column-heading-wrap">
+                <h3 className="column-heading">Categories</h3>
+                <div className="heading-gold-line" aria-hidden="true" />
+              </div>
+              <span className="mobile-chevron-icon" aria-hidden="true">
+                <FiChevronDown />
+              </span>
+            </button>
+            <nav
+              id="footer-categories-nav"
+              className="footer-nav-collapse"
+              aria-label="Categories navigation"
+            >
               <ul className="footer-nav-list">
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/products/watches">Watches</Link></li>
@@ -98,17 +132,73 @@ export default function Footer() {
             </nav>
           </div>
 
-          {/* COLUMN 3 — SERVICE */}
-          <div className="footer-column nav-column">
-            <div className="column-heading-wrap">
-              <h3 className="column-heading">Service</h3>
-              <div className="heading-gold-line" aria-hidden="true" />
-            </div>
-            <nav aria-label="Customer service navigation">
+          {/* COLUMN 3 — SERVICE (ACCORDION ON MOBILE) */}
+          <div
+            className={`footer-column nav-column service-column ${
+              mobileAccordion === "service" ? "is-open" : ""
+            }`}
+          >
+            <button
+              type="button"
+              className="column-heading-btn"
+              onClick={() => toggleAccordion("service")}
+              aria-expanded={mobileAccordion === "service"}
+              aria-controls="footer-service-nav"
+            >
+              <div className="column-heading-wrap">
+                <h3 className="column-heading">Service</h3>
+                <div className="heading-gold-line" aria-hidden="true" />
+              </div>
+              <span className="mobile-chevron-icon" aria-hidden="true">
+                <FiChevronDown />
+              </span>
+            </button>
+            <nav
+              id="footer-service-nav"
+              className="footer-nav-collapse"
+              aria-label="Customer service navigation"
+            >
               <ul className="footer-nav-list">
-                <li><Link to="/">Refund / Collection</Link></li>
-                <li><Link to="/">Privacy Policy</Link></li>
-                <li><Link to="/">Terms and Conditions</Link></li>
+                <li>
+                  <button
+                    type="button"
+                    className="footer-nav-btn"
+                    onClick={() => setRefundOpen(true)}
+                    aria-label="Open Return and Refund Policy modal"
+                  >
+                    Return & Refund Policy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className="footer-nav-btn"
+                    onClick={() => setShippingOpen(true)}
+                    aria-label="Open Shipping Policy modal"
+                  >
+                    Shipping Policy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className="footer-nav-btn"
+                    onClick={() => setPrivacyOpen(true)}
+                    aria-label="Open Privacy Policy modal"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className="footer-nav-btn"
+                    onClick={() => setTermsOpen(true)}
+                    aria-label="Open Terms and Conditions modal"
+                  >
+                    Terms & Conditions
+                  </button>
+                </li>
                 <li>
                   <button
                     type="button"
@@ -119,7 +209,7 @@ export default function Footer() {
                     Contact
                   </button>
                 </li>
-                <li><Link to="/profile">Tracking</Link></li>
+                <li><Link to="/track-order">Track Order</Link></li>
               </ul>
             </nav>
           </div>
@@ -138,6 +228,7 @@ export default function Footer() {
                   <FiMapPin />
                 </div>
                 <div className="contact-text">
+                  <span className="contact-label">Location</span>
                   <address className="contact-value not-italic">
                     3/185, Savariyar Temple South Street,<br />
                     Kulasekaranpattinam,<br />
@@ -222,6 +313,42 @@ export default function Footer() {
         <ContactModal
           isOpen={contactOpen}
           onClose={() => setContactOpen(false)}
+        />
+      )}
+
+      {/* Privacy Policy Modal */}
+      {privacyOpen && (
+        <PrivacyPolicyModal
+          isOpen={privacyOpen}
+          onClose={() => setPrivacyOpen(false)}
+        />
+      )}
+
+      {/* Terms & Conditions Modal */}
+      {termsOpen && (
+        <TermsConditionsModal
+          isOpen={termsOpen}
+          onClose={() => setTermsOpen(false)}
+          onOpenPrivacyPolicy={() => {
+            setTermsOpen(false);
+            setPrivacyOpen(true);
+          }}
+        />
+      )}
+
+      {/* Return & Refund Policy Modal */}
+      {refundOpen && (
+        <RefundPolicyModal
+          isOpen={refundOpen}
+          onClose={() => setRefundOpen(false)}
+        />
+      )}
+
+      {/* Shipping Policy Modal */}
+      {shippingOpen && (
+        <ShippingPolicyModal
+          isOpen={shippingOpen}
+          onClose={() => setShippingOpen(false)}
         />
       )}
     </footer>

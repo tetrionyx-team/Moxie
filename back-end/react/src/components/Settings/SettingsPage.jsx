@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../Common/CustomSelect';
-import { AppIcon, SettingsIcon, StoreIcon, OrderIcon, ShippingIcon, ReceiptIcon, PaymentIcon, NotificationIcon, SecurityIcon, EditIcon } from '../../icons';
+import { AppIcon, SettingsIcon, StoreIcon, OrderIcon, PaymentIcon, NotificationIcon, EditIcon } from '../../icons';
 import './SettingsPage.css';
-
 
 export default function SettingsPage() {
   const djangoContext = window.DJANGO_CONTEXT || {};
@@ -21,7 +20,7 @@ export default function SettingsPage() {
 
   // Store Settings Form State
   const initialSettings = {
-    // 1. General
+    // 1. General Settings
     store_name: 'Moxie',
     store_logo: null,
     store_email: 'support@moxie.com',
@@ -36,55 +35,18 @@ export default function SettingsPage() {
     store_description: 'Moxie E-Commerce - Premium Lifestyle & Fashion Products',
     website_url: 'https://moxie.com',
 
-    // 2. Store Operation
+    // 2. Store Operations
     store_status: 'Open',
     maintenance_mode: false,
-    allow_registration: true,
-    allow_guest_browsing: true,
-    allow_guest_checkout: true,
-    require_login_before_checkout: true,
-    allow_reviews: true,
-    allow_wishlist: true,
-    enable_product_search: true,
     enable_stock_management: true,
     low_stock_alert: true,
     min_stock_threshold: 5,
 
-    // 3. Order
-    order_prefix: 'MOX',
-    min_order_amount: 0,
-    max_order_amount: 100000,
-    auto_confirm_orders: true,
+    // 3. Order Settings
     allow_order_cancellation: true,
     cancellation_time_limit: '24 Hours',
-    allow_order_modification: false,
-    order_auto_cancel_time: '48 Hours',
-    enable_order_tracking: true,
-    enable_order_notifications: true,
-    allow_returns: true,
 
-    // 4. Shipping
-    enable_shipping: true,
-    free_shipping: true,
-    free_shipping_min_amount: 999,
-    default_shipping_charge: 100,
-    express_shipping_charge: 200,
-    processing_time: '1-3 Days',
-    delivery_estimate: '3-7 Days',
-    express_delivery_days: '1-2 Days',
-    shipping_provider: 'Delhivery / Bluedart',
-    cod_available: true,
-    delivery_area: 'All India (Pan India)',
-
-    // 5. Tax
-    enable_tax: false,
-    tax_type: 'GST',
-    tax_rate: 18,
-    tax_included: true,
-    gst_number: '33AAAAA0000A1Z5',
-    tax_name: 'GST (Goods & Services Tax)',
-
-    // 6. Payment
+    // 4. Payment Gateways
     payment: {
       provider: 'Razorpay',
       mode: 'Test',
@@ -96,70 +58,56 @@ export default function SettingsPage() {
       payment_timeout: '15 Minutes'
     },
 
-    // 7. Notifications & Email
-    email_notifications_enabled: true,
-    notify_order_created: true,
-    notify_order_confirmed: true,
-    notify_payment_success: true,
-    notify_order_shipped: true,
-    notify_order_delivered: true,
-    notify_order_cancelled: true,
-    notify_new_customer: true,
+    // 5. Notifications
     notify_low_stock: true,
-    smtp_host: 'smtp.gmail.com',
-    smtp_port: 587,
-    smtp_user: 'support@moxie.com',
-    smtp_from_email: 'noreply@moxie.com',
-
-    // 8. Security
-    security: {
-      session_timeout: '30 Minutes',
-      require_admin_auth: true,
-      allow_admin_login: true,
-      login_protection: true,
-      failed_login_attempts: '5 Max Attempts'
-    },
-
-    // 9. System
-    system: {
-      maintenance_mode: false,
-      debug_mode: false,
-      api_status: 'Connected',
-      database_status: 'Connected',
-      payment_status: 'Connected',
-      email_status: 'Connected',
-      backend_server_status: 'Online (Operational)',
-      frontend_status: 'Connected (Port 3000 / Vite)',
-      django_version: '5.x',
-      app_version: 'v2.4.0 (Build 2026)'
-    }
+    notify_order_created: true,
+    notify_new_customer: true,
+    low_stock_notification: true,
+    order_received_notification: true,
+    new_customer_signup_notification: true
   };
 
   const [settingsData, setSettingsData] = useState(initialSettings);
   const [originalSettings, setOriginalSettings] = useState(initialSettings);
 
-  const [testEmailSending, setTestEmailSending] = useState(false);
-  const [refreshingHealth, setRefreshingHealth] = useState(false);
-
   // Fetch settings from API
-  const fetchSettings = async (isManualRefresh = false) => {
-    if (isManualRefresh) setRefreshingHealth(true);
-    else setLoading(true);
-
+  const fetchSettings = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/admin-settings/', {
-        headers: { 'Accept': 'application/json' }
+        headers: {
+          'Accept': 'application/json'
+        }
       });
+
       if (res.ok) {
         const data = await res.json();
         const settings = data.settings || data || {};
+        const lowStock = settings.low_stock_notification ?? settings.notify_low_stock ?? settings.low_stock_alert ?? true;
+        const orderReceived = settings.order_received_notification ?? settings.notify_order_created ?? true;
+        const newCustomer = settings.new_customer_signup_notification ?? settings.notify_new_customer ?? true;
+
         const merged = {
-          ...settingsData,
+          ...initialSettings,
           ...settings,
-          payment: { ...settingsData.payment, ...(settings.payment || {}) },
-          security: { ...settingsData.security, ...(settings.security || {}) },
-          system: { ...settingsData.system, ...(settings.system || {}) }
+          notify_low_stock: lowStock,
+          low_stock_notification: lowStock,
+          notify_order_created: orderReceived,
+          order_received_notification: orderReceived,
+          notify_new_customer: newCustomer,
+          new_customer_signup_notification: newCustomer,
+          payment: {
+            ...initialSettings.payment,
+            ...(settings.payment || {}),
+            mode: settings.payment_mode || settings.payment?.mode || 'Test',
+            payment_currency: settings.payment_currency || settings.payment?.payment_currency || 'INR',
+            payment_timeout: settings.payment_timeout || settings.payment?.payment_timeout || '15 Minutes',
+            online_payment_enabled: settings.online_payment_enabled ?? settings.payment?.online_payment_enabled ?? true,
+            razorpay_enabled: settings.razorpay_enabled ?? settings.payment?.razorpay_enabled ?? true,
+            cod_enabled: settings.cod_enabled ?? settings.cod_available ?? settings.payment?.cod_enabled ?? true
+          }
         };
+
         setSettingsData(merged);
         setOriginalSettings(merged);
         if (settings.store_logo) {
@@ -167,18 +115,12 @@ export default function SettingsPage() {
         } else {
           setLogoPreview(null);
         }
-        if (isManualRefresh) {
-          setMessage({ type: 'success', text: 'System diagnostics refreshed successfully.' });
-        }
       }
     } catch (err) {
       console.error("Failed to load settings:", err);
-      if (isManualRefresh) {
-        setMessage({ type: 'error', text: 'Failed to refresh system status.' });
-      }
+      setMessage({ type: 'error', text: 'Failed to load settings from server.' });
     } finally {
       setLoading(false);
-      setRefreshingHealth(false);
     }
   };
 
@@ -209,44 +151,41 @@ export default function SettingsPage() {
   const handlePaymentChange = (field, value) => {
     setSettingsData(prev => ({
       ...prev,
+      [field === 'mode' ? 'payment_mode' : field]: value,
       payment: { ...prev.payment, [field]: value }
     }));
   };
 
   const handleToggleChange = (field) => {
     if (!isEditing) return;
-    setSettingsData(prev => ({ ...prev, [field]: !prev[field] }));
+    setSettingsData(prev => {
+      const nextVal = !prev[field];
+      const updates = { [field]: nextVal };
+      if (field === 'low_stock_notification' || field === 'notify_low_stock') {
+        updates.low_stock_notification = nextVal;
+        updates.notify_low_stock = nextVal;
+        updates.low_stock_alert = nextVal;
+      } else if (field === 'order_received_notification' || field === 'notify_order_created') {
+        updates.order_received_notification = nextVal;
+        updates.notify_order_created = nextVal;
+      } else if (field === 'new_customer_signup_notification' || field === 'notify_new_customer') {
+        updates.new_customer_signup_notification = nextVal;
+        updates.notify_new_customer = nextVal;
+      }
+      return { ...prev, ...updates };
+    });
   };
 
   const handlePaymentToggle = (field) => {
     if (!isEditing) return;
-    setSettingsData(prev => ({
-      ...prev,
-      payment: { ...prev.payment, [field]: !prev.payment[field] }
-    }));
-  };
-
-  // Checkout Access mapping helpers (single control for guest checkout vs login required)
-  const getCheckoutAccessValue = () => {
-    if (settingsData.require_login_before_checkout) return 'login';
-    return 'guest';
-  };
-
-  const handleCheckoutAccessChange = (val) => {
-    if (!isEditing) return;
-    if (val === 'guest') {
-      setSettingsData(prev => ({
+    setSettingsData(prev => {
+      const nextVal = !prev.payment[field];
+      return {
         ...prev,
-        allow_guest_checkout: true,
-        require_login_before_checkout: false,
-      }));
-    } else {
-      setSettingsData(prev => ({
-        ...prev,
-        allow_guest_checkout: false,
-        require_login_before_checkout: true,
-      }));
-    }
+        [field]: nextVal,
+        payment: { ...prev.payment, [field]: nextVal }
+      };
+    });
   };
 
   // Logo file selection with validation
@@ -272,14 +211,13 @@ export default function SettingsPage() {
     setMessage({ type: '', text: '' });
   };
 
-  const getCurrencySymbol = () => {
-    switch (settingsData.currency) {
-      case 'USD': return '$';
-      case 'EUR': return '€';
-      case 'GBP': return '£';
-      case 'INR':
-      default: return '₹';
-    }
+  const handleCancel = () => {
+    setSettingsData(originalSettings);
+    setLogoFile(null);
+    setRemoveLogoFlag(false);
+    setLogoPreview(originalSettings.store_logo || null);
+    setIsEditing(false);
+    setMessage({ type: '', text: '' });
   };
 
   // Save Settings
@@ -299,31 +237,6 @@ export default function SettingsPage() {
         setMessage({ type: 'error', text: 'Minimum stock threshold must be a non-negative number.' });
         return;
       }
-    } else if (activeTab === 'orders') {
-      if (!settingsData.order_prefix || !settingsData.order_prefix.trim()) {
-        setMessage({ type: 'error', text: 'Order prefix is required.' });
-        return;
-      }
-      const minOrder = Number(settingsData.min_order_amount);
-      if (isNaN(minOrder) || minOrder < 0) {
-        setMessage({ type: 'error', text: 'Minimum order amount must be a non-negative number.' });
-        return;
-      }
-      const maxOrder = Number(settingsData.max_order_amount);
-      if (isNaN(maxOrder) || maxOrder < 0) {
-        setMessage({ type: 'error', text: 'Maximum order amount must be a non-negative number.' });
-        return;
-      }
-      if (maxOrder > 0 && maxOrder < minOrder) {
-        setMessage({ type: 'error', text: 'Maximum order amount cannot be less than minimum order amount.' });
-        return;
-      }
-    } else if (activeTab === 'tax') {
-      const taxRate = Number(settingsData.tax_rate);
-      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) {
-        setMessage({ type: 'error', text: 'Tax rate must be a valid percentage between 0 and 100.' });
-        return;
-      }
     }
 
     setSaving(true);
@@ -332,7 +245,7 @@ export default function SettingsPage() {
     try {
       let bodyData;
       let headers = {
-        'X-CSRFToken': djangoContext.csrfToken || ''
+        'X-CSRFToken': djangoContext.csrfToken || (document.cookie.split('; ').find(row => row.startsWith('csrftoken=')) || '').split('=')[1] || ''
       };
 
       if (logoFile) {
@@ -344,7 +257,7 @@ export default function SettingsPage() {
             Object.keys(settingsData.payment || {}).forEach(pk => {
               bodyData.append(pk, settingsData.payment[pk]);
             });
-          } else if (key !== 'security' && key !== 'system' && key !== 'store_logo') {
+          } else if (key !== 'store_logo') {
             bodyData.append(key, settingsData[key]);
           }
         });
@@ -357,7 +270,7 @@ export default function SettingsPage() {
             Object.keys(settingsData.payment || {}).forEach(pk => {
               bodyData.append(pk, settingsData.payment[pk]);
             });
-          } else if (key !== 'security' && key !== 'system' && key !== 'store_logo') {
+          } else if (key !== 'store_logo') {
             bodyData.append(key, settingsData[key]);
           }
         });
@@ -365,7 +278,13 @@ export default function SettingsPage() {
         headers['Content-Type'] = 'application/json';
         bodyData = JSON.stringify({
           ...settingsData,
-          ...(settingsData.payment || {}),
+          payment_mode: settingsData.payment?.mode || settingsData.payment_mode || 'Test',
+          payment_currency: settingsData.payment?.payment_currency || settingsData.payment_currency || 'INR',
+          payment_timeout: settingsData.payment?.payment_timeout || settingsData.payment_timeout || '15 Minutes',
+          online_payment_enabled: settingsData.payment?.online_payment_enabled ?? true,
+          razorpay_enabled: settingsData.payment?.razorpay_enabled ?? true,
+          cod_enabled: settingsData.payment?.cod_enabled ?? true,
+          cod_available: settingsData.payment?.cod_enabled ?? true,
           _section: activeTab
         });
       }
@@ -379,129 +298,129 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         const savedSettings = data.settings || data || {};
+        const lowStock = savedSettings.low_stock_notification ?? savedSettings.notify_low_stock ?? savedSettings.low_stock_alert ?? settingsData.notify_low_stock;
+        const orderReceived = savedSettings.order_received_notification ?? savedSettings.notify_order_created ?? settingsData.notify_order_created;
+        const newCustomer = savedSettings.new_customer_signup_notification ?? savedSettings.notify_new_customer ?? settingsData.notify_new_customer;
+
         const updated = {
           ...settingsData,
-          ...savedSettings
+          ...savedSettings,
+          notify_low_stock: lowStock,
+          low_stock_notification: lowStock,
+          notify_order_created: orderReceived,
+          order_received_notification: orderReceived,
+          notify_new_customer: newCustomer,
+          new_customer_signup_notification: newCustomer,
+          payment: {
+            ...settingsData.payment,
+            ...(savedSettings.payment || {}),
+            mode: savedSettings.payment_mode || savedSettings.payment?.mode || settingsData.payment.mode,
+            payment_currency: savedSettings.payment_currency || savedSettings.payment?.payment_currency || settingsData.payment.payment_currency,
+            payment_timeout: savedSettings.payment_timeout || savedSettings.payment?.payment_timeout || settingsData.payment.payment_timeout,
+            online_payment_enabled: savedSettings.online_payment_enabled ?? savedSettings.payment?.online_payment_enabled ?? settingsData.payment.online_payment_enabled,
+            razorpay_enabled: savedSettings.razorpay_enabled ?? savedSettings.payment?.razorpay_enabled ?? settingsData.payment.razorpay_enabled,
+            cod_enabled: savedSettings.cod_enabled ?? savedSettings.cod_available ?? savedSettings.payment?.cod_enabled ?? settingsData.payment.cod_enabled
+          }
         };
+
         let defaultMsg = 'Settings updated successfully.';
         if (activeTab === 'store') defaultMsg = 'Store operations updated successfully.';
         else if (activeTab === 'general') defaultMsg = 'General settings updated successfully.';
         else if (activeTab === 'orders') defaultMsg = 'Order settings updated successfully.';
-        else if (activeTab === 'shipping') defaultMsg = 'Shipping settings updated successfully.';
-        else if (activeTab === 'tax') defaultMsg = 'Tax settings updated successfully.';
+        else if (activeTab === 'payment') defaultMsg = 'Payment settings updated successfully.';
+        else if (activeTab === 'notifications') defaultMsg = 'Notification settings updated successfully.';
 
         setMessage({ type: 'success', text: data.message || defaultMsg });
         setSettingsData(updated);
         setOriginalSettings(updated);
 
-        // Update logo preview in real-time
-        setLogoPreview(savedSettings.store_logo || null);
-        setRemoveLogoFlag(false);
-
-        setIsEditing(false);
+        if (savedSettings.store_logo) {
+          setLogoPreview(savedSettings.store_logo);
+        }
         setLogoFile(null);
+        setRemoveLogoFlag(false);
+        setIsEditing(false);
+
+        if (typeof window.refreshAdminNotifications === 'function') {
+          window.refreshAdminNotifications();
+        }
+        window.dispatchEvent(new CustomEvent('adminNotificationRequestRefresh'));
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to update settings.' });
+        setMessage({ type: 'error', text: data.error || 'Failed to save settings.' });
       }
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: 'Network error saving settings.' });
+      console.error('Error saving settings:', err);
+      setMessage({ type: 'error', text: 'Network error occurred while saving settings.' });
     } finally {
       setSaving(false);
     }
   };
 
-  // Send Test Email
-  const handleSendTestEmail = async () => {
-    setTestEmailSending(true);
-    setMessage({ type: '', text: '' });
-    try {
-      const res = await fetch('/api/admin-settings/test-email/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': djangoContext.csrfToken || ''
-        },
-        body: JSON.stringify({ email: settingsData.store_email })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ type: 'success', text: data.message || 'Test email dispatched successfully.' });
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Unable to send test email.' });
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Network error sending test email.' });
-    } finally {
-      setTestEmailSending(false);
-    }
-  };
-
-  // Cancel edit
-  const handleCancel = () => {
-    setSettingsData(originalSettings);
-    setIsEditing(false);
-    setLogoFile(null);
-    setRemoveLogoFlag(false);
-    setLogoPreview(originalSettings.store_logo || null);
-    setMessage({ type: '', text: '' });
-  };
+  if (loading) {
+    return (
+      <div className="settings-shell">
+        <div className="settings-loading-card">
+          <div className="spinner"></div>
+          <p>Loading Store Settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="settings-shell">
-      {/* Header */}
+      {/* Page Title */}
       <div className="settings-header">
         <h1>Settings</h1>
-        <p>Manage your Moxie e-commerce website settings and admin preferences.</p>
+        <p>Manage store preferences, operation rules, payment gateways, and system notifications.</p>
       </div>
 
-      {/* Grid Layout */}
+      {/* Main Grid: Sidebar Tabs + Content Panel */}
       <div className="settings-grid-layout">
-        {/* Sidebar Nav */}
+        {/* Left Sidebar Navigation */}
         <div className="settings-nav-card">
-          <button className={`nav-tab-item ${activeTab === 'general' ? 'active' : ''}`} onClick={() => handleTabSwitch('general')}>
+          <button
+            className={`nav-tab-item ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('general')}
+          >
             <AppIcon icon={SettingsIcon} size={18} />
-            General
+            General Settings
           </button>
 
-          <button className={`nav-tab-item ${activeTab === 'store' ? 'active' : ''}`} onClick={() => handleTabSwitch('store')}>
+          <button
+            className={`nav-tab-item ${activeTab === 'store' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('store')}
+          >
             <AppIcon icon={StoreIcon} size={18} />
             Store Operations
           </button>
 
-          <button className={`nav-tab-item ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => handleTabSwitch('orders')}>
+          <button
+            className={`nav-tab-item ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('orders')}
+          >
             <AppIcon icon={OrderIcon} size={18} />
             Order Settings
           </button>
 
-          <button className={`nav-tab-item ${activeTab === 'shipping' ? 'active' : ''}`} onClick={() => handleTabSwitch('shipping')}>
-            <AppIcon icon={ShippingIcon} size={18} />
-            Shipping Settings
-          </button>
-
-          <button className={`nav-tab-item ${activeTab === 'tax' ? 'active' : ''}`} onClick={() => handleTabSwitch('tax')}>
-            <AppIcon icon={ReceiptIcon} size={18} />
-            Tax Settings
-          </button>
-
-          <button className={`nav-tab-item ${activeTab === 'payment' ? 'active' : ''}`} onClick={() => handleTabSwitch('payment')}>
+          <button
+            className={`nav-tab-item ${activeTab === 'payment' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('payment')}
+          >
             <AppIcon icon={PaymentIcon} size={18} />
-            Payment Settings
+            Payment Gateways
           </button>
 
-          <button className={`nav-tab-item ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => handleTabSwitch('notifications')}>
+          <button
+            className={`nav-tab-item ${activeTab === 'notifications' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('notifications')}
+          >
             <AppIcon icon={NotificationIcon} size={18} />
-            Notifications & Email
-          </button>
-
-          <button className={`nav-tab-item ${activeTab === 'system' ? 'active' : ''}`} onClick={() => handleTabSwitch('system')}>
-            <AppIcon icon={SecurityIcon} size={18} />
-            Security & System
+            Notifications
           </button>
         </div>
 
-
-        {/* Content Panel */}
+        {/* Right Main Content Panel */}
         <div className="settings-panel-card">
           {message.text && (
             <div className={`settings-banner ${message.type}`}>
@@ -574,49 +493,89 @@ export default function SettingsPage() {
               <div className="settings-form-grid">
                 <div className="form-field-group">
                   <label>Store Name</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.store_name} onChange={(e) => handleInputChange('store_name', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.store_name || ''}
+                    onChange={(e) => handleInputChange('store_name', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Store Email</label>
-                  <input type="email" disabled={!isEditing} value={settingsData.store_email} onChange={(e) => handleInputChange('store_email', e.target.value)} />
+                  <input
+                    type="email"
+                    disabled={!isEditing}
+                    value={settingsData.store_email || ''}
+                    onChange={(e) => handleInputChange('store_email', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Store Phone</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.store_phone} onChange={(e) => handleInputChange('store_phone', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.store_phone || ''}
+                    onChange={(e) => handleInputChange('store_phone', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Website URL</label>
-                  <input type="url" disabled={!isEditing} value={settingsData.website_url} onChange={(e) => handleInputChange('website_url', e.target.value)} />
+                  <input
+                    type="url"
+                    disabled={!isEditing}
+                    value={settingsData.website_url || ''}
+                    onChange={(e) => handleInputChange('website_url', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>City</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.city} onChange={(e) => handleInputChange('city', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.city || ''}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>State</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.state} onChange={(e) => handleInputChange('state', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.state || ''}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Country</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.country} onChange={(e) => handleInputChange('country', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.country || ''}
+                    onChange={(e) => handleInputChange('country', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Pincode / Postal Code</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.pincode} onChange={(e) => handleInputChange('pincode', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.pincode || ''}
+                    onChange={(e) => handleInputChange('pincode', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group">
                   <label>Currency</label>
                   <CustomSelect
                     disabled={!isEditing}
-                    value={settingsData.currency}
+                    value={settingsData.currency || 'INR'}
                     onChange={(e) => handleInputChange('currency', e.target.value)}
                     options={[
                       { value: 'INR', label: 'INR (₹)' },
@@ -633,7 +592,7 @@ export default function SettingsPage() {
                   <label>Timezone</label>
                   <CustomSelect
                     disabled={!isEditing}
-                    value={settingsData.timezone}
+                    value={settingsData.timezone || 'Asia/Kolkata'}
                     onChange={(e) => handleInputChange('timezone', e.target.value)}
                     options={[
                       { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST +5:30)' },
@@ -649,12 +608,22 @@ export default function SettingsPage() {
 
                 <div className="form-field-group full-width">
                   <label>Store Address</label>
-                  <textarea disabled={!isEditing} value={settingsData.store_address} onChange={(e) => handleInputChange('store_address', e.target.value)} />
+                  <textarea
+                    rows={2}
+                    disabled={!isEditing}
+                    value={settingsData.store_address || ''}
+                    onChange={(e) => handleInputChange('store_address', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group full-width">
                   <label>Store Description</label>
-                  <textarea disabled={!isEditing} value={settingsData.store_description} onChange={(e) => handleInputChange('store_description', e.target.value)} />
+                  <textarea
+                    rows={3}
+                    disabled={!isEditing}
+                    value={settingsData.store_description || ''}
+                    onChange={(e) => handleInputChange('store_description', e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -675,7 +644,7 @@ export default function SettingsPage() {
               <div className="panel-header-box flex-between">
                 <div>
                   <h2>STORE OPERATIONS</h2>
-                  <p>Manage storefront availability, customer access, and inventory behaviour.</p>
+                  <p>Manage store status, maintenance mode, and inventory management.</p>
                 </div>
                 {!isEditing && (
                   <button className="btn-edit-settings" onClick={() => setIsEditing(true)}>
@@ -689,12 +658,33 @@ export default function SettingsPage() {
               <div className="operations-group-card">
                 <div className="operations-group-header">
                   <h3>Store Availability</h3>
-                  <p>Control live storefront status and maintenance screen access</p>
+                  <p>Control overall store visibility and visitor access mode</p>
                 </div>
+
+                <div className="settings-row-item">
+                  <div className="toggle-label-box">
+                    <span>Store Status</span>
+                    <small>Set store to Open for business or temporarily in Maintenance mode</small>
+                  </div>
+                  <div style={{ width: '180px', flexShrink: 0 }}>
+                    <CustomSelect
+                      disabled={!isEditing}
+                      value={settingsData.store_status || 'Open'}
+                      onChange={(e) => handleInputChange('store_status', e.target.value)}
+                      options={[
+                        { value: 'Open', label: '🟢 Open' },
+                        { value: 'Maintenance', label: '🟡 Maintenance' }
+                      ]}
+                      width="100%"
+                      height="38px"
+                    />
+                  </div>
+                </div>
+
                 <div className="settings-row-item">
                   <div className="toggle-label-box">
                     <span>Maintenance Mode</span>
-                    <small>Temporarily show modern maintenance notice to public visitors and block customer checkout</small>
+                    <small>Show maintenance banner and disable checkout for customers</small>
                   </div>
                   <label className="switch-toggle">
                     <input
@@ -708,105 +698,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Group 2: Customer Access */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Customer Access</h3>
-                  <p>Manage user registration, visitor catalog browsing, and checkout restrictions</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Customer Registration</span>
-                    <small>Enable new customer sign ups and account creation on the front-end</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.allow_registration}
-                      onChange={() => handleToggleChange('allow_registration')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Guest Browsing</span>
-                    <small>Allow guests to browse products, search categories, and view catalog without logging in</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.allow_guest_browsing}
-                      onChange={() => handleToggleChange('allow_guest_browsing')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Checkout Access</span>
-                    <small>Specify whether customers must log in before placing an order or can checkout as guests</small>
-                  </div>
-                  <div style={{ width: '220px', flexShrink: 0 }}>
-                    <CustomSelect
-                      disabled={!isEditing}
-                      value={getCheckoutAccessValue()}
-                      onChange={(e) => handleCheckoutAccessChange(e.target.value)}
-                      options={[
-                        { value: 'guest', label: 'Guest Checkout Allowed' },
-                        { value: 'login', label: 'Login Required' }
-                      ]}
-                      width="100%"
-                      height="38px"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 3: Customer Features */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Customer Features</h3>
-                  <p>Toggle social proofs, reviews, and wishlist tools for shoppers</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Product Reviews</span>
-                    <small>Enable customer review submissions and ratings on product pages</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.allow_reviews}
-                      onChange={() => handleToggleChange('allow_reviews')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Wishlist</span>
-                    <small>Enable customer wishlist and save-for-later functionality</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.allow_wishlist}
-                      onChange={() => handleToggleChange('allow_wishlist')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Group 4: Inventory Management */}
+              {/* Group 2: Inventory Management */}
               <div className="operations-group-card">
                 <div className="operations-group-header">
                   <h3>Inventory Management</h3>
@@ -884,15 +776,13 @@ export default function SettingsPage() {
             </div>
           )}
 
-
-
-          {/* TAB 5: ORDER SETTINGS */}
+          {/* TAB 3: ORDER SETTINGS */}
           {activeTab === 'orders' && (
             <div>
               <div className="panel-header-box flex-between">
                 <div>
                   <h2>ORDER SETTINGS</h2>
-                  <p>Configure order numbering, value constraints, automated processing, cancellations, and tracking.</p>
+                  <p>Configure customer order cancellation and self-service policies.</p>
                 </div>
                 {!isEditing && (
                   <button className="btn-edit-settings" onClick={() => setIsEditing(true)}>
@@ -902,139 +792,7 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Group 1: Order Numbering */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Order Numbering</h3>
-                  <p>Define order identification prefix and format for all newly generated customer orders</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Order Prefix</span>
-                    <small>Custom uppercase prefix applied to new orders (e.g. MOX, ORD, INVOICE)</small>
-                  </div>
-                  <div style={{ width: '160px', flexShrink: 0 }}>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      disabled={!isEditing}
-                      value={settingsData.order_prefix || ''}
-                      onChange={(e) => handleInputChange('order_prefix', e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
-                      placeholder="e.g. MOX"
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: '600',
-                        color: '#0f172a',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="settings-row-item" style={{ background: '#f8fafc' }}>
-                  <div className="toggle-label-box">
-                    <span>Live Sample Order ID</span>
-                    <small>Sample format preview of how the next order number will appear</small>
-                  </div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: '6px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700', fontSize: '13px', letterSpacing: '0.5px' }}>
-                    {(settingsData.order_prefix || 'ORD')}-0042
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 2: Order Value Rules */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Order Value Rules</h3>
-                  <p>Set subtotal bounds to enforce minimum and maximum purchase amounts at checkout</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Minimum Order Value ({getCurrencySymbol()})</span>
-                    <small>Minimum cart subtotal required to proceed to payment (0 = No limit)</small>
-                  </div>
-                  <div style={{ width: '160px', flexShrink: 0 }}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      disabled={!isEditing}
-                      value={settingsData.min_order_amount}
-                      onChange={(e) => handleInputChange('min_order_amount', Math.max(0, parseFloat(e.target.value) || 0))}
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: '600',
-                        color: '#0f172a',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Maximum Order Value ({getCurrencySymbol()})</span>
-                    <small>Upper limit allowed for a single checkout transaction (0 = Unlimited)</small>
-                  </div>
-                  <div style={{ width: '160px', flexShrink: 0 }}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      disabled={!isEditing}
-                      value={settingsData.max_order_amount}
-                      onChange={(e) => handleInputChange('max_order_amount', Math.max(0, parseFloat(e.target.value) || 0))}
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: '600',
-                        color: '#0f172a',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 3: Order Processing */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Order Processing</h3>
-                  <p>Configure automated order status transitions upon payment confirmation</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Auto Confirm Orders</span>
-                    <small>Automatically transition paid orders directly to Confirmed status</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.auto_confirm_orders}
-                      onChange={() => handleToggleChange('auto_confirm_orders')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Group 4: Customer Order Control */}
+              {/* Customer Order Control */}
               <div className="operations-group-card">
                 <div className="operations-group-header">
                   <h3>Customer Order Control</h3>
@@ -1058,295 +816,15 @@ export default function SettingsPage() {
                 <div className="settings-row-item" style={{ opacity: settingsData.allow_order_cancellation ? 1 : 0.6 }}>
                   <div className="toggle-label-box">
                     <span>Cancellation Time Limit</span>
-                    <small>Allowed time window in minutes after order creation (e.g. 30 = 30 minutes, 0 = until processing)</small>
+                    <small>Allowed time window (e.g. 24 Hours, 48 Hours, or 30 Minutes)</small>
                   </div>
                   <div style={{ width: '160px', flexShrink: 0 }}>
                     <input
                       type="text"
                       disabled={!isEditing || !settingsData.allow_order_cancellation}
-                      value={settingsData.cancellation_time_limit}
+                      value={settingsData.cancellation_time_limit || '24 Hours'}
                       onChange={(e) => handleInputChange('cancellation_time_limit', e.target.value)}
-                      placeholder="e.g. 30"
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: '600',
-                        color: '#0f172a',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 5: Fulfillment & Tracking */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Fulfillment & Tracking</h3>
-                  <p>Control customer-facing tracking timeline and fulfillment status visibility</p>
-                </div>
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Enable Order Tracking</span>
-                    <small>Display real-time visual progress timeline on customer order details page</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.enable_order_tracking}
-                      onChange={() => handleToggleChange('enable_order_tracking')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="form-actions-bar">
-                  <button className="btn-save-settings" disabled={saving} onClick={handleSaveSettings}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button className="btn-cancel-settings" onClick={handleCancel}>Cancel</button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 6: SHIPPING SETTINGS */}
-          {activeTab === 'shipping' && (
-            <div>
-              <div className="panel-header-box flex-between">
-                <div>
-                  <h2>SHIPPING SETTINGS</h2>
-                  <p>Set delivery charges, free shipping thresholds, and estimated timelines.</p>
-                </div>
-                {!isEditing && (
-                  <button className="btn-edit-settings" onClick={() => setIsEditing(true)}>
-                    <AppIcon icon={EditIcon} size={15} />
-                    Edit
-                  </button>
-                )}
-              </div>
-
-              <div className="settings-form-grid">
-                <div className="form-field-group">
-                  <label>Default Shipping Charge (₹)</label>
-                  <input type="number" disabled={!isEditing} value={settingsData.default_shipping_charge} onChange={(e) => handleInputChange('default_shipping_charge', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Express Shipping Charge (₹)</label>
-                  <input type="number" disabled={!isEditing} value={settingsData.express_shipping_charge} onChange={(e) => handleInputChange('express_shipping_charge', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Free Shipping Minimum Amount (₹)</label>
-                  <input type="number" disabled={!isEditing} value={settingsData.free_shipping_min_amount} onChange={(e) => handleInputChange('free_shipping_min_amount', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Shipping Provider</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.shipping_provider} onChange={(e) => handleInputChange('shipping_provider', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Processing Time</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.processing_time} onChange={(e) => handleInputChange('processing_time', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Standard Delivery Estimate</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.delivery_estimate} onChange={(e) => handleInputChange('delivery_estimate', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Express Delivery Estimate</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.express_delivery_days} onChange={(e) => handleInputChange('express_delivery_days', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>Delivery Area / Region</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.delivery_area} onChange={(e) => handleInputChange('delivery_area', e.target.value)} />
-                </div>
-              </div>
-
-              <div className="toggle-switch-row" style={{ marginTop: '16px' }}>
-                <div className="toggle-label-box">
-                  <span>Enable Shipping Module</span>
-                  <small>Enable delivery calculations for store checkout</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.enable_shipping} onChange={() => handleToggleChange('enable_shipping')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Enable Free Shipping Promo</span>
-                  <small>Offer free standard delivery when cart subtotal meets or exceeds threshold</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.free_shipping} onChange={() => handleToggleChange('free_shipping')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Cash on Delivery (COD) Available</span>
-                  <small>Allow customers to choose Cash on Delivery option during checkout</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.cod_available} onChange={() => handleToggleChange('cod_available')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              {isEditing && (
-                <div className="form-actions-bar">
-                  <button className="btn-save-settings" disabled={saving} onClick={handleSaveSettings}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button className="btn-cancel-settings" onClick={handleCancel}>Cancel</button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 7: TAX SETTINGS */}
-          {activeTab === 'tax' && (
-            <div>
-              <div className="panel-header-box flex-between">
-                <div>
-                  <h2>TAX SETTINGS</h2>
-                  <p>Configure tax calculation and invoice information.</p>
-                </div>
-                {!isEditing && (
-                  <button className="btn-edit-settings" onClick={() => setIsEditing(true)}>
-                    <AppIcon icon={EditIcon} size={15} />
-                    Edit
-                  </button>
-                )}
-              </div>
-
-              {/* Group 1: Tax Calculation */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Tax Calculation</h3>
-                  <p>Control whether tax is computed and applied to customer totals</p>
-                </div>
-
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>Enable Tax Calculation</span>
-                    <small>Calculate tax and display breakdown in checkout and order invoices</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing}
-                      checked={settingsData.enable_tax}
-                      onChange={() => handleToggleChange('enable_tax')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-
-                <div className="settings-row-item" style={{ opacity: settingsData.enable_tax ? 1 : 0.6 }}>
-                  <div className="toggle-label-box">
-                    <span>Tax Type</span>
-                    <small>Select the applicable tax regulation system</small>
-                  </div>
-                  <div style={{ width: '240px', flexShrink: 0 }}>
-                    <CustomSelect
-                      disabled={!isEditing || !settingsData.enable_tax}
-                      value={settingsData.tax_type || 'GST'}
-                      onChange={(e) => handleInputChange('tax_type', e.target.value)}
-                      options={[
-                        { value: 'GST', label: 'GST (Goods and Services Tax)' },
-                        { value: 'VAT', label: 'VAT (Value Added Tax)' },
-                        { value: 'Sales Tax', label: 'Sales Tax' }
-                      ]}
-                      width="100%"
-                      height="38px"
-                    />
-                  </div>
-                </div>
-
-                <div className="settings-row-item" style={{ opacity: settingsData.enable_tax ? 1 : 0.6 }}>
-                  <div className="toggle-label-box">
-                    <span>Tax Rate (%)</span>
-                    <small>Percentage rate applied to taxable product subtotals (e.g. 12 or 18)</small>
-                  </div>
-                  <div style={{ width: '160px', flexShrink: 0 }}>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      disabled={!isEditing || !settingsData.enable_tax}
-                      value={settingsData.tax_rate}
-                      onChange={(e) => handleInputChange('tax_rate', e.target.value)}
-                      placeholder="e.g. 12"
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: '600',
-                        color: '#0f172a',
-                        textAlign: 'center',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="settings-row-item" style={{ opacity: settingsData.enable_tax ? 1 : 0.6 }}>
-                  <div className="toggle-label-box">
-                    <span>Tax Included in Product Prices</span>
-                    <small>Prices on storefront already include tax (no extra tax added to product total)</small>
-                  </div>
-                  <label className="switch-toggle">
-                    <input
-                      type="checkbox"
-                      disabled={!isEditing || !settingsData.enable_tax}
-                      checked={settingsData.tax_included}
-                      onChange={() => handleToggleChange('tax_included')}
-                    />
-                    <span className="slider-round"></span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Group 2: Business Tax Information */}
-              <div className="operations-group-card">
-                <div className="operations-group-header">
-                  <h3>Business Tax Information</h3>
-                  <p>Commercial registration and identification details for customer invoices</p>
-                </div>
-
-                <div className="settings-row-item">
-                  <div className="toggle-label-box">
-                    <span>GST / Tax Registration Number</span>
-                    <small>Tax identification number printed on invoices and payment receipts (optional)</small>
-                  </div>
-                  <div style={{ width: '240px', flexShrink: 0 }}>
-                    <input
-                      type="text"
-                      disabled={!isEditing}
-                      value={settingsData.gst_number || ''}
-                      onChange={(e) => handleInputChange('gst_number', e.target.value)}
-                      placeholder="e.g. 33AAAAA0000A1Z5"
+                      placeholder="e.g. 24 Hours"
                       style={{
                         width: '100%',
                         height: '38px',
@@ -1375,7 +853,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* TAB 8: PAYMENT SETTINGS */}
+          {/* TAB 4: PAYMENT SETTINGS */}
           {activeTab === 'payment' && (
             <div>
               <div className="panel-header-box flex-between">
@@ -1394,14 +872,14 @@ export default function SettingsPage() {
               <div className="settings-form-grid">
                 <div className="form-field-group">
                   <label>Payment Provider</label>
-                  <input type="text" value={settingsData.payment.provider} disabled />
+                  <input type="text" value={settingsData.payment?.provider || 'Razorpay'} disabled />
                 </div>
 
                 <div className="form-field-group">
                   <label>Payment Mode</label>
                   <CustomSelect
                     disabled={!isEditing}
-                    value={settingsData.payment.mode}
+                    value={settingsData.payment?.mode || 'Test'}
                     onChange={(e) => handlePaymentChange('mode', e.target.value)}
                     options={[
                       { value: 'Test', label: 'Test Mode (Sandbox)' },
@@ -1416,7 +894,7 @@ export default function SettingsPage() {
                   <label>Payment Currency</label>
                   <CustomSelect
                     disabled={!isEditing}
-                    value={settingsData.payment.payment_currency}
+                    value={settingsData.payment?.payment_currency || 'INR'}
                     onChange={(e) => handlePaymentChange('payment_currency', e.target.value)}
                     options={[
                       { value: 'INR', label: 'INR (₹)' },
@@ -1429,12 +907,17 @@ export default function SettingsPage() {
 
                 <div className="form-field-group">
                   <label>Payment Session Timeout</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.payment.payment_timeout} onChange={(e) => handlePaymentChange('payment_timeout', e.target.value)} />
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={settingsData.payment?.payment_timeout || '15 Minutes'}
+                    onChange={(e) => handlePaymentChange('payment_timeout', e.target.value)}
+                  />
                 </div>
 
                 <div className="form-field-group full-width">
                   <label>Razorpay Key ID</label>
-                  <input type="text" value={settingsData.payment.razorpay_key_id} disabled />
+                  <input type="text" value={settingsData.payment?.razorpay_key_id || 'rzp_test_************'} disabled />
                   <small style={{ color: '#64748b', fontSize: '11.5px', marginTop: '4px' }}>
                     🔐 Payment secrets are securely stored in server environment variables (.env).
                   </small>
@@ -1447,7 +930,12 @@ export default function SettingsPage() {
                   <small>Accept Cards, UPI, Netbanking, and Wallets via Razorpay</small>
                 </div>
                 <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.payment.online_payment_enabled} onChange={() => handlePaymentToggle('online_payment_enabled')} />
+                  <input
+                    type="checkbox"
+                    disabled={!isEditing}
+                    checked={settingsData.payment?.online_payment_enabled ?? true}
+                    onChange={() => handlePaymentToggle('online_payment_enabled')}
+                  />
                   <span className="slider-round"></span>
                 </label>
               </div>
@@ -1458,7 +946,12 @@ export default function SettingsPage() {
                   <small>Accept cash payments upon delivery at customer doorstep</small>
                 </div>
                 <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.payment.cod_enabled} onChange={() => handlePaymentToggle('cod_enabled')} />
+                  <input
+                    type="checkbox"
+                    disabled={!isEditing}
+                    checked={settingsData.payment?.cod_enabled ?? true}
+                    onChange={() => handlePaymentToggle('cod_enabled')}
+                  />
                   <span className="slider-round"></span>
                 </label>
               </div>
@@ -1474,13 +967,13 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* TAB 9: NOTIFICATIONS & EMAIL */}
+          {/* TAB 5: NOTIFICATIONS */}
           {activeTab === 'notifications' && (
             <div>
               <div className="panel-header-box flex-between">
                 <div>
-                  <h2>NOTIFICATIONS & EMAIL</h2>
-                  <p>Configure automated system notifications and test email delivery.</p>
+                  <h2>NOTIFICATION SETTINGS</h2>
+                  <p>Control which automated alerts and store event notifications are triggered.</p>
                 </div>
                 {!isEditing && (
                   <button className="btn-edit-settings" onClick={() => setIsEditing(true)}>
@@ -1492,77 +985,32 @@ export default function SettingsPage() {
 
               <div className="toggle-switch-row">
                 <div className="toggle-label-box">
-                  <span>Email Notifications Master Switch</span>
-                  <small>Enable or disable all outgoing automated transactional emails</small>
+                  <span>Low Stock Alert Notification</span>
+                  <small>Send admin warning notification when inventory drops below threshold</small>
                 </div>
                 <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.email_notifications_enabled} onChange={() => handleToggleChange('email_notifications_enabled')} />
+                  <input
+                    type="checkbox"
+                    disabled={!isEditing}
+                    checked={settingsData.notify_low_stock}
+                    onChange={() => handleToggleChange('notify_low_stock')}
+                  />
                   <span className="slider-round"></span>
                 </label>
               </div>
 
               <div className="toggle-switch-row">
                 <div className="toggle-label-box">
-                  <span>Notify on New Order Created</span>
-                  <small>Send instant notification to admin when an order is submitted</small>
+                  <span>Order Received Notification</span>
+                  <small>Send instant notification to store administrator when a new order is received</small>
                 </div>
                 <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_order_created} onChange={() => handleToggleChange('notify_order_created')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Notify on Order Confirmed</span>
-                  <small>Send confirmation receipt email to customer</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_order_confirmed} onChange={() => handleToggleChange('notify_order_confirmed')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Notify on Payment Success</span>
-                  <small>Send notifications upon Razorpay payment confirmation</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_payment_success} onChange={() => handleToggleChange('notify_payment_success')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Notify on Order Shipped</span>
-                  <small>Notify customer with courier tracking details when order is dispatched</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_order_shipped} onChange={() => handleToggleChange('notify_order_shipped')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Notify on Order Delivered</span>
-                  <small>Send delivery confirmation and review request email to customer</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_order_delivered} onChange={() => handleToggleChange('notify_order_delivered')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Notify on Order Cancelled</span>
-                  <small>Send cancellation summary and refund notices</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_order_cancelled} onChange={() => handleToggleChange('notify_order_cancelled')} />
+                  <input
+                    type="checkbox"
+                    disabled={!isEditing}
+                    checked={settingsData.notify_order_created}
+                    onChange={() => handleToggleChange('notify_order_created')}
+                  />
                   <span className="slider-round"></span>
                 </label>
               </div>
@@ -1570,140 +1018,27 @@ export default function SettingsPage() {
               <div className="toggle-switch-row">
                 <div className="toggle-label-box">
                   <span>Notify on New Customer Sign-Up</span>
-                  <small>Notify store administrator when a new customer registers</small>
+                  <small>Send notification when a new customer registers on the store</small>
                 </div>
                 <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_new_customer} onChange={() => handleToggleChange('notify_new_customer')} />
+                  <input
+                    type="checkbox"
+                    disabled={!isEditing}
+                    checked={settingsData.notify_new_customer}
+                    onChange={() => handleToggleChange('notify_new_customer')}
+                  />
                   <span className="slider-round"></span>
                 </label>
               </div>
 
-              <div className="toggle-switch-row">
-                <div className="toggle-label-box">
-                  <span>Low Stock Alert Notification</span>
-                  <small>Send admin warning email when inventory drops below threshold</small>
-                </div>
-                <label className="switch-toggle">
-                  <input type="checkbox" disabled={!isEditing} checked={settingsData.notify_low_stock} onChange={() => handleToggleChange('notify_low_stock')} />
-                  <span className="slider-round"></span>
-                </label>
-              </div>
-
-              <div className="settings-form-grid" style={{ marginTop: '20px' }}>
-                <div className="form-field-group">
-                  <label>SMTP Host</label>
-                  <input type="text" disabled={!isEditing} value={settingsData.smtp_host} onChange={(e) => handleInputChange('smtp_host', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>SMTP Port</label>
-                  <input type="number" disabled={!isEditing} value={settingsData.smtp_port} onChange={(e) => handleInputChange('smtp_port', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>SMTP Username / From Email</label>
-                  <input type="email" disabled={!isEditing} value={settingsData.smtp_from_email} onChange={(e) => handleInputChange('smtp_from_email', e.target.value)} />
-                </div>
-
-                <div className="form-field-group">
-                  <label>SMTP Password</label>
-                  <input type="password" value="************************" disabled />
-                </div>
-              </div>
-
-              {isEditing ? (
+              {isEditing && (
                 <div className="form-actions-bar" style={{ marginTop: '20px' }}>
-                  <button className="btn-secondary-action" disabled={testEmailSending} onClick={handleSendTestEmail}>
-                    {testEmailSending ? 'Sending Test Email...' : '✉️ Send Test Email'}
-                  </button>
                   <button className="btn-save-settings" disabled={saving} onClick={handleSaveSettings}>
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button className="btn-cancel-settings" onClick={handleCancel}>Cancel</button>
                 </div>
-              ) : (
-                <div className="form-actions-bar" style={{ marginTop: '20px' }}>
-                  <button className="btn-secondary-action" disabled={testEmailSending} onClick={handleSendTestEmail}>
-                    {testEmailSending ? 'Sending Test Email...' : '✉️ Send Test Email'}
-                  </button>
-                </div>
               )}
-            </div>
-          )}
-
-          {/* TAB 10: SECURITY & SYSTEM */}
-          {activeTab === 'system' && (
-            <div>
-              <div className="panel-header-box flex-between">
-                <div>
-                  <h2>SECURITY & SYSTEM STATUS</h2>
-                  <p>Real-time system health monitoring and security parameters.</p>
-                </div>
-                <button
-                  className="btn-secondary-action"
-                  disabled={refreshingHealth}
-                  onClick={() => fetchSettings(true)}
-                  style={{ height: '36px', fontSize: '12.5px', gap: '6px' }}
-                >
-                  {refreshingHealth ? 'Checking Health...' : '🔄 Refresh Status'}
-                </button>
-              </div>
-
-              <div className="system-status-grid">
-                <div className="status-indicator-card">
-                  <span>Django REST APIs</span>
-                  <span className="badge-status-ok">{settingsData.system?.api_status || 'Connected'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>SQLite Database</span>
-                  <span className="badge-status-ok">{settingsData.system?.database_status || 'Connected'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Razorpay Payment Gateway</span>
-                  <span className="badge-status-ok">{settingsData.system?.payment_status || 'Connected'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Email Engine</span>
-                  <span className="badge-status-ok">{settingsData.system?.email_status || 'Connected'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Backend Server Status</span>
-                  <span className="badge-status-ok">{settingsData.system?.backend_server_status || 'Online'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Frontend Integration</span>
-                  <span className="badge-status-ok">{settingsData.system?.frontend_status || 'Connected'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Django Debug Mode</span>
-                  <span className="badge-status-ok" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
-                    {settingsData.system?.debug_mode ? 'Development (ON)' : 'Production Safe (OFF)'}
-                  </span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Admin Session Security</span>
-                  <span className="badge-status-ok">{settingsData.security?.session_timeout || '30 Mins Timeout'}</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Login Protection & Rate Limiting</span>
-                  <span className="badge-status-ok">Enabled (Active)</span>
-                </div>
-
-                <div className="status-indicator-card">
-                  <span>Application Version</span>
-                  <span className="badge-status-ok" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>
-                    {settingsData.system?.app_version || 'v2.4.0 (Build 2026)'}
-                  </span>
-                </div>
-              </div>
             </div>
           )}
         </div>

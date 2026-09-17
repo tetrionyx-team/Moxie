@@ -1,6 +1,9 @@
 from django.urls import path
 
 from .views import (
+    AddressDetailView,
+    AddressListCreateView,
+    AddressSetDefaultView,
     AdminApiLoginView,
     AdminApiLogoutView,
     AdminChangePasswordView,
@@ -17,6 +20,10 @@ from .views import (
     AdminNotificationsView,
     AdminOfferDetailView,
     AdminOffersView,
+    AdminFeaturedProductsView,
+    AdminFeaturedProductDetailView,
+    AdminFeaturedProductToggleStatusView,
+    FeaturedProductPublicView,
     AdminOrderDetailView,
     AdminOrdersView,
     AdminProfileSettingsView,
@@ -34,6 +41,7 @@ from .views import (
     BannerTrackClickView,
     CategoryDetailView,
     CategoryListView,
+    CheckoutSummaryView,
     CreateCodOrderView,
     CreateRazorpayOrderView,
     CurrentOfferView,
@@ -47,6 +55,7 @@ from .views import (
     CustomerResetPasswordView,
     CustomerProfileView,
     CustomerOrdersView,
+    OrderTrackingPublicView,
     CsrfTokenView,
     HealthCheckView,
     ProductDetailView,
@@ -59,6 +68,10 @@ from .views import (
     SubcategoryDetailView,
     SubcategoryListCreateView,
     VerifyRazorpayPaymentView,
+    TrackingLookupView,
+    AdminOrderShipmentView,
+    AdminOrderOCRTrackingView,
+    AdminRetryWhatsAppView,
 )
 
 urlpatterns = [
@@ -90,6 +103,10 @@ urlpatterns = [
     path('auth/google/', CustomerGoogleLoginView.as_view(), name='auth-google-login'),
     path('customer/profile/', CustomerProfileView.as_view(), name='customer-profile'),
     path('customer/orders/', CustomerOrdersView.as_view(), name='customer-orders-list'),
+    path('addresses/', AddressListCreateView.as_view(), name='address-list-create'),
+    path('addresses/<int:pk>/', AddressDetailView.as_view(), name='address-detail'),
+    path('addresses/<int:pk>/set-default/', AddressSetDefaultView.as_view(), name='address-set-default'),
+    path('addresses/<int:pk>/default/', AddressSetDefaultView.as_view(), name='address-default'),
 
     # Admin Authentication
     path('admin/check-auth/', AdminCheckAuthView.as_view(), name='admin-api-check-auth'),
@@ -119,7 +136,9 @@ urlpatterns = [
     path('reviews/', ReviewListView.as_view(), name='review-list'),
     path('reviews/<int:pk>/', ReviewDetailView.as_view(), name='review-detail'),
 
-    # Payments & Razorpay & COD
+    # Payments & Razorpay & COD & Summary
+    path('checkout/summary/', CheckoutSummaryView.as_view(), name='checkout-summary'),
+    path('payment/checkout-summary/', CheckoutSummaryView.as_view(), name='payment-checkout-summary'),
     path('payment/order/create/', CreateRazorpayOrderView.as_view(), name='payment-order-create'),
     path('payment/order/cod/', CreateCodOrderView.as_view(), name='payment-order-cod'),
     path('payment/cod/', CreateCodOrderView.as_view(), name='payment-cod-root'),
@@ -138,12 +157,27 @@ urlpatterns = [
     path('offers/current/', CurrentOfferView.as_view(), name='current-offer'),
     path('offers/<int:pk>/', AdminOfferDetailView.as_view(), name='admin-offer-detail'),
 
-    # Admin Orders
+    # Featured Products (Hot Sale / Trending / Offer)
+    path('featured-products/', FeaturedProductPublicView.as_view(), name='featured-products-public'),
+    path('admin-featured-products/', AdminFeaturedProductsView.as_view(), name='admin-featured-products'),
+    path('admin-featured-products/<int:pk>/', AdminFeaturedProductDetailView.as_view(), name='admin-featured-product-detail'),
+    path('admin-featured-products/<int:pk>/toggle-status/', AdminFeaturedProductToggleStatusView.as_view(), name='admin-featured-product-toggle-status'),
+    path('admin/featured-products/', AdminFeaturedProductsView.as_view(), name='admin-featured-products-alias'),
+    path('admin/featured-products/<int:pk>/', AdminFeaturedProductDetailView.as_view(), name='admin-featured-product-detail-alias'),
+
+    # Admin Orders & Tracking
+    path('tracking/lookup/', TrackingLookupView.as_view(), name='tracking-lookup'),
+    path('track/lookup/', TrackingLookupView.as_view(), name='tracking-lookup-alias'),
     path('admin-orders/', AdminOrdersView.as_view(), name='admin-orders'),
     path('admin-orders/<int:pk>/', AdminOrderDetailView.as_view(), name='admin-order-detail'),
+    path('admin-orders/<int:pk>/shipment/', AdminOrderShipmentView.as_view(), name='admin-order-shipment'),
+    path('admin-orders/<int:pk>/ocr-tracking/', AdminOrderOCRTrackingView.as_view(), name='admin-order-ocr-tracking'),
+    path('admin-orders/<int:pk>/retry-whatsapp/', AdminRetryWhatsAppView.as_view(), name='admin-order-retry-whatsapp'),
     path('orders/<int:pk>/', AdminOrderDetailView.as_view(), name='order-detail'),
-    path('customer/orders/<int:pk>/cancel/', CustomerCancelOrderView.as_view(), name='customer-order-cancel'),
-    path('orders/<int:pk>/cancel/', CustomerCancelOrderView.as_view(), name='order-cancel'),
+    path('orders/<str:order_id>/track/', OrderTrackingPublicView.as_view(), name='order-tracking-public'),
+    path('customer/orders/<str:order_id>/track/', OrderTrackingPublicView.as_view(), name='customer-order-tracking'),
+    path('customer/orders/<str:pk>/cancel/', CustomerCancelOrderView.as_view(), name='customer-order-cancel'),
+    path('orders/<str:pk>/cancel/', CustomerCancelOrderView.as_view(), name='order-cancel'),
 
     # Admin Customers
     path('customers/', AdminCustomersView.as_view(), name='admin-customers'),

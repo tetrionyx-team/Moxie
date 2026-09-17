@@ -6,53 +6,7 @@ import LoginSuccessPopup from "../components/auth/LoginSuccessPopup";
 
 export const AuthContext = createContext();
 
-const USERS_STORAGE_KEY = "moxie_users";
 const CURRENT_USER_STORAGE_KEY = "moxie_current_user";
-
-// Seed initial users if storage is empty so demo accounts work seamlessly
-const SEED_USERS = [
-  {
-    id: 1,
-    name: "Harish Raja",
-    email: "harish@example.com",
-    mobile: "9876543210",
-    password: "password123",
-  },
-  {
-    id: 2,
-    name: "Harish Raja",
-    email: "harish@gmail.com",
-    mobile: "9876543211",
-    password: "password123",
-  },
-];
-
-const getStoredUsers = () => {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error("Failed to read moxie_users from storage:", e);
-  }
-  // Initialize with seed users
-  try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(SEED_USERS));
-  } catch {}
-  return SEED_USERS;
-};
-
-const saveStoredUsers = (users) => {
-  try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-  } catch (e) {
-    console.error("Failed to save moxie_users:", e);
-  }
-};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -74,7 +28,7 @@ export function AuthProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check current session on app startup
+  // App startup & page refresh session validation with Django backend (Single Source of Truth)
   const checkAuthStatus = useCallback(async () => {
     try {
       const res = await apiFetch("/auth/me/");
@@ -83,10 +37,14 @@ export function AuthProvider({ children }) {
         if (data.authenticated && data.user) {
           const authUser = {
             id: data.user.id || data.user.email,
-            name: data.user.name || `${data.user.first_name || ""} ${data.user.last_name || ""}`.trim() || data.user.email.split("@")[0],
+            name:
+              data.user.name ||
+              `${data.user.first_name || ""} ${data.user.last_name || ""}`.trim() ||
+              data.user.email.split("@")[0],
             email: data.user.email,
             mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
             avatar: data.user.avatar || (data.profile && data.profile.avatar) || "",
+            is_staff: !!data.user.is_staff,
           };
           setUser(authUser);
           setProfile(data.profile || null);
@@ -94,73 +52,48 @@ export function AuthProvider({ children }) {
           try {
             localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authUser));
           } catch {}
+          setIsLoading(false);
           return;
         }
       }
-    } catch {
-      // Backend not reached or unauthenticated
+    } catch (e) {
+      console.warn("Backend auth verification failed:", e);
     }
 
-    // Fallback to local storage persistence
+    // Backend returned 401/403/404 or unauthenticated: clear all auth states & stale storage
+    setUser(null);
+    setProfile(null);
+    setIsLoggedIn(false);
     try {
-      const savedUser = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        setUser(parsed);
-        setIsLoggedIn(true);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setIsLoggedIn(false);
-      }
-    } catch {
-      setUser(null);
-      setProfile(null);
-      setIsLoggedIn(false);
-    } finally {
-      setIsLoading(false);
+      localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+      localStorage.removeItem("moxie_token");
+    } catch {}
+
+    // Sign out Firebase session if active
+    if (auth && isFirebaseConfigured) {
+      fbSignOut(auth).catch(() => {});
     }
+
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
 
-  // Sync with Firebase Auth state on refresh without creating duplicates
+  // Sync Firebase Auth session listener safely without bypassing Django verification
   useEffect(() => {
     if (!auth || !isFirebaseConfigured) return;
     try {
       const unsubscribe = onAuthStateChanged(
         auth,
-        async (fbUser) => {
-          if (fbUser && !user) {
-            const email = (fbUser.email || "").trim().toLowerCase();
-            const users = getStoredUsers();
-            const found = users.find(
-              (u) =>
-                (u.email && u.email.trim().toLowerCase() === email) ||
-                (u.firebaseUid && u.firebaseUid === fbUser.uid)
-            );
-            if (found) {
-              const authUser = {
-                id: found.id || fbUser.uid,
-                name: found.name || fbUser.displayName || email.split("@")[0],
-                email: found.email || email,
-                mobile: found.mobile || "",
-                avatar: found.avatar || found.image || fbUser.photoURL || "",
-                firebaseUid: fbUser.uid,
-                authProvider: "google",
-              };
-              setUser(authUser);
-              setIsLoggedIn(true);
-              try {
-                localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authUser));
-              } catch {}
-            }
+        (fbUser) => {
+          // If Firebase signed out, ensure guest state
+          if (!fbUser && isLoggedIn) {
+            // Only clear if not in an active session check
           }
         },
         (error) => {
-          // Log config/API key issue silently to console without breaking app initialization
           console.warn("Firebase Auth session listener:", error.message);
         }
       );
@@ -168,99 +101,51 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.warn("Firebase Auth initialization check:", e.message);
     }
-  }, [user]);
+  }, [isLoggedIn]);
 
-  // Customer Registration (Standard Email/Password)
+  // Customer Registration (Standard Email/Password via Django Backend)
   const register = async (registerData) => {
     const name = (registerData.name || "").trim();
     const email = (registerData.email || "").trim().toLowerCase();
     const mobile = (registerData.mobile || "").trim().replace(/\D/g, "");
     const password = registerData.password || "";
-    const confirmPassword = registerData.confirmPassword || "";
+    const confirmPassword = registerData.confirmPassword || registerData.confirm_password || "";
 
-    // 1. Validate fields
+    // 1. Client-side field validation
     if (!name) throw new Error("Name is required.");
     if (!email) throw new Error("Email address is required.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address.");
     if (!mobile || mobile.length !== 10) throw new Error("Please enter a valid 10-digit mobile number.");
     if (!password || password.length < 6) throw new Error("Password must be at least 6 characters.");
     if (password !== confirmPassword) throw new Error("Passwords do not match.");
 
-    // 2. Prevent duplicate accounts in local storage
-    const users = getStoredUsers();
-    const existingEmail = users.find((u) => u.email && u.email.trim().toLowerCase() === email);
-    if (existingEmail) {
-      throw new Error("An account already exists with this email. Please sign in.");
-    }
-
-    const existingMobile = users.find((u) => {
-      const uMobile = (u.mobile || "").trim().replace(/\D/g, "");
-      return uMobile && uMobile === mobile;
-    });
-    if (existingMobile) {
-      throw new Error("An account already exists with this mobile number. Please sign in.");
-    }
-
-    // 3. Register via backend API if available
-    let backendData = null;
-    try {
-      const res = await apiFetch("/auth/register/", {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          email,
-          mobile,
-          password,
-          confirm_password: confirmPassword,
-          confirmPassword,
-        }),
-      });
-
-      backendData = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const errorMsg = backendData.error || backendData.detail || "Registration failed. Please check your details.";
-        throw new Error(errorMsg);
-      }
-    } catch (err) {
-      if (err.message && (err.message.includes("already exists") || err.message.includes("valid") || err.message.includes("match"))) {
-        throw err;
-      }
-    }
-
-    // 4. Save new user to local moxie_users list
-    const newUser = {
-      id: backendData?.user?.id || Date.now(),
-      name,
-      email,
-      mobile,
-      password,
-    };
-    const updatedUsers = [...users, newUser];
-    saveStoredUsers(updatedUsers);
-
-    // Initialize customer profile
-    try {
-      const profileData = {
+    // 2. Pure Backend Registration (Django PostgreSQL Source of Truth)
+    const res = await apiFetch("/auth/register/", {
+      method: "POST",
+      body: JSON.stringify({
         name,
         email,
         mobile,
-        joinedDate: new Date().toLocaleDateString("en-IN", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      };
-      localStorage.setItem(`moxie_profile_${email}`, JSON.stringify(profileData));
-    } catch {}
+        password,
+        confirm_password: confirmPassword,
+        confirmPassword,
+      }),
+    });
 
-    // Important: Do NOT auto-login. The user must sign in after registration.
+    const backendData = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errorMsg = backendData.error || backendData.detail || "Registration failed. Please check your details.";
+      throw new Error(errorMsg);
+    }
+
     return {
       success: true,
-      message: "Your account has been created successfully.",
-      user: newUser,
+      message: backendData.message || "Your account has been created successfully.",
+      user: backendData.user,
     };
   };
 
-  // Email + Password Login
+  // Customer Login (Standard Email/Password via Django Backend)
   const login = async (emailInput, passwordInput) => {
     const email = (emailInput || "").trim().toLowerCase();
     const password = passwordInput || "";
@@ -268,205 +153,72 @@ export function AuthProvider({ children }) {
     if (!email) throw new Error("Email address is required.");
     if (!password) throw new Error("Password is required.");
 
-    let apiUser = null;
-    let apiError = null;
+    const res = await apiFetch("/auth/login/", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
 
-    try {
-      const res = await apiFetch("/auth/login/", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+    const data = await res.json().catch(() => ({}));
 
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.user) {
-        apiUser = {
-          id: data.user.id || data.user.email,
-          name: data.user.name || `${data.user.first_name || ""} ${data.user.last_name || ""}`.trim() || data.user.email.split("@")[0],
-          email: data.user.email,
-          mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
-          avatar: data.user.avatar || (data.profile && data.profile.avatar) || "",
-        };
-        if (data.profile) setProfile(data.profile);
-      } else {
-        apiError = data.error || data.detail || null;
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error(data.error || "Account not found. Please create a new account.");
       }
-    } catch (e) {
-      // Backend unavailable or network error
+      if (res.status === 403) {
+        throw new Error(data.error || "This account is inactive. Please contact support.");
+      }
+      if (res.status === 401) {
+        throw new Error(data.error || "Incorrect password. Please try again.");
+      }
+      throw new Error(data.error || data.detail || "Authentication failed. Please check your credentials.");
     }
 
-    if (apiError) {
-      throw new Error(apiError);
+    if (!data.user) {
+      throw new Error("Authentication failed. No user details returned.");
     }
 
-    if (apiUser) {
-      setUser(apiUser);
-      setIsLoggedIn(true);
-      try {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(apiUser));
-      } catch {}
-      setLoginSuccessUser(apiUser);
-      return { success: true, user: apiUser };
-    }
-
-    // Local storage verification fallback
-    const users = getStoredUsers();
-    const foundUser = users.find((u) => u.email && u.email.trim().toLowerCase() === email);
-
-    if (!foundUser) {
-      throw new Error("No account found with this email.");
-    }
-
-    if (foundUser.password !== password) {
-      throw new Error("Incorrect password. Please try again.");
-    }
-
-    const authenticatedUser = {
-      id: foundUser.id || Date.now(),
-      name: foundUser.name,
-      email: foundUser.email,
-      mobile: foundUser.mobile || "",
-      avatar: foundUser.avatar || foundUser.image || "",
+    const authUser = {
+      id: data.user.id || data.user.email,
+      name:
+        data.user.name ||
+        `${data.user.first_name || ""} ${data.user.last_name || ""}`.trim() ||
+        data.user.email.split("@")[0],
+      email: data.user.email,
+      mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
+      avatar: data.user.avatar || (data.profile && data.profile.avatar) || "",
+      is_staff: !!data.user.is_staff,
     };
 
-    setUser(authenticatedUser);
+    setUser(authUser);
+    if (data.profile) setProfile(data.profile);
     setIsLoggedIn(true);
-    try {
-      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authenticatedUser));
-    } catch {}
-    setLoginSuccessUser(authenticatedUser);
 
-    return { success: true, user: authenticatedUser };
+    try {
+      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authUser));
+    } catch {}
+
+    setLoginSuccessUser(authUser);
+    return { success: true, user: authUser };
   };
 
-  // Shared Firebase Google Authentication Function
-  const signInWithGoogle = async () => {
+  // Firebase Google Sign-In & Django Backend Authentication
+  // action: 'login' (default) | 'register'
+  const signInWithGoogle = async (action = "login") => {
     if (!auth) {
       console.error("Firebase Auth instance is not initialized.");
       throw new Error("Google sign-in is temporarily unavailable. Please try again later.");
     }
+
+    let fbUser = null;
+    let token = "";
+
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const fbUser = result.user;
+      fbUser = result.user;
       if (!fbUser) throw new Error("No user information received from Google.");
-
-      const email = (fbUser.email || "").trim().toLowerCase();
-      const name = (fbUser.displayName || email.split("@")[0] || "User").trim();
-      const photoURL = fbUser.photoURL || "";
-      const firebaseUid = fbUser.uid;
-      const token = await fbUser.getIdToken();
-
-      // Check backend login
-      let backendUser = null;
-      try {
-        const res = await apiFetch("/auth/google/", {
-          method: "POST",
-          body: JSON.stringify({
-            credential: token,
-            token,
-            access_token: token,
-            email,
-            name,
-            firebaseUid,
-            avatar: photoURL,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.user) {
-          backendUser = {
-            id: data.user.id || firebaseUid,
-            name: data.user.name || name,
-            email: data.user.email || email,
-            mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
-            avatar: data.user.avatar || photoURL,
-            firebaseUid,
-            authProvider: "google",
-          };
-          if (data.profile) setProfile(data.profile);
-        }
-      } catch {}
-
-      // Check local storage existing customer by email or firebaseUid
-      const users = getStoredUsers();
-      const existingCustomer = users.find(
-        (u) =>
-          (u.email && u.email.trim().toLowerCase() === email) ||
-          (u.firebaseUid && u.firebaseUid === firebaseUid)
-      );
-
-      // CASE A: Existing customer (or backend returned existing customer with mobile)
-      if (existingCustomer || (backendUser && backendUser.mobile)) {
-        const authUser = {
-          id: (existingCustomer && existingCustomer.id) || (backendUser && backendUser.id) || firebaseUid,
-          name: (existingCustomer && existingCustomer.name) || (backendUser && backendUser.name) || name,
-          email: email,
-          mobile: (existingCustomer && existingCustomer.mobile) || (backendUser && backendUser.mobile) || "",
-          avatar: (existingCustomer && (existingCustomer.avatar || existingCustomer.image)) || photoURL,
-          firebaseUid,
-          authProvider: "google",
-        };
-
-        setUser(authUser);
-        setIsLoggedIn(true);
-        try {
-          localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authUser));
-        } catch {}
-        setLoginSuccessUser(authUser);
-
-        return {
-          success: true,
-          isNewUser: false,
-          user: authUser,
-        };
-      }
-
-      // CASE B: New Google customer (Mobile is optional, create account immediately)
-      const newCustomer = {
-        id: (backendUser && backendUser.id) || firebaseUid || Date.now(),
-        name: (backendUser && backendUser.name) || name,
-        email: email,
-        mobile: (backendUser && backendUser.mobile) || "",
-        avatar: photoURL,
-        image: photoURL,
-        firebaseUid,
-        authProvider: "google",
-      };
-
-      const updatedUsers = [...users, newCustomer];
-      saveStoredUsers(updatedUsers);
-
-      // Initialize customer profile
-      try {
-        const profileData = {
-          name,
-          email,
-          mobile: (backendUser && backendUser.mobile) || "",
-          avatar: photoURL,
-          joinedDate: new Date().toLocaleDateString("en-IN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
-        };
-        localStorage.setItem(`moxie_profile_${email}`, JSON.stringify(profileData));
-      } catch {}
-
-      setUser(newCustomer);
-      setIsLoggedIn(true);
-      try {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(newCustomer));
-      } catch {}
-
-      // Trigger "Welcome to Moxie" popup
-      setLoginSuccessUser({ ...newCustomer, isNewAccount: true });
-
-      return {
-        success: true,
-        isNewUser: true,
-        user: newCustomer,
-      };
+      token = await fbUser.getIdToken();
     } catch (error) {
-      console.error("Firebase Google Auth Error:", error);
-
+      console.error("Firebase Google Auth Popup Error:", error);
       if (error.code === "auth/popup-closed-by-user") {
         throw new Error("Google sign-in was cancelled.");
       }
@@ -479,12 +231,86 @@ export function AuthProvider({ children }) {
       if (error.code === "auth/unauthorized-domain") {
         throw new Error("Google sign-in is not available for this domain.");
       }
-
-      throw new Error("Unable to sign in with Google. Please try again.");
+      throw new Error(error.message || "Unable to sign in with Google. Please try again.");
     }
+
+    const email = (fbUser.email || "").trim().toLowerCase();
+    const name = (fbUser.displayName || email.split("@")[0] || "User").trim();
+    const photoURL = fbUser.photoURL || "";
+    const firebaseUid = fbUser.uid;
+
+    // Send verified Google identity to Django backend for customer verification
+    const res = await apiFetch("/auth/google/", {
+      method: "POST",
+      body: JSON.stringify({
+        action,
+        credential: token,
+        token,
+        access_token: token,
+        email,
+        name,
+        firebaseUid,
+        avatar: photoURL,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    // If customer does NOT exist in Django or is inactive:
+    if (!res.ok) {
+      // Sign out from Firebase immediately so identity doesn't linger
+      if (auth && isFirebaseConfigured) {
+        await fbSignOut(auth).catch(() => {});
+      }
+      setUser(null);
+      setProfile(null);
+      setIsLoggedIn(false);
+      try {
+        localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+      } catch {}
+
+      if (res.status === 403) {
+        throw new Error(data.error || "This account is inactive. Please contact support.");
+      }
+      throw new Error(data.error || "Google authentication failed. Please try again.");
+    }
+
+    if (!data.user) {
+      if (auth && isFirebaseConfigured) {
+        await fbSignOut(auth).catch(() => {});
+      }
+      throw new Error(data.error || "Google authentication failed. Please try again.");
+    }
+
+    const authUser = {
+      id: data.user.id || firebaseUid,
+      name: data.user.name || name,
+      email: data.user.email || email,
+      mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
+      avatar: data.user.avatar || photoURL,
+      firebaseUid,
+      authProvider: "google",
+      is_staff: !!data.user.is_staff,
+    };
+
+    setUser(authUser);
+    if (data.profile) setProfile(data.profile);
+    setIsLoggedIn(true);
+
+    try {
+      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(authUser));
+    } catch {}
+
+    setLoginSuccessUser({ ...authUser, isNewAccount: !!data.isNewUser });
+
+    return {
+      success: true,
+      isNewUser: !!data.isNewUser,
+      user: authUser,
+    };
   };
 
-  // Complete Registration for New Google User (Requires 10-digit mobile)
+  // Complete Registration for New Google User with required 10-digit mobile
   const completeGoogleRegistration = async ({ googleData, mobile, name: customName }) => {
     const cleanMobile = (mobile || "").trim().replace(/\D/g, "");
     if (!cleanMobile || cleanMobile.length !== 10) {
@@ -494,64 +320,43 @@ export function AuthProvider({ children }) {
     const email = (googleData.email || "").trim().toLowerCase();
     const name = (customName || googleData.name || email.split("@")[0] || "User").trim();
     const photoURL = googleData.photoURL || "";
-    const firebaseUid = googleData.firebaseUid || Date.now();
+    const firebaseUid = googleData.firebaseUid || "";
+    const token = googleData.token || googleData.credential || "";
 
-    // Check duplicate mobile across registered accounts
-    const users = getStoredUsers();
-    const duplicateMobile = users.find((u) => {
-      const uMobile = (u.mobile || "").trim().replace(/\D/g, "");
-      return uMobile && uMobile === cleanMobile;
+    const res = await apiFetch("/auth/google/", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "register",
+        allow_create: true,
+        credential: token,
+        token,
+        email,
+        name,
+        mobile: cleanMobile,
+        firebaseUid,
+        avatar: photoURL,
+      }),
     });
-    if (duplicateMobile) {
-      throw new Error("An account already exists with this mobile number.");
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Registration failed. Please check your details.");
     }
 
-    // Call backend registration if available
-    try {
-      await apiFetch("/auth/register/", {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          email,
-          mobile: cleanMobile,
-          firebaseUid,
-          authProvider: "google",
-        }),
-      });
-    } catch {}
-
     const newUser = {
-      id: firebaseUid || Date.now(),
-      name,
-      email,
-      mobile: cleanMobile,
+      id: data?.user?.id || firebaseUid,
+      name: data?.user?.name || name,
+      email: data?.user?.email || email,
+      mobile: data?.user?.mobile || cleanMobile,
       avatar: photoURL,
-      image: photoURL,
       firebaseUid,
       authProvider: "google",
     };
 
-    const updatedUsers = [...users, newUser];
-    saveStoredUsers(updatedUsers);
-
-    // Initialize customer profile
-    try {
-      const profileData = {
-        name,
-        email,
-        mobile: cleanMobile,
-        avatar: photoURL,
-        joinedDate: new Date().toLocaleDateString("en-IN", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      };
-      localStorage.setItem(`moxie_profile_${email}`, JSON.stringify(profileData));
-    } catch {}
-
     setUser(newUser);
+    if (data.profile) setProfile(data.profile);
     setIsLoggedIn(true);
+
     try {
       localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(newUser));
     } catch {}
@@ -564,33 +369,20 @@ export function AuthProvider({ children }) {
     const email = (emailInput || "").trim().toLowerCase();
     if (!email) throw new Error("Email address is required.");
 
-    try {
-      const res = await apiFetch("/auth/forgot-password/", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.found) {
-        return { success: true, message: "Email verified." };
-      } else if (!res.ok && data.error) {
-        throw new Error(data.error);
-      }
-    } catch (e) {
-      if (e.message && e.message.includes("No account found")) {
-        throw e;
-      }
+    const res = await apiFetch("/auth/forgot-password/", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "No account found with this email address.");
     }
 
-    const users = getStoredUsers();
-    const found = users.find((u) => u.email && u.email.trim().toLowerCase() === email);
-    if (!found) {
-      throw new Error("No account found with this email address.");
-    }
-
-    return { success: true, message: "Email verified." };
+    return { success: true, message: data.message || "Email verified." };
   };
 
-  // Reset Password for exact matching user (Step 2)
+  // Reset Password for exact matching customer (Step 2)
   const resetPassword = async (emailInput, newPassword, confirmPassword) => {
     const email = (emailInput || "").trim().toLowerCase();
     if (!email) throw new Error("Email address is required.");
@@ -601,68 +393,53 @@ export function AuthProvider({ children }) {
       throw new Error("Passwords do not match.");
     }
 
-    try {
-      const res = await apiFetch("/auth/reset-password/", {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          new_password: newPassword,
-          newPassword,
-          confirm_password: confirmPassword,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok && data.error) {
-        throw new Error(data.error);
-      }
-    } catch (e) {
-      if (e.message && (e.message.includes("No account") || e.message.includes("match"))) {
-        throw e;
-      }
-    }
-
-    const users = getStoredUsers();
-    let userUpdated = false;
-    const updatedUsers = users.map((u) => {
-      if (u.email && u.email.trim().toLowerCase() === email) {
-        userUpdated = true;
-        return { ...u, password: newPassword };
-      }
-      return u;
+    const res = await apiFetch("/auth/reset-password/", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password: newPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }),
     });
 
-    if (!userUpdated) {
-      throw new Error("No account found with this email address.");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to reset password.");
     }
 
-    saveStoredUsers(updatedUsers);
-
-    try {
-      const savedUser = JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY) || "null");
-      if (savedUser && savedUser.email && savedUser.email.toLowerCase() === email) {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(savedUser));
-      }
-    } catch {}
-
-    return { success: true, message: "Password Changed Successfully" };
+    return { success: true, message: data.message || "Password Changed Successfully" };
   };
 
-  // Manual Logout (clears session, executes Firebase signOut)
+  // Customer Logout (Flushes backend session, signs out Firebase, clears local storage)
   const logout = async () => {
-    try {
-      if (auth && isFirebaseConfigured) {
+    if (auth && isFirebaseConfigured) {
+      try {
         await fbSignOut(auth);
-      }
-    } catch {}
+      } catch {}
+    }
     try {
       await apiFetch("/auth/logout/", { method: "POST" });
     } catch {}
     try {
       localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+      localStorage.removeItem("moxie_token");
     } catch {}
     setUser(null);
     setProfile(null);
     setIsLoggedIn(false);
+  };
+
+  const updateUser = (updatedFields) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updatedFields };
+      try {
+        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setProfile((prev) => (prev ? { ...prev, ...updatedFields } : updatedFields));
   };
 
   return (
@@ -679,6 +456,7 @@ export function AuthProvider({ children }) {
         signInWithGoogle,
         completeGoogleRegistration,
         logout,
+        updateUser,
         refreshUser: checkAuthStatus,
         setIsLoggedIn,
         loginSuccessUser,

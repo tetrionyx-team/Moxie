@@ -1,14 +1,16 @@
 import React, { useContext, useEffect, useMemo, useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { FiShoppingBag, FiTruck, FiRotateCcw, FiShield, FiCheck, FiChevronRight, FiZoomIn, FiX } from "react-icons/fi";
+import { FiShoppingBag, FiTruck, FiShield, FiCheck, FiChevronRight, FiZoomIn, FiX, FiHeadphones } from "react-icons/fi";
 import { FaHeart, FaRegHeart, FaStar, FaRegStar } from "react-icons/fa";
 import { useData } from "../../context/DataContext";
 import { CartContext } from "../../context/CartContext";
 import { WishlistContext } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
 import { getSaleState, getSaleStateLabel } from "../../utils/inventory";
-import ProductCard from "../../components/Product/ProductCard";
+import ProductCard, { isWatchCategory } from "../../components/Product/ProductCard";
 import { getProductReviews } from "../../api/reviewApi";
+import { API_BASE_URL } from "../../api/apiConfig";
+import { BACKEND_URL } from "../../config";
 import "./ProductDetails.css";
 
 import watchImg from "../../assets/images/watch1.png";
@@ -16,6 +18,46 @@ import shoeImg from "../../assets/images/shoe.svg";
 import capImg from "../../assets/images/cap.png";
 import budsImg from "../../assets/images/Buds.png";
 import defaultImg from "../../assets/images/offer.png";
+
+const getImageUrl = (image) => {
+  if (!image) return null;
+  let cleanImage = image;
+  if (typeof cleanImage === "string") {
+    cleanImage = cleanImage
+      .replace(/^http:\/\/127\.0\.0\.1:8000/, BACKEND_URL)
+      .replace(/^http:\/\/localhost:8000/, BACKEND_URL)
+      .replace(/^http:\/\/localhost(?!:)/, BACKEND_URL);
+
+    if (cleanImage.startsWith("http://") || cleanImage.startsWith("https://")) {
+      return cleanImage;
+    }
+  }
+  try {
+    return new URL(cleanImage, BACKEND_URL).href;
+  } catch {
+    return cleanImage;
+  }
+};
+
+const getVideoUrl = (video) => {
+  if (!video) return null;
+  let cleanVideo = video;
+  if (typeof cleanVideo === "string") {
+    cleanVideo = cleanVideo
+      .replace(/^http:\/\/127\.0\.0\.1:8000/, BACKEND_URL)
+      .replace(/^http:\/\/localhost:8000/, BACKEND_URL)
+      .replace(/^http:\/\/localhost(?!:)/, BACKEND_URL);
+
+    if (cleanVideo.startsWith("http://") || cleanVideo.startsWith("https://")) {
+      return cleanVideo;
+    }
+  }
+  try {
+    return new URL(cleanVideo, BACKEND_URL).href;
+  } catch {
+    return cleanVideo;
+  }
+};
 
 const getFallbackImage = (categorySlug) => {
   const slug = String(categorySlug || "").toLowerCase();
@@ -30,21 +72,67 @@ export default function ProductDetails() {
   const { productId, category: paramCategory } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const { products = [], storeSettings, loading } = useData() || {};
+  const { products = [], storeSettings, loading: globalLoading } = useData() || {};
 
   const { cart = [], addToCart } = useContext(CartContext) || {};
   const { toggleWishlist, isInWishlist } = useContext(WishlistContext) || {};
 
   const reviewsSectionRef = useRef(null);
+  const mainVideoRef = useRef(null);
 
-  // Match active product by numeric or slug ID
+  const [apiProduct, setApiProduct] = useState(null);
+  const [fetchingProduct, setFetchingProduct] = useState(false);
+
+  // Directly fetch product from backend API on mount or route param change
+  useEffect(() => {
+    const rawId = productId || paramCategory;
+    if (!rawId) return;
+
+    let isMounted = true;
+    setApiProduct(null);
+    setFetchingProduct(true);
+
+    fetch(`${API_BASE_URL}/products/${rawId}/`)
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error("Product fetch failed");
+      })
+      .then((data) => {
+        if (isMounted && data && data.id) {
+          setApiProduct(data);
+        }
+      })
+      .catch(() => {
+        // Fallback handled by products list in DataContext
+      })
+      .finally(() => {
+        if (isMounted) setFetchingProduct(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productId, paramCategory]);
+
+  // Match active product by numeric or slug ID, prioritizing direct API response
   const product = useMemo(() => {
+    const rawTarget = String(productId || paramCategory || "").toLowerCase().trim();
+    if (!rawTarget) return null;
+
+    if (
+      apiProduct &&
+      (String(apiProduct.id).toLowerCase() === rawTarget ||
+        String(apiProduct.slug || "").toLowerCase() === rawTarget)
+    ) {
+      return apiProduct;
+    }
     return products.find(
       (i) =>
-        i.id === Number(productId || paramCategory) ||
-        String(i.id) === String(productId || paramCategory)
+        String(i.id).toLowerCase() === rawTarget ||
+        (i.slug && String(i.slug).toLowerCase() === rawTarget) ||
+        (i.name && String(i.name).toLowerCase().replace(/\s+/g, "-") === rawTarget)
     );
-  }, [products, productId, paramCategory]);
+  }, [apiProduct, products, productId, paramCategory]);
 
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -54,6 +142,18 @@ export default function ProductDetails() {
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+
+  // Reset transient product selections when navigating between products
+  useEffect(() => {
+    if (mainVideoRef.current) {
+      mainVideoRef.current.pause();
+    }
+    setActiveImageIndex(0);
+    setSelectedColor(null);
+    setSelectedSize(null);
+    setQuantity(1);
+    setIsZoomOpen(false);
+  }, [productId, paramCategory]);
 
   // Fetch product-specific reviews whenever product changes
   useEffect(() => {
@@ -125,9 +225,9 @@ export default function ProductDetails() {
     }
   }, [product, backendColors]);
 
-  // Derive available sizes dynamically based on selected color / variants
+  // Derive available sizes dynamically based on selected color / variants (strictly excluded for watches)
   const availableSizes = useMemo(() => {
-    if (!product) return [];
+    if (!product || isWatchCategory(product)) return [];
 
     if (selectedColor && Array.isArray(product.variants) && product.variants.length > 0) {
       const colorMatches = product.variants.filter(
@@ -200,73 +300,149 @@ export default function ProductDetails() {
     return product.variants[0] || null;
   }, [product, selectedColor, selectedSize]);
 
-  // Combine product gallery images with variant images strictly from backend
-  const allImages = useMemo(() => {
+  // Resolve gallery media dynamically based on active selected variant (with exact backend mapping)
+  const allMedia = useMemo(() => {
     if (!product) return [];
-    const imgs = [];
+    const mediaList = [];
+    const addedUrls = new Set();
 
-    // Primary product image
-    if (product.image) imgs.push(product.image);
-
-    // Gallery images from ProductImage
-    if (Array.isArray(product.images)) {
-      product.images.forEach((img) => {
-        if (img && !imgs.includes(img)) imgs.push(img);
+    const addImage = (imgSrc) => {
+      if (!imgSrc) return;
+      const rawUrl = typeof imgSrc === "object" && imgSrc ? (imgSrc.image || imgSrc.url) : imgSrc;
+      const url = getImageUrl(rawUrl);
+      if (!url || typeof url !== "string" || addedUrls.has(url)) return;
+      addedUrls.add(url);
+      mediaList.push({
+        type: "image",
+        url,
+        isVideo: false,
       });
-    }
+    };
 
-    // Variant images
-    if (Array.isArray(product.variants)) {
-      product.variants.forEach((v) => {
-        if (Array.isArray(v.images)) {
-          v.images.forEach((vImg) => {
-            if (vImg && !imgs.includes(vImg)) imgs.push(vImg);
-          });
-        }
+    const addVideo = (vidSrc) => {
+      if (!vidSrc) return;
+      const rawUrl = typeof vidSrc === "object" && vidSrc ? (vidSrc.video || vidSrc.url) : vidSrc;
+      const url = getVideoUrl(rawUrl);
+      if (!url || typeof url !== "string" || addedUrls.has(url)) return;
+      addedUrls.add(url);
+      mediaList.push({
+        type: "video",
+        url,
+        isVideo: true,
       });
-    }
+    };
 
-    // Fallback if empty
-    if (imgs.length === 0) {
-      imgs.push(getFallbackImage(product.category));
-    }
-
-    return imgs;
-  }, [product]);
-
-  // If user selects color that has its own image, switch to that image
-  const handleColorSelect = (colorName) => {
-    setSelectedColor(colorName);
-    const foundVar = (product?.variants || []).find(
-      (v) => (v.color_name || "").toLowerCase() === colorName.toLowerCase()
-    );
-    if (foundVar && Array.isArray(foundVar.images) && foundVar.images.length > 0) {
-      const vImg = foundVar.images[0];
-      const idx = allImages.indexOf(vImg);
-      if (idx !== -1) {
-        setActiveImageIndex(idx);
+    // 1. If active variant has images or video, display active variant's media
+    let hasVariantMedia = false;
+    if (selectedVariant) {
+      if (Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0) {
+        selectedVariant.images.forEach(addImage);
+        hasVariantMedia = true;
+      }
+      if (selectedVariant.video) {
+        addVideo(selectedVariant.video);
+        hasVariantMedia = true;
       }
     }
+
+    // 2. If no variant media for active variant, fall back to product gallery / primary image / product video
+    if (!hasVariantMedia || mediaList.length === 0) {
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        product.images.forEach(addImage);
+      }
+      if (product.image) {
+        addImage(product.image);
+      }
+      if (product.primary_image) {
+        addImage(product.primary_image);
+      }
+      if (product.video) {
+        addVideo(product.video);
+      }
+    }
+
+    // 3. Fallback if completely empty
+    if (mediaList.length === 0) {
+      mediaList.push({
+        type: "image",
+        url: getFallbackImage(product.category || product.category_slug),
+        isVideo: false,
+      });
+    }
+
+    return mediaList;
+  }, [product, selectedVariant]);
+
+  const allImages = useMemo(() => allMedia.map((m) => m.url), [allMedia]);
+
+  // Primary static image specifically for Cart, Wishlist, Checkout, Orders (strictly image, never video)
+  const primaryStaticImage = useMemo(() => {
+    const firstImg = allMedia.find((m) => m.type === "image");
+    return firstImg ? firstImg.url : getFallbackImage(product?.category);
+  }, [allMedia, product?.category]);
+
+  // Reset active image index whenever product ID changes (e.g. navigating to new product)
+  useEffect(() => {
+    if (mainVideoRef.current) {
+      mainVideoRef.current.pause();
+    }
+    setActiveImageIndex(0);
+  }, [product?.id]);
+
+  // When user selects a thumbnail or color, pause video and update index
+  const handleMediaSelect = (index) => {
+    if (mainVideoRef.current) {
+      mainVideoRef.current.pause();
+    }
+    setActiveImageIndex(index);
+  };
+
+  const handleColorSelect = (colorName) => {
+    if (mainVideoRef.current) {
+      mainVideoRef.current.pause();
+    }
+    setSelectedColor(colorName);
+    setActiveImageIndex(0);
   };
 
   // Pricing resolution (variant price override if available, else product price)
-  const currentPrice = selectedVariant?.discount_price
-    ? Number(selectedVariant.discount_price)
-    : selectedVariant?.price
+  // Final Rule:
+  // price = Original Price (e.g. ₹1000)
+  // discount_price = Discount / Selling Price (e.g. ₹600)
+  const rawPPrice = selectedVariant?.price
     ? Number(selectedVariant.price)
     : Number(product?.price || 0);
 
-  const currentOldPrice = selectedVariant?.discount_price && selectedVariant?.price
-    ? Number(selectedVariant.price)
-    : product?.oldPrice
-    ? Number(product.oldPrice)
+  const rawPDisc = selectedVariant?.discount_price !== undefined && selectedVariant?.discount_price !== null && selectedVariant?.discount_price !== "" && Number(selectedVariant.discount_price) > 0
+    ? Number(selectedVariant.discount_price)
+    : product?.discount_price !== undefined && product?.discount_price !== null && product?.discount_price !== "" && Number(product.discount_price) > 0
+    ? Number(product.discount_price)
     : null;
 
-  const currentDiscount = currentOldPrice && currentOldPrice > currentPrice
-    ? Math.round((1 - currentPrice / currentOldPrice) * 100)
-    : (product?.discount || 0);
+  const rawPOrig = product?.original_price !== undefined && product?.original_price !== null && product?.original_price !== "" && Number(product.original_price) > 0
+    ? Number(product.original_price)
+    : product?.oldPrice !== undefined && product?.oldPrice !== null && product?.oldPrice !== "" && Number(product.oldPrice) > 0
+    ? Number(product.oldPrice)
+    : product?.discount !== undefined && product?.discount !== null && product?.discount !== "" && Number(product.discount) > 0
+    ? Number(product.discount)
+    : null;
 
-  const hasDiscount = currentDiscount > 0 && currentOldPrice && currentOldPrice > currentPrice;
+  let currentPrice = rawPPrice;
+  let currentOldPrice = 0;
+  let hasDiscount = false;
+  let currentDiscount = 0;
+
+  if (rawPDisc && rawPDisc < rawPPrice) {
+    currentPrice = rawPDisc;
+    currentOldPrice = rawPPrice;
+    hasDiscount = true;
+    currentDiscount = Math.round(((rawPPrice - rawPDisc) / rawPPrice) * 100);
+  } else if (rawPOrig && rawPOrig > rawPPrice) {
+    currentPrice = rawPPrice;
+    currentOldPrice = rawPOrig;
+    hasDiscount = true;
+    currentDiscount = Math.round(((rawPOrig - rawPPrice) / rawPOrig) * 100);
+  }
 
   // Inventory / Stock resolution from backend
   const saleState = product ? getSaleState(product, selectedVariant) : "unavailable";
@@ -276,8 +452,18 @@ export default function ProductDetails() {
   const availableMaxStock = selectedVariant && selectedVariant.stock !== undefined
     ? Number(selectedVariant.stock)
     : product?.rawStock !== undefined
-    ? Number(product.rawStock)
-    : 99;
+  const wished = isInWishlist ? isInWishlist(product?.id) : false;
+
+  const handleWishlistToggle = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (e && e.preventDefault) e.preventDefault();
+    if (toggleWishlist) {
+      toggleWishlist(product);
+      if (toast) {
+        toast(wished ? "Removed from wishlist" : "Saved to wishlist");
+      }
+    }
+  };
 
   // Rating & Review stats derived from real product-specific reviews
   const { averageRating, totalReviewsCount, ratingBreakdown } = useMemo(() => {
@@ -322,28 +508,52 @@ export default function ProductDetails() {
     if (!product) return [];
     const others = products.filter((p) => p.id !== product.id && p.is_active !== false);
 
-    if (product.subcategory) {
-      const sameSub = others.filter(
-        (p) =>
-          (p.subcategory && p.subcategory.toLowerCase() === product.subcategory.toLowerCase()) ||
-          (p.subcategory_slug &&
-            p.subcategory_slug.toLowerCase() === (product.subcategory_slug || "").toLowerCase())
-      );
+    const prodSubCat = String(
+      product.subcategory_slug ||
+      product.subcategory_name ||
+      (typeof product.subcategory === "object" ? product.subcategory?.name : product.subcategory) ||
+      ""
+    ).toLowerCase().trim();
+
+    const prodCat = String(
+      product.category_slug ||
+      product.category_name ||
+      (typeof product.category === "object" ? product.category?.name : product.category) ||
+      ""
+    ).toLowerCase().trim();
+
+    if (prodSubCat) {
+      const sameSub = others.filter((p) => {
+        const otherSub = String(
+          p.subcategory_slug ||
+          p.subcategory_name ||
+          (typeof p.subcategory === "object" ? p.subcategory?.name : p.subcategory) ||
+          ""
+        ).toLowerCase().trim();
+        return otherSub && otherSub === prodSubCat;
+      });
       if (sameSub.length > 0) return sameSub.slice(0, 4);
     }
 
-    const sameCat = others.filter(
-      (p) =>
-        (p.category && p.category.toLowerCase() === product.category.toLowerCase()) ||
-        (p.category_slug &&
-          p.category_slug.toLowerCase() === (product.category_slug || "").toLowerCase())
-    );
-    if (sameCat.length > 0) return sameCat.slice(0, 4);
+    if (prodCat) {
+      const sameCat = others.filter((p) => {
+        const otherCat = String(
+          p.category_slug ||
+          p.category_name ||
+          (typeof p.category === "object" ? p.category?.name : p.category) ||
+          ""
+        ).toLowerCase().trim();
+        return otherCat && otherCat === prodCat;
+      });
+      if (sameCat.length > 0) return sameCat.slice(0, 4);
+    }
 
     return others.slice(0, 4);
   }, [products, product]);
 
-  if (loading) {
+  const isLoading = Boolean(globalLoading || fetchingProduct);
+
+  if (isLoading) {
     return (
       <div className="product-detail-loading-screen">
         <div className="spinner-border text-primary" role="status">
@@ -367,19 +577,7 @@ export default function ProductDetails() {
     );
   }
 
-  const wished = isInWishlist ? isInWishlist(product.id) : false;
   const inCart = cart?.some((item) => item.id === product.id);
-
-  const handleWishlistToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (toggleWishlist) {
-      toggleWishlist(product);
-      if (toast) {
-        toast(wished ? "Removed from wishlist" : "Saved to wishlist");
-      }
-    }
-  };
 
   const handleAddToCart = () => {
     if (!isAvailable) {
@@ -403,7 +601,7 @@ export default function ProductDetails() {
         price: currentPrice,
         oldPrice: currentOldPrice,
         discount: currentDiscount,
-        image: activeMainImage,
+        image: primaryStaticImage,
         variant_id: selectedVariant?.id || null,
         selectedColor,
         selectedSize,
@@ -440,7 +638,7 @@ export default function ProductDetails() {
       price: currentPrice,
       oldPrice: currentOldPrice,
       discount: currentDiscount,
-      image: activeMainImage,
+      image: primaryStaticImage,
       variant_id: selectedVariant?.id || null,
       selectedColor,
       selectedSize,
@@ -458,7 +656,8 @@ export default function ProductDetails() {
     }
   };
 
-  const activeMainImage = allImages[activeImageIndex] || allImages[0];
+  const activeMediaItem = allMedia[activeImageIndex] || allMedia[0];
+  const isVideoActive = activeMediaItem?.type === "video";
 
   return (
     <div className="product-detail-page-wrapper">
@@ -471,16 +670,16 @@ export default function ProductDetails() {
           {product.category && (
             <>
               <FiChevronRight className="breadcrumb-chevron" />
-              <Link to={`/products?category=${encodeURIComponent((product.category_slug || product.category || "").toLowerCase())}`}>
-                {product.category_name || product.category}
+              <Link to={`/products?category=${encodeURIComponent(String(product.category_slug || (typeof product.category === 'object' ? product.category?.slug || product.category?.name : product.category) || "").toLowerCase())}`}>
+                {typeof product.category === 'object' ? product.category?.name : (product.category_name || String(product.category))}
               </Link>
             </>
           )}
           {product.subcategory && (
             <>
               <FiChevronRight className="breadcrumb-chevron" />
-              <Link to={`/products?category=${encodeURIComponent((product.category_slug || product.category || "").toLowerCase())}&subcategory=${encodeURIComponent((product.subcategory_slug || product.subcategory || "").toLowerCase())}`}>
-                {product.subcategory_name || product.subcategory}
+              <Link to={`/products?category=${encodeURIComponent(String(product.category_slug || (typeof product.category === 'object' ? product.category?.slug || product.category?.name : product.category) || "").toLowerCase())}&subcategory=${encodeURIComponent(String(product.subcategory_slug || (typeof product.subcategory === 'object' ? product.subcategory?.slug || product.subcategory?.name : product.subcategory) || "").toLowerCase())}`}>
+                {typeof product.subcategory === 'object' ? product.subcategory?.name : (product.subcategory_name || String(product.subcategory))}
               </Link>
             </>
           )}
@@ -495,33 +694,44 @@ export default function ProductDetails() {
           {/* LEFT SIDE: Image Gallery */}
           <div className="pdp-gallery-column">
             {/* Vertical Thumbnails (Desktop) */}
-            {allImages.length > 1 && (
+            {allMedia.length > 0 && (
               <div className="pdp-vertical-thumbnails">
-                {allImages.map((img, idx) => (
+                {allMedia.map((item, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    className={`pdp-thumbnail-btn ${activeImageIndex === idx ? "active" : ""}`}
-                    onClick={() => setActiveImageIndex(idx)}
-                    onMouseEnter={() => setActiveImageIndex(idx)}
-                    aria-label={`View product image ${idx + 1}`}
+                    className={`pdp-thumbnail-btn ${activeImageIndex === idx ? "active" : ""} ${item.type === "video" ? "pdp-thumb-video-btn" : ""}`}
+                    onClick={() => handleMediaSelect(idx)}
+                    onMouseEnter={() => handleMediaSelect(idx)}
+                    aria-label={item.type === "video" ? `View product video ${idx + 1}` : `View product image ${idx + 1}`}
                   >
-                    <img
-                      src={img}
-                      alt={`Thumbnail ${idx + 1}`}
-                      className="pdp-thumb-img"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = getFallbackImage(product.category);
-                      }}
-                    />
+                    {item.type === "video" ? (
+                      <div className="pdp-thumb-video-preview-wrap">
+                        <video src={item.url} preload="metadata" muted className="pdp-thumb-video-preview" />
+                        <div className="pdp-thumb-play-overlay">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="pdp-thumb-img"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = getFallbackImage(product.category);
+                        }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Main Image Container */}
-            <div className="pdp-main-image-box">
+            {/* Main Media Container */}
+            <div className={`pdp-main-image-box ${isVideoActive ? "has-video" : ""}`}>
               {hasDiscount && (
                 <span className="pdp-badge-discount">{currentDiscount}% OFF</span>
               )}
@@ -529,48 +739,75 @@ export default function ProductDetails() {
                 <span className="pdp-badge-new">NEW</span>
               )}
 
-              <img
-                src={activeMainImage}
-                alt={product.name}
-                className="pdp-main-img"
-                onClick={() => setIsZoomOpen(true)}
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = getFallbackImage(product.category);
-                }}
-              />
+              {isVideoActive ? (
+                <div className="pdp-main-video-wrapper">
+                  <video
+                    ref={mainVideoRef}
+                    key={activeMediaItem.url}
+                    src={activeMediaItem.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="pdp-main-video-player"
+                  />
+                </div>
+              ) : (
+                <>
+                  <img
+                    src={activeMediaItem?.url || allImages[0]}
+                    alt={product.name}
+                    className="pdp-main-img"
+                    onClick={() => setIsZoomOpen(true)}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = getFallbackImage(product.category);
+                    }}
+                  />
 
-              <button
-                type="button"
-                className="pdp-image-zoom-trigger"
-                onClick={() => setIsZoomOpen(true)}
-                aria-label="Zoom image"
-                title="Click to zoom image"
-              >
-                <FiZoomIn />
-              </button>
+                  <button
+                    type="button"
+                    className="pdp-image-zoom-trigger"
+                    onClick={() => setIsZoomOpen(true)}
+                    aria-label="Zoom image"
+                    title="Click to zoom image"
+                  >
+                    <FiZoomIn />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Mobile Horizontal Thumbnails */}
-            {allImages.length > 1 && (
+            {allMedia.length > 0 && (
               <div className="pdp-mobile-horizontal-thumbnails">
-                {allImages.map((img, idx) => (
+                {allMedia.map((item, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    className={`pdp-mobile-thumb-btn ${activeImageIndex === idx ? "active" : ""}`}
-                    onClick={() => setActiveImageIndex(idx)}
-                    aria-label={`View image ${idx + 1}`}
+                    className={`pdp-mobile-thumb-btn ${activeImageIndex === idx ? "active" : ""} ${item.type === "video" ? "pdp-thumb-video-btn" : ""}`}
+                    onClick={() => handleMediaSelect(idx)}
+                    aria-label={item.type === "video" ? `View video ${idx + 1}` : `View image ${idx + 1}`}
                   >
-                    <img
-                      src={img}
-                      alt={`Mobile thumb ${idx + 1}`}
-                      className="pdp-mobile-thumb-img"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = getFallbackImage(product.category);
-                      }}
-                    />
+                    {item.type === "video" ? (
+                      <div className="pdp-thumb-video-preview-wrap">
+                        <video src={item.url} preload="metadata" muted className="pdp-mobile-thumb-img" />
+                        <div className="pdp-thumb-play-overlay">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={`Mobile thumb ${idx + 1}`}
+                        className="pdp-mobile-thumb-img"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = getFallbackImage(product.category);
+                        }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -581,7 +818,7 @@ export default function ProductDetails() {
           <div className="pdp-info-column">
             {/* Category / Brand Eyebrow */}
             <div className="pdp-category-eyebrow">
-              {product.category_name || (typeof product.category === "string" ? product.category.toUpperCase() : "MOXIE")}
+              {product.category_name || (typeof product.category === "object" ? product.category?.name?.toUpperCase() : String(product.category || "MOXIE").toUpperCase())}
             </div>
 
             {/* Product Title */}
@@ -624,7 +861,7 @@ export default function ProductDetails() {
                     ₹{Number(currentOldPrice).toLocaleString("en-IN")}
                   </del>
                   <span className="pdp-savings-pill">
-                    Save ₹{(currentOldPrice - currentPrice).toLocaleString("en-IN")}
+                    SAVE ₹{(currentOldPrice - currentPrice).toLocaleString("en-IN")}
                   </span>
                 </>
               )}
@@ -691,9 +928,9 @@ export default function ProductDetails() {
             {availableSizes.length > 0 && (
               <div className="pdp-option-group">
                 <div className="pdp-option-header">
-                  <span className="pdp-option-title">Select Size :</span>
+                  <span className="pdp-option-title">SIZE</span>
                   {selectedSize && (
-                    <strong className="pdp-option-selected-name">{selectedSize}</strong>
+                    <strong className="pdp-option-selected-name">: {selectedSize}</strong>
                   )}
                 </div>
 
@@ -716,103 +953,103 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Stock / Availability Indicator */}
-            <div className="pdp-stock-status-row">
-              <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
-                ● {isAvailable ? "In stock and ready to dispatch" : stateLabel}
-              </span>
-            </div>
+            {/* Modern Purchase & Actions Section */}
+            <div className="pdp-purchase-card">
+              {/* Stock & Quantity Control Header */}
+              <div className="pdp-purchase-header-row">
+                <div className="pdp-stock-status-row">
+                  <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
+                    <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
+                  </span>
+                </div>
 
-            {/* Quantity Selector & Actions */}
-            {isAvailable && (
-              <div className="pdp-quantity-row">
-                <span className="pdp-qty-label">Quantity :</span>
-                <div className="pdp-qty-control-box">
+                {isAvailable && (
+                  <div className="pdp-quantity-row">
+                    <span className="pdp-qty-label">QTY</span>
+                    <div className="pdp-qty-control-box">
+                      <button
+                        type="button"
+                        className="pdp-qty-btn"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                        aria-label="Decrease quantity"
+                      >
+                        −
+                      </button>
+                      <span className="pdp-qty-number">{quantity}</span>
+                      <button
+                        type="button"
+                        className="pdp-qty-btn"
+                        onClick={() => setQuantity(Math.min(availableMaxStock, quantity + 1))}
+                        disabled={quantity >= availableMaxStock}
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CTA Action Buttons */}
+              <div className="pdp-action-buttons-stack">
+                <button
+                  type="button"
+                  className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
+                  onClick={handleAddToCart}
+                  disabled={!isAvailable}
+                >
+                  <FiShoppingBag className="pdp-btn-icon" />
+                  <span>
+                    {!isAvailable
+                      ? stateLabel
+                      : inCart
+                      ? "Added to Cart (+)"
+                      : "Add to Cart"}
+                  </span>
+                </button>
+
+                <div className="pdp-secondary-actions-row">
                   <button
                     type="button"
-                    className="pdp-qty-btn"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
+                    className="pdp-buy-now-btn"
+                    onClick={handleBuyNow}
+                    disabled={!isAvailable}
                   >
-                    −
+                    Buy Now
                   </button>
-                  <span className="pdp-qty-number">{quantity}</span>
+
                   <button
                     type="button"
-                    className="pdp-qty-btn"
-                    onClick={() => setQuantity(Math.min(availableMaxStock, quantity + 1))}
-                    disabled={quantity >= availableMaxStock}
-                    aria-label="Increase quantity"
+                    className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
+                    onClick={handleWishlistToggle}
+                    aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+                    title={wished ? "Remove from wishlist" : "Save to wishlist"}
                   >
-                    +
+                    {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
                   </button>
                 </div>
               </div>
-            )}
 
-            {/* CTA Action Buttons */}
-            <div className="pdp-action-buttons-stack">
-              <button
-                type="button"
-                className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
-                onClick={handleAddToCart}
-                disabled={!isAvailable}
-              >
-                <FiShoppingBag className="pdp-btn-icon" />
-                <span>
-                  {!isAvailable
-                    ? stateLabel
-                    : inCart
-                    ? "Added to Cart (+)"
-                    : "Add to Cart"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="pdp-buy-now-btn"
-                onClick={handleBuyNow}
-                disabled={!isAvailable}
-              >
-                Buy Now
-              </button>
-
-              <button
-                type="button"
-                className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
-                onClick={handleWishlistToggle}
-                aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
-                title={wished ? "Remove from wishlist" : "Save to wishlist"}
-              >
-                {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
-              </button>
-            </div>
-
-            {/* Shopping Guarantees */}
-            <div className="pdp-guarantees-grid">
-              <div className="pdp-guarantee-card">
-                <FiTruck className="pdp-guarantee-icon" />
-                <div>
-                  <strong>Free Delivery</strong>
-                  <span>On orders above ₹{storeSettings?.free_shipping_min_amount || 999}</span>
+              {/* Lightweight Trust / Service Row */}
+              <div className="pdp-trust-service-strip">
+                <div className="pdp-trust-item">
+                  <FiShield className="pdp-trust-icon" />
+                  <span>Secure Payment</span>
+                </div>
+                <div className="pdp-trust-item">
+                  <FiTruck className="pdp-trust-icon" />
+                  <span>Order Tracking</span>
+                </div>
+                <div className="pdp-trust-item">
+                  <FiHeadphones className="pdp-trust-icon" />
+                  <span>Customer Support</span>
                 </div>
               </div>
 
-              <div className="pdp-guarantee-card">
-                <FiRotateCcw className="pdp-guarantee-icon" />
-                <div>
-                  <strong>7-Day Returns</strong>
-                  <span>Hassle-free exchange policy</span>
-                </div>
-              </div>
-
-              <div className="pdp-guarantee-card">
-                <FiShield className="pdp-guarantee-icon" />
-                <div>
-                  <strong>100% Genuine</strong>
-                  <span>Direct from Moxie Store</span>
-                </div>
+              {/* Informational Payment Methods */}
+              <div className="pdp-payment-options-note">
+                Payment options available: <strong>UPI · Cards · Net Banking · COD</strong>
               </div>
             </div>
           </div>
@@ -896,7 +1133,10 @@ export default function ProductDetails() {
                       <strong>Carrier Partners:</strong> {storeSettings?.shipping_provider || "Delhivery, BlueDart, DTDC"}
                     </li>
                     <li>
-                      <strong>Shipping Charges:</strong> Free standard shipping on orders over ₹{storeSettings?.free_shipping_min_amount || 999}
+                      <strong>Shipping Charges:</strong>{" "}
+                      {product?.shipping_charge && Number(product.shipping_charge) > 0
+                        ? `Standard Shipping: ₹${Number(product.shipping_charge).toLocaleString("en-IN")}`
+                        : `Free standard shipping on orders over ₹${storeSettings?.free_shipping_min_amount || 999}`}
                     </li>
                   </ul>
                 </div>
@@ -1037,8 +1277,8 @@ export default function ProductDetails() {
         {relatedProducts.length > 0 && (
           <section className="pdp-related-section" aria-label="Related Products">
             <div className="pdp-related-header">
-              <span className="pdp-related-eyebrow">Recommendations</span>
-              <h2 className="pdp-related-title">YOU MAY ALSO LIKE</h2>
+              <span className="pdp-related-eyebrow">RECOMMENDATIONS</span>
+              <h2 className="pdp-related-title">You May Also Like</h2>
               <div className="pdp-related-accent-line" aria-hidden="true" />
             </div>
 
@@ -1058,12 +1298,22 @@ export default function ProductDetails() {
             type="button"
             className="pdp-lightbox-close-btn"
             onClick={() => setIsZoomOpen(false)}
-            aria-label="Close image preview"
+            aria-label="Close media preview"
           >
             <FiX />
           </button>
           <div className="pdp-lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img src={activeMainImage} alt={product.name} className="pdp-lightbox-img" />
+            {isVideoActive ? (
+              <video
+                src={activeMediaItem?.url}
+                controls
+                playsInline
+                autoPlay
+                className="pdp-lightbox-video"
+              />
+            ) : (
+              <img src={activeMediaItem?.url || allImages[0]} alt={product.name} className="pdp-lightbox-img" />
+            )}
           </div>
         </div>
       )}

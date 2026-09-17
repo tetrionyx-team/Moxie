@@ -5,7 +5,7 @@ export default function OrderDetails({ order, onBack }) {
   if (!order) return null;
 
   const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, '0')}` : "MOX-0001");
-  const trackingId = order.trackingId || order.tracking_id || `MOXTRK${String(order.id || '0001').padStart(4, '0')}`;
+  const trackingId = order.trackingId || order.tracking_id || order.tracking_number || "";
   const products = Array.isArray(order.products) && order.products.length > 0
     ? order.products
     : Array.isArray(order.items) && order.items.length > 0
@@ -115,9 +115,18 @@ export default function OrderDetails({ order, onBack }) {
             <div style={{ fontSize: "13px", lineHeight: "1.8", color: "#2c3e50" }}>
               <div><strong>Order ID:</strong> {displayOrderId}</div>
               <div><strong>Order Date:</strong> {order.orderDate || order.date}</div>
-              <div><strong>Tracking ID:</strong> <span style={{ fontFamily: "monospace", fontWeight: "700", color: "#c9a35c" }}>{trackingId}</span></div>
+              <div className="d-flex align-items-center gap-2">
+                <strong>Tracking ID:</strong>
+                <span style={{ fontFamily: "monospace", fontWeight: "700", color: "#c9a35c" }}>{trackingId}</span>
+              </div>
               <div><strong>Status:</strong> <span className="text-capitalize" style={{ fontWeight: "700" }}>{currentStatus}</span></div>
-              <div><strong>Delivery Partner:</strong> {order.deliveryPartner || "Moxie Logistics"}</div>
+              <div><strong>Courier:</strong> {order.courier || order.courier_name || order.deliveryPartner || "India Post"}</div>
+              {order.trackingLocation && (
+                <div><strong>Current Location:</strong> <span style={{ color: "#0284c7" }}>{order.trackingLocation}</span></div>
+              )}
+              {order.estimatedDelivery && (
+                <div><strong>Est. Delivery:</strong> {order.estimatedDelivery}</div>
+              )}
             </div>
           </div>
         </div>
@@ -133,6 +142,11 @@ export default function OrderDetails({ order, onBack }) {
             <div style={{ fontSize: "13px", lineHeight: "1.8", color: "#2c3e50" }}>
               <div><strong>Payment Method:</strong> {order.paymentMethod || "UPI"}</div>
               <div><strong>Payment Status:</strong> {order.paymentStatus || "Success"}</div>
+              <div><strong>Amount Paid:</strong> <span style={{ color: "#166534", fontWeight: "700" }}>₹{Number(order.amountPaid !== undefined ? order.amountPaid : (order.amount_paid !== undefined ? order.amount_paid : (order.paymentStatus === 'Paid' ? grandTotal : (order.codAdvancePaid || order.cod_advance_paid ? 100 : 0)))).toLocaleString("en-IN")}</span></div>
+              <div><strong>Balance Due:</strong> <span style={{ color: Number(order.balanceDue !== undefined ? order.balanceDue : (order.balance_due !== undefined ? order.balance_due : (order.paymentStatus === 'Paid' ? 0 : grandTotal))) > 0 ? "#b91c1c" : "#166534", fontWeight: "700" }}>₹{Number(order.balanceDue !== undefined ? order.balanceDue : (order.balance_due !== undefined ? order.balance_due : (order.paymentStatus === 'Paid' ? 0 : Math.max(0, grandTotal - (order.amountPaid || order.amount_paid || 0))))).toLocaleString("en-IN")}</span></div>
+              {(order.codAdvancePaid || order.cod_advance_paid || order.paymentMethod === 'COD') && (
+                <div><strong>COD Advance:</strong> {order.codAdvancePaid || order.cod_advance_paid ? "Paid Online (₹100)" : "Pending"}</div>
+              )}
               {order.transactionRef && (
                 <div><strong>Transaction ID:</strong> {order.transactionRef}</div>
               )}

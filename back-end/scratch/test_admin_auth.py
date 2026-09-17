@@ -7,6 +7,9 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
+from django.conf import settings
+settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
 from rest_framework.test import APIRequestFactory
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -96,8 +99,9 @@ assert res5.status_code == 429, f"Expected 429 cooldown error, got {res5.status_
 print("[PASS] Test 5: Resend OTP enforces 30s cooldown with 429.")
 
 # TEST 6: Resend OTP after simulating cooldown pass
-otp_record.last_resend_at = timezone.now() - timedelta(seconds=35)
-otp_record.save()
+import re
+past_time = timezone.now() - timedelta(seconds=65)
+AdminLoginOTP.objects.filter(user=staff_user).update(last_resend_at=past_time, created_at=past_time)
 req6 = rf.post('/api/admin/resend-otp/', data=json.dumps({}), content_type="application/json")
 req6.session = req3.session
 res6 = AdminResendOtpView.as_view()(req6)
@@ -106,17 +110,8 @@ data6 = res6.data
 assert data6.get("status") == "pending_otp"
 print("[PASS] Test 6: Resend OTP generated new OTP and reset attempts.")
 
-# Retrieve newest OTP hash and verify with matching raw code
-new_otp_record = AdminLoginOTP.objects.filter(user=staff_user, used=False).order_by('-created_at').first()
-# We test correct verification by calculating what code produces this hash
-import hashlib
-found_code = None
-for c in range(0, 1000000):
-    code_str = f"{c:06d}"
-    if hashlib.sha256(code_str.encode('utf-8')).hexdigest() == new_otp_record.otp_hash:
-        found_code = code_str
-        break
-
+# Retrieve newest OTP from email
+found_code = re.search(r'\b\d{6}\b', mail.outbox[-1].body).group(0)
 assert found_code is not None, "Should match 6-digit code"
 req7 = rf.post('/api/admin/verify-otp/', data=json.dumps({"otp": found_code}), content_type="application/json")
 req7.session = req3.session

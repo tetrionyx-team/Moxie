@@ -7,7 +7,7 @@ import { useToast } from "../../context/ToastContext";
 import { profileService } from "../../services/profileService";
 import ProfileSidebar from "../../components/Profile/ProfileSidebar";
 import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
-import { LuHeart, LuShoppingCart, LuTrash2 } from "react-icons/lu";
+import { LuHeart, LuShoppingCart, LuTrash2, LuShoppingBag, LuSparkles } from "react-icons/lu";
 
 import watchImg from "../../assets/images/watch1.png";
 import shoeImg from "../../assets/images/shoe.svg";
@@ -81,22 +81,76 @@ export default function Wishlist({ embedded = false }) {
     }
   };
 
+  const savedCount = wishlist.length;
+  const availableCount = wishlist.filter((p) => p && !p.outOfStock && p.stock !== 0).length;
+
   const wishlistContent = (
-    <div className="wishlist-inner-container">
-      {/* Page Header */}
-      <div className="profile-header-wrap wishlist-header-wrap">
-        <div>
-          <h1 className="profile-page-title wishlist-title">My Wishlist</h1>
-          <p className="profile-page-subtitle">Your saved favourites, all in one place.</p>
+    <div className="addresses-container wishlist-container">
+      {/* 1. Header — Exact alignment with My Address */}
+      <div className="addresses-header-wrap wishlist-header-wrap">
+        <div className="addresses-title-block">
+          <span className="addresses-eyebrow">MY ACCOUNT</span>
+          <h1 className="addresses-page-title">My Wishlist</h1>
+          <p className="addresses-page-subtitle">
+            Your saved favourites, all in one place.
+          </p>
         </div>
         {wishlist.length > 0 && (
-          <span className="orders-count-pill wishlist-count-badge">
-            {wishlist.length} {wishlist.length === 1 ? "Saved Item" : "Saved Items"}
-          </span>
+          <div className="wishlist-header-badge-wrap">
+            <span className="orders-count-pill wishlist-count-badge">
+              {wishlist.length} {wishlist.length === 1 ? "Saved Item" : "Saved Items"}
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Grid or Empty State */}
+      {/* 2. Dynamic Summary Cards */}
+      <div className="addresses-summary-grid wishlist-summary-grid">
+        {/* Card 1: Saved Items */}
+        <div className="summary-stat-card">
+          <div className="stat-icon-circle gold">
+            <LuHeart />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value-row">
+              <span className="stat-number">{savedCount}</span>
+            </div>
+            <span className="stat-label">Saved Items</span>
+            <span className="stat-desc">Products bookmarked in your wishlist</span>
+          </div>
+        </div>
+
+        {/* Card 2: Available Now */}
+        <div className="summary-stat-card">
+          <div className="stat-icon-circle gold">
+            <LuShoppingBag />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value-row">
+              <span className="stat-number">{availableCount}</span>
+            </div>
+            <span className="stat-label">Available Now</span>
+            <span className="stat-desc">In stock and ready to order</span>
+          </div>
+        </div>
+
+        {/* Card 3: Ready to Shop */}
+        <div
+          className="summary-stat-card informational"
+          onClick={() => navigate("/products")}
+          style={{ cursor: "pointer" }}
+        >
+          <div className="stat-icon-circle gold">
+            <LuSparkles />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label prominent">Ready to Shop</span>
+            <span className="stat-desc">Discover new seasonal fashion drops ›</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Product Grid or Empty State */}
       {wishlist.length > 0 ? (
         <div className="wishlist-grid">
           {wishlist.map((product) => {
@@ -197,17 +251,17 @@ export default function Wishlist({ embedded = false }) {
           })}
         </div>
       ) : (
-        <div className="orders-empty-state wishlist-empty-box">
-          <div className="orders-empty-icon-wrap" aria-hidden="true">
+        <div className="addresses-empty-state wishlist-empty-box">
+          <div className="addresses-empty-icon-wrap" aria-hidden="true">
             <LuHeart className="orders-empty-icon" />
           </div>
-          <h2 className="orders-empty-title">Your wishlist is empty</h2>
-          <p className="orders-empty-desc">
+          <h3 className="addresses-empty-title">Your wishlist is empty</h3>
+          <p className="addresses-empty-subtitle">
             Save products you love and find them here anytime.
           </p>
           <button
             type="button"
-            className="orders-empty-btn wishlist-explore-btn"
+            className="address-add-btn addresses-empty-add-btn wishlist-explore-btn"
             onClick={() => navigate("/products")}
           >
             Explore Products
@@ -222,44 +276,48 @@ export default function Wishlist({ embedded = false }) {
   }
 
   return (
-    <main className="profile-page-container container page-shell wishlist-page-main">
-      {/* Mobile Select Tab Navigation */}
-      <div className="profile-mobile-nav">
-        <select
-          className="profile-mobile-select"
-          value="wishlist"
-          onChange={(e) => {
-            if (e.target.value === "wishlist") {
-              navigate("/wishlist");
-            } else {
-              navigate("/profile", { state: { tab: e.target.value } });
-            }
-          }}
-        >
-          <option value="profile">My Profile</option>
-          <option value="orders">My Orders</option>
-          <option value="wishlist">My Wishlist</option>
-          <option value="addresses">My Addresses</option>
-          <option value="security">Account & Security</option>
-        </select>
-      </div>
-
-      <div className="profile-layout-grid">
-        <ProfileSidebar
-          activeTab="wishlist"
-          profile={profile}
-          onLogout={handleLogoutClick}
-        />
-        <div className="profile-content-card wishlist-content-card">
-          {wishlistContent}
+    <div className="account-page-wrapper">
+      <main className="account-main-layout">
+        {/* Mobile Select Tab Navigation */}
+        <div className="profile-mobile-nav">
+          <select
+            className="profile-mobile-select"
+            value="wishlist"
+            onChange={(e) => {
+              if (e.target.value === "wishlist") {
+                navigate("/wishlist");
+              } else {
+                navigate("/profile", { state: { tab: e.target.value } });
+              }
+            }}
+          >
+            <option value="profile">My Profile</option>
+            <option value="orders">My Orders</option>
+            <option value="wishlist">My Wishlist</option>
+            <option value="addresses">My Addresses</option>
+            <option value="security">Account & Security</option>
+          </select>
         </div>
-      </div>
 
-      <LogoutConfirmModal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleConfirmLogout}
-      />
-    </main>
+        {/* 2-Column Grid Layout matching My Address / Profile */}
+        <div className="account-layout-grid">
+          <ProfileSidebar
+            activeTab="wishlist"
+            profile={profile}
+            onLogout={handleLogoutClick}
+          />
+
+          <section className="account-content-panel">
+            {wishlistContent}
+          </section>
+        </div>
+
+        <LogoutConfirmModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+        />
+      </main>
+    </div>
   );
 }

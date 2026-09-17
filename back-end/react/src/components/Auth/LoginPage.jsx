@@ -11,8 +11,8 @@ export default function LoginPage() {
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
   const [maskedEmail, setMaskedEmail] = useState('')
   const [expiresAt, setExpiresAt] = useState(null)
-  const [remainingSeconds, setRemainingSeconds] = useState(180)
-  const [cooldownSeconds, setCooldownSeconds] = useState(30)
+  const [remainingSeconds, setRemainingSeconds] = useState(300)
+  const [cooldownSeconds, setCooldownSeconds] = useState(60)
   const [attemptsRemaining, setAttemptsRemaining] = useState(5)
   const [isLocked, setIsLocked] = useState(false)
 
@@ -87,14 +87,14 @@ export default function LoginPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || 'Unable to sign in with those credentials.')
+        throw new Error(data.error || 'Invalid admin credentials.')
       }
 
-      if (data.status === 'pending_otp') {
+      if (data.status === 'pending_otp' || data.otp_required) {
         setMaskedEmail(data.masked_email || 'your registered email')
         setExpiresAt(data.expires_at)
-        setRemainingSeconds(data.expires_in_seconds || 180)
-        setCooldownSeconds(data.resend_cooldown_seconds || 30)
+        setRemainingSeconds(data.expires_in_seconds || 300)
+        setCooldownSeconds(data.resend_cooldown_seconds || 60)
         setAttemptsRemaining(data.attempts_remaining || 5)
         setOtpDigits(['', '', '', '', '', ''])
         setIsLocked(false)
@@ -190,14 +190,6 @@ export default function LoginPage() {
     if (cleaned && index < 5) {
       otpInputsRef.current[index + 1]?.focus()
     }
-
-    // If 6th digit entered, auto submit
-    if (cleaned && index === 5) {
-      const fullCode = newDigits.join('')
-      if (fullCode.length === 6) {
-        handleOtpSubmit(fullCode)
-      }
-    }
   }
 
   const handleOtpKeyDown = (index, e) => {
@@ -233,10 +225,6 @@ export default function LoginPage() {
 
     const focusIdx = Math.min(digits.length, 5)
     otpInputsRef.current[focusIdx]?.focus()
-
-    if (digits.length >= 6) {
-      handleOtpSubmit(digits.slice(0, 6).join(''))
-    }
   }
 
   /* ── Resend OTP ── */
@@ -261,15 +249,15 @@ export default function LoginPage() {
       }
 
       setExpiresAt(data.expires_at)
-      setRemainingSeconds(data.expires_in_seconds || 180)
-      setCooldownSeconds(data.resend_cooldown_seconds || 30)
+      setRemainingSeconds(data.expires_in_seconds || 300)
+      setCooldownSeconds(data.resend_cooldown_seconds || 60)
       setAttemptsRemaining(data.attempts_remaining || 5)
       setOtpDigits(['', '', '', '', '', ''])
       if (otpInputsRef.current[0]) {
         otpInputsRef.current[0].focus()
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to resend security code.')
+      setErrorMessage(err.message || 'Failed to resend verification code.')
       triggerShake()
     } finally {
       setIsLoading(false)
@@ -358,7 +346,7 @@ export default function LoginPage() {
               </div>
 
               <button type="submit" className="submit-btn" disabled={isLoading}>
-                {isLoading ? 'Verifying Credentials...' : 'Sign In \u2192'}
+                {isLoading ? 'Sending verification code...' : 'Sign In \u2192'}
               </button>
             </form>
           </>
@@ -401,7 +389,7 @@ export default function LoginPage() {
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                     disabled={isLoading || isLocked || remainingSeconds <= 0}
                     aria-label={`Digit ${idx + 1} of verification code`}
-                    autoComplete="one-time-code"
+                    autoComplete="off"
                   />
                 ))}
               </div>

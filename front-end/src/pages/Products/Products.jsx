@@ -1,19 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { FiChevronRight, FiFilter, FiX, FiCheck, FiTrash2, FiShoppingBag, FiChevronDown, FiChevronUp } from "react-icons/fi";
-import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { FiChevronRight, FiFilter, FiX, FiCheck, FiTrash2, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useData } from "../../context/DataContext";
-import { useCart } from "../../context/CartContext";
-import { useWishlist } from "../../context/WishlistContext";
-import { useToast } from "../../context/ToastContext";
 import { getSaleState } from "../../utils/inventory";
+import ProductCard from "../../components/Product/ProductCard";
 import "./Products.css";
-
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -56,15 +47,6 @@ const COLOR_MAP = {
   multicolour: "linear-gradient(135deg, #ef4444, #3b82f6, #10b981)",
 };
 
-const getFallbackImage = (categorySlug) => {
-  const slug = String(categorySlug || "").toLowerCase();
-  if (slug.includes("watch")) return watchImg;
-  if (slug.includes("footwear") || slug.includes("shoe") || slug.includes("slider") || slug.includes("slipper")) return shoeImg;
-  if (slug.includes("cap")) return capImg;
-  if (slug.includes("gadget") || slug.includes("bud")) return budsImg;
-  return defaultImg;
-};
-
 export default function Products() {
   const { category: paramCategory, subcategory: paramSubcategory } = useParams();
   const [searchParams] = useSearchParams();
@@ -73,9 +55,6 @@ export default function Products() {
   const catalogTopRef = useRef(null);
 
   const { categories = [], products = [], loading } = useData() || {};
-  const { cart = [], addToCart } = useCart() || {};
-  const { toggleWishlist, isInWishlist } = useWishlist() || {};
-  const toast = useToast();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [openSections, setOpenSections] = useState({
@@ -606,46 +585,6 @@ export default function Products() {
     return "All Products";
   }, [currentCategorySlug, isAllCategory, alias, activeCategoryObj, currentSubcategorySlug, availableSubcategories]);
 
-  // Wishlist & Cart Actions on Product Cards
-  const handleWishlistClick = (e, productItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (toggleWishlist) {
-      toggleWishlist(productItem);
-      const isWished = isInWishlist ? isInWishlist(productItem.id) : false;
-      if (toast) {
-        toast(isWished ? "Removed from wishlist" : "Saved to wishlist");
-      }
-    }
-  };
-
-  const handleAddToCart = (e, productItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const saleState = getSaleState(productItem);
-    if (saleState !== "in_stock") {
-      if (toast) toast("This item is currently not available for purchase");
-      return;
-    }
-
-    // If product has multiple sizes or variants requiring choice, navigate to details
-    const hasMultipleVariants = Array.isArray(productItem.variants) && productItem.variants.length > 1;
-    const hasMultipleSizes = Array.isArray(productItem.sizes) && productItem.sizes.length > 1;
-
-    if (hasMultipleVariants || hasMultipleSizes) {
-      navigate(`/product/${productItem.id}`);
-      return;
-    }
-
-    if (addToCart) {
-      addToCart(productItem, 1);
-      if (toast) {
-        toast(`${productItem.name} added to cart`);
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className="catalog-loading-screen">
@@ -1023,129 +962,9 @@ export default function Products() {
             {/* Product Grid or Empty State */}
             {paginatedProducts.length > 0 ? (
               <div className="catalog-product-grid">
-                {paginatedProducts.map((product) => {
-                  const inCart = cart?.some((item) => item.id === product.id);
-                  const isWished = isInWishlist ? isInWishlist(product.id) : false;
-                  const fallback = getFallbackImage(product.category);
-                  const cardImage = product.image || fallback;
-                  const saleState = getSaleState(product);
-                  const isAvailable = saleState === "in_stock" && product.stock !== false && (product.rawStock === undefined || product.rawStock > 0);
-
-                  const brandLabel =
-                    product.brand ||
-                    product.specifications?.Brand ||
-                    (product.category_name && !product.category_name.toLowerCase().includes("all")
-                      ? product.category_name.toUpperCase()
-                      : product.category
-                      ? String(product.category).toUpperCase()
-                      : "");
-
-                  const hasDiscount =
-                    Boolean(product.discount) &&
-                    Number(product.discount) > 0 &&
-                    Boolean(product.oldPrice) &&
-                    Number(product.oldPrice) > Number(product.price);
-
-                  const hasOldPrice =
-                    Boolean(product.oldPrice) &&
-                    Number(product.oldPrice) > Number(product.price);
-
-                  const hasRating = Boolean(product.rating) && Number(product.rating) > 0;
-                  const targetLink = `/product/${product.id}`;
-
-                  return (
-                    <article key={product.id} className="watch-card-item catalog-watch-card">
-                      <Link
-                        to={targetLink}
-                        className="watch-card-link"
-                        aria-label={product.name}
-                      >
-                        {/* Top Image Media Area */}
-                        <div className="watch-card-media product-image-container">
-                          {hasDiscount && (
-                            <span className="watch-discount-badge">
-                              {product.discount}% OFF
-                            </span>
-                          )}
-
-                          <button
-                            type="button"
-                            className={`watch-heart-btn ${isWished ? "active" : ""}`}
-                            onClick={(e) => handleWishlistClick(e, product)}
-                            aria-label={
-                              isWished ? "Remove from wishlist" : "Add to wishlist"
-                            }
-                          >
-                            {isWished ? <FaHeart /> : <FaRegHeart />}
-                          </button>
-
-                          <img
-                            src={cardImage}
-                            alt={product.name}
-                            className="watch-card-img"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = fallback;
-                            }}
-                          />
-                        </div>
-
-                        {/* Product Card Body */}
-                        <div className="watch-card-body">
-                          {brandLabel && <span className="watch-brand-name">{brandLabel}</span>}
-                          <h3 className="watch-product-title" title={product.name}>
-                            {product.name}
-                          </h3>
-
-                          {/* Price and Rating Row */}
-                          <div className="watch-price-row">
-                            <strong className="watch-current-price">
-                              ₹{Number(product.price || 0).toLocaleString("en-IN")}
-                            </strong>
-                            {hasOldPrice && (
-                              <span className="watch-old-price">
-                                ₹{Number(product.oldPrice || 0).toLocaleString("en-IN")}
-                              </span>
-                            )}
-                            {hasRating && (
-                              <div className="watch-rating-row">
-                                <span className="watch-star-icon">★</span>
-                                <span className="watch-rating-val">{product.rating}</span>
-                                {product.reviewCount ? (
-                                  <>
-                                    <span className="watch-rating-sep">|</span>
-                                    <span className="watch-review-count">
-                                      {product.reviewCount}
-                                    </span>
-                                  </>
-                                ) : null}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-
-                      {/* Add to Cart Button */}
-                      <div className="watch-btn-wrapper">
-                        <button
-                          type="button"
-                          className={`watch-add-to-cart-btn ${inCart ? "added" : ""}`}
-                          onClick={(e) => handleAddToCart(e, product)}
-                          aria-label={`Add ${product.name} to cart`}
-                          disabled={!isAvailable}
-                        >
-                          <FiShoppingBag className="watch-cart-icon" />
-                          {!isAvailable
-                            ? "OUT OF STOCK"
-                            : inCart
-                            ? "IN CART (+)"
-                            : "ADD TO CART"}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                {paginatedProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
               </div>
             ) : (
               <div className="catalog-empty-state">

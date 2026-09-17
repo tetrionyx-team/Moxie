@@ -17,6 +17,7 @@ MODULE_DEFINITIONS = [
     ('admin_users', 'Admin Users', '/admin/users/', ['admin_users', 'admin users', 'users', 'staff', 'admin user']),
     ('messages', 'Messages', '/admin/messages/', ['messages', 'message', 'notifications', 'notification']),
     ('settings', 'Settings', '/admin/settings/', ['settings', 'setting', 'config']),
+    ('featured_products', 'Featured Products', '/admin/featured-products/', ['featured_products', 'featured products', 'hotsale', 'hot sale', 'featured']),
     ('payments', 'Payments', '/admin/orders/', ['payments', 'payment']),
 ]
 
@@ -202,6 +203,39 @@ class HasAdminModulePermission(BasePermission):
         if not module:
             return True
         return has_admin_permission(request.user, module)
+
+
+class StaffPermissionAdminMixin:
+    """
+    Mixin for Django ModelAdmin and Inline classes to enforce module-level permissions
+    based on Moxie's custom AdminProfile permissions system.
+    """
+    required_module = None
+
+    def has_module_permission(self, request):
+        if not self.required_module:
+            return True
+        return has_admin_permission(request.user, self.required_module)
+
+    def has_view_permission(self, request, obj=None):
+        if not self.required_module:
+            return True
+        return has_admin_permission(request.user, self.required_module)
+
+    def has_change_permission(self, request, obj=None):
+        if not self.required_module:
+            return True
+        return has_admin_permission(request.user, self.required_module)
+
+    def has_add_permission(self, request, *args, **kwargs):
+        if not self.required_module:
+            return True
+        return has_admin_permission(request.user, self.required_module)
+
+    def has_delete_permission(self, request, obj=None, *args, **kwargs):
+        if not self.required_module:
+            return True
+        return has_admin_permission(request.user, self.required_module)
 
 
 def custom_permission_denied_view(request, exception=None):

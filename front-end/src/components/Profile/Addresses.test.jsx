@@ -7,44 +7,54 @@ describe("Addresses Component", () => {
   const sampleAddresses = [
     {
       id: "1",
-      name: "Harish Raja",
-      phone: "+91 98765 43210",
-      flat: "3/185, Temple South Street",
-      area: "Kulasekaranpattinam",
+      full_name: "Harish Raja",
+      mobile_number: "9876543210",
+      address_line_1: "3/185, Temple South Street",
+      address_line_2: "Kulasekaranpattinam",
+      landmark: "Near Temple",
       city: "Thoothukudi",
+      district: "Thoothukudi",
       state: "Tamil Nadu",
       pincode: "628206",
-      type: "Home",
-      isDefault: true,
+      address_type: "Home",
+      is_default: true,
     },
     {
       id: "2",
-      name: "Harish Raja",
-      phone: "+91 98765 43210",
-      flat: "Tower 3, Office 101",
-      area: "Tech Park",
+      full_name: "Harish Raja",
+      mobile_number: "9876543210",
+      address_line_1: "Tower 3, Office 101",
+      address_line_2: "Tech Park",
+      landmark: "",
       city: "Chennai",
+      district: "Chennai",
       state: "Tamil Nadu",
       pincode: "600001",
-      type: "Work",
-      isDefault: false,
+      address_type: "Work",
+      is_default: false,
     },
   ];
 
-  test("renders address cards, labels, and badges properly", () => {
+  test("renders address cards, labels, summary cards and badges properly", () => {
     render(<Addresses addresses={sampleAddresses} onSetDefault={jest.fn()} />);
 
     expect(screen.getByText("My Addresses")).toBeInTheDocument();
-    expect(screen.getByText("Manage your saved delivery addresses.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Manage your saved delivery addresses for a faster, smoother checkout experience.")
+    ).toBeInTheDocument();
 
-    // Check address 1
-    expect(screen.getByText("DEFAULT")).toBeInTheDocument();
+    // Summary cards
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Saved Addresses")).toBeInTheDocument();
+    expect(screen.getAllByText("Default Address").length).toBeGreaterThanOrEqual(1);
+
+    // Address 1
+    expect(screen.getByText("Default")).toBeInTheDocument();
     expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.getByText(/3\/185, Temple South Street/)).toBeInTheDocument();
     expect(screen.getByText(/Kulasekaranpattinam/)).toBeInTheDocument();
-    expect(screen.getByText(/Thoothukudi, Tamil Nadu - 628206/)).toBeInTheDocument();
 
-    // Check address 2
+    // Address 2
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText(/Tower 3, Office 101/)).toBeInTheDocument();
 
@@ -71,11 +81,13 @@ describe("Addresses Component", () => {
 
     // Modal appears
     expect(screen.getByText("Delete this address?")).toBeInTheDocument();
-    expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument();
+    expect(
+      screen.getByText(/This address will be removed from your saved addresses/i)
+    ).toBeInTheDocument();
 
     // Click confirm Delete inside modal
     const modalDialog = screen.getByRole("dialog");
-    const confirmBtn = within(modalDialog).getByRole("button", { name: /Delete/i });
+    const confirmBtn = within(modalDialog).getByRole("button", { name: /^Delete$/i });
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
@@ -92,7 +104,7 @@ describe("Addresses Component", () => {
 
     // Edit Modal opens
     expect(screen.getByText("Edit Delivery Address")).toBeInTheDocument();
-    const nameInput = screen.getByLabelText(/Full Name/i);
+    const nameInput = screen.getByLabelText(/FULL NAME/i);
     expect(nameInput).toHaveValue("Harish Raja");
 
     fireEvent.change(nameInput, { target: { value: "Harish R." } });
@@ -104,7 +116,7 @@ describe("Addresses Component", () => {
       expect(handleUpdate).toHaveBeenCalledWith(
         "1",
         expect.objectContaining({
-          name: "Harish R.",
+          full_name: "Harish R.",
         })
       );
     });
@@ -128,25 +140,25 @@ describe("Addresses Component", () => {
     expect(handleAdd).not.toHaveBeenCalled();
 
     // Fill valid form
-    fireEvent.change(screen.getByLabelText(/Full Name/i), {
+    fireEvent.change(screen.getByLabelText(/FULL NAME/i), {
       target: { value: "Sundar Raj" },
     });
-    fireEvent.change(screen.getByLabelText(/Mobile Number/i), {
+    fireEvent.change(screen.getByLabelText(/MOBILE NUMBER/i), {
       target: { value: "9876543210" },
     });
-    fireEvent.change(screen.getByLabelText(/House \/ Flat/i), {
-      target: { value: "Flat 101" },
+    fireEvent.change(screen.getByLabelText(/HOUSE \/ FLAT/i), {
+      target: { value: "Flat 101, Park Avenue" },
     });
-    fireEvent.change(screen.getByLabelText(/Street \/ Area/i), {
-      target: { value: "Park Avenue" },
-    });
-    fireEvent.change(screen.getByLabelText(/City/i), {
+    fireEvent.change(screen.getByLabelText(/CITY/i), {
       target: { value: "Madurai" },
     });
-    fireEvent.change(screen.getByLabelText(/State/i), {
+    fireEvent.change(screen.getByLabelText(/DISTRICT/i), {
+      target: { value: "Madurai" },
+    });
+    fireEvent.change(screen.getByLabelText(/STATE/i), {
       target: { value: "Tamil Nadu" },
     });
-    fireEvent.change(screen.getByLabelText(/Pincode/i), {
+    fireEvent.change(screen.getByLabelText(/PIN CODE/i), {
       target: { value: "625001" },
     });
 
@@ -155,8 +167,9 @@ describe("Addresses Component", () => {
     await waitFor(() => {
       expect(handleAdd).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "Sundar Raj",
+          full_name: "Sundar Raj",
           city: "Madurai",
+          district: "Madurai",
           pincode: "625001",
         })
       );
