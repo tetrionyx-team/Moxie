@@ -23,27 +23,10 @@ function getCsrfToken() {
   return '';
 }
 
-const ALL_ORDERS_KEY = "moxie_orders";
-
-const getStoredMasterOrders = () => {
-  try {
-    const raw = localStorage.getItem(ALL_ORDERS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch {}
-  return [];
-};
-
-const saveStoredMasterOrders = (orders) => {
-  try {
-    localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(orders));
-    window.dispatchEvent(new CustomEvent("moxie_orders_updated", { detail: { orders } }));
-  } catch {}
-};
+// Force purge any old mock localStorage orders
+try {
+  localStorage.removeItem("moxie_orders");
+} catch {}
 
 const getOrderStatusHint = (status) => {
   const s = (status || 'CONFIRMED').toUpperCase().replace(/\s+/g, '_');
@@ -59,7 +42,7 @@ const getOrderStatusHint = (status) => {
 };
 
 const formatShippedDate = (isoStr) => {
-  if (!isoStr) return '15 Sep 2026';
+  if (!isoStr) return '';
   try {
     const d = new Date(isoStr);
     if (isNaN(d.getTime())) return isoStr;
@@ -77,30 +60,15 @@ const formatShippedDate = (isoStr) => {
 
 export default function OrderPage() {
   const djangoContext = window.DJANGO_CONTEXT || {};
-  const initialMasterOrders = useMemo(() => {
-    const stored = getStoredMasterOrders();
-    if (stored && stored.length > 0) return stored;
-    return djangoContext.ordersList || [];
-  }, []);
-
-  const [orders, setOrders] = useState(initialMasterOrders);
-  const [stats, setStats] = useState(() => {
-    const all = initialMasterOrders;
-    return {
-      total_orders: djangoContext.totalOrders || all.length,
-      pending_orders: djangoContext.pendingOrders || all.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.order_status || o.status || '').toLowerCase().trim())).length,
-      shipped_orders: djangoContext.shippedOrders || all.filter(o => ['shipped', 'in_transit', 'in transit', 'out for delivery', 'out_for_delivery'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
-      delivered_orders: djangoContext.deliveredOrders || all.filter(o => (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim() === 'delivered').length,
-      cancelled_orders: djangoContext.cancelledOrders || all.filter(o => ['cancelled', 'canceled'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
-      total_revenue: djangoContext.totalRevenue || all.reduce((acc, o) => {
-        const pStatus = (o.paymentStatus || o.payment_status || '').toLowerCase();
-        if (pStatus === 'paid' || pStatus === 'success') {
-          return acc + (Number(o.grandTotal || o.total || o.totalAmount || o.total_amount) || 0);
-        }
-        return acc;
-      }, 0),
-    };
-  });
+  const [orders, setOrders] = useState(() => djangoContext.ordersList || []);
+  const [stats, setStats] = useState(() => ({
+    total_orders: djangoContext.totalOrders || (djangoContext.ordersList ? djangoContext.ordersList.length : 0),
+    pending_orders: djangoContext.pendingOrders || 0,
+    shipped_orders: djangoContext.shippedOrders || 0,
+    delivered_orders: djangoContext.deliveredOrders || 0,
+    cancelled_orders: djangoContext.cancelledOrders || 0,
+    total_revenue: djangoContext.totalRevenue || 0,
+  }));
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,9 +104,6 @@ export default function OrderPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    let apiList = [];
-    let apiStats = null;
-
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.append('q', searchTerm);
@@ -152,117 +117,32 @@ export default function OrderPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        apiList = data.orders || data.results || data.orders_list || [];
-        apiStats = data.stats;
+        const apiList = data.orders || data.results || data.orders_list || [];
+        setOrders(apiList);
+        if (data.stats) {
+          setStats(data.stats);
+        } else {
+          setStats({
+            total_orders: apiList.length,
+            pending_orders: apiList.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.order_status || o.status || '').toLowerCase().trim())).length,
+            shipped_orders: apiList.filter(o => ['shipped', 'in_transit', 'in transit', 'out for delivery', 'out_for_delivery'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
+            delivered_orders: apiList.filter(o => (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim() === 'delivered').length,
+            cancelled_orders: apiList.filter(o => ['cancelled', 'canceled'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
+            total_revenue: apiList.reduce((acc, o) => {
+              const pStatus = (o.paymentStatus || o.payment_status || '').toLowerCase();
+              if (pStatus === 'paid' || pStatus === 'success') {
+                return acc + (Number(o.grandTotal || o.total || o.totalAmount || o.total_amount) || 0);
+              }
+              return acc;
+            }, 0),
+          });
+        }
       }
     } catch (err) {
       console.error("API orders fetch error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Merge with master localStorage dataset
-    let masterList = getStoredMasterOrders();
-
-    // If API returned orders, sync into master and update existing records with live DB status
-    if (apiList.length > 0) {
-      const masterMap = new Map();
-      masterList.forEach(o => masterMap.set(String(o.id || o.orderId), o));
-      apiList.forEach(apiO => {
-        const key = String(apiO.id || apiO.orderId);
-        const existing = masterMap.get(key) || {};
-        masterMap.set(key, {
-          ...existing,
-          ...apiO,
-          orderStatus: apiO.orderStatus || apiO.order_status || existing.orderStatus || 'Confirmed',
-          order_status: apiO.order_status || apiO.orderStatus || existing.order_status || 'Confirmed',
-          shippingStatus: apiO.shippingStatus || apiO.shipping_status || existing.shippingStatus || apiO.orderStatus,
-          shipping_status: apiO.shipping_status || apiO.shippingStatus || existing.shipping_status || apiO.orderStatus,
-          paymentStatus: apiO.paymentStatus || apiO.payment_status || existing.paymentStatus || 'Pending',
-          paymentMethod: apiO.paymentMethod || existing.paymentMethod || (apiO.razorpayOrderId && !apiO.razorpayOrderId.startsWith('cod_') ? 'UPI' : 'COD'),
-          tracking_number: apiO.tracking_number || apiO.tracking_id || apiO.trackingId || existing.tracking_number || '',
-          tracking_locked: Boolean(apiO.tracking_locked || apiO.tracking_number || apiO.tracking_id || apiO.trackingId || existing.tracking_locked),
-        });
-      });
-      masterList = Array.from(masterMap.values());
-      try {
-        localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(masterList));
-      } catch (e) {}
-    }
-
-    // Filter master list according to active UI filters
-    let filtered = [...masterList];
-
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(o => {
-        const idMatch = (o.orderId || o.order_number || String(o.id)).toLowerCase().includes(q);
-        const nameMatch = (o.customerName || o.customer?.name || o.shipping_name || '').toLowerCase().includes(q);
-        const phoneMatch = (o.mobile || o.customer?.phone || o.shipping_phone || '').includes(q);
-        const emailMatch = (o.email || o.customer?.email || '').toLowerCase().includes(q);
-        const trackMatch = (o.tracking_number || o.trackingId || o.tracking_id || '').toLowerCase().includes(q);
-        const prodMatch = (o.products || []).some(p => (p.productName || p.name || '').toLowerCase().includes(q)) || (o.name || '').toLowerCase().includes(q);
-        return idMatch || nameMatch || phoneMatch || emailMatch || trackMatch || prodMatch;
-      });
-    }
-
-    if (statusFilter && statusFilter !== 'all') {
-      filtered = filtered.filter(o => {
-        const s = (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim();
-        return s === statusFilter.toLowerCase().trim();
-      });
-    }
-
-    if (paymentFilter && paymentFilter !== 'all') {
-      filtered = filtered.filter(o => {
-        const p = (o.paymentStatus || o.payment_status || '').toLowerCase().trim();
-        return p === paymentFilter.toLowerCase().trim();
-      });
-    }
-
-    if (selectedDate) {
-      filtered = filtered.filter(o => {
-        const iso = o.createdAt ? o.createdAt.split('T')[0] : '';
-        if (iso && iso === selectedDate) return true;
-        if (o.isoDate && o.isoDate === selectedDate) return true;
-        try {
-          const d = new Date(o.createdAt || o.date);
-          return d.toISOString().split('T')[0] === selectedDate;
-        } catch {
-          return false;
-        }
-      });
-    }
-
-    // Sorting
-    if (sortOption === 'oldest') {
-      filtered.sort((a, b) => new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date));
-    } else if (sortOption === 'highest') {
-      filtered.sort((a, b) => (Number(b.grandTotal || b.total || b.totalAmount || b.total_amount) || 0) - (Number(a.grandTotal || a.total || a.totalAmount || a.total_amount) || 0));
-    } else if (sortOption === 'lowest') {
-      filtered.sort((a, b) => (Number(a.grandTotal || a.total || a.totalAmount || a.total_amount) || 0) - (Number(b.grandTotal || b.total || b.totalAmount || b.total_amount) || 0));
-    } else {
-      filtered.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-    }
-
-    // Recalculate dynamic counters from entire master dataset
-    const all = masterList.length > 0 ? masterList : (apiList.length > 0 ? apiList : djangoContext.ordersList || []);
-    const calculatedStats = {
-      total_orders: all.length,
-      pending_orders: all.filter(o => ['pending', 'confirmed', 'processing', 'packed'].includes((o.orderStatus || o.order_status || o.status || '').toLowerCase().trim())).length,
-      shipped_orders: all.filter(o => ['shipped', 'in_transit', 'in transit', 'out for delivery', 'out_for_delivery'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
-      delivered_orders: all.filter(o => (o.orderStatus || o.order_status || o.status || '').toLowerCase().trim() === 'delivered').length,
-      cancelled_orders: all.filter(o => ['cancelled', 'canceled'].includes((o.orderStatus || o.order_status || o.status || o.shipping_status || '').toLowerCase().trim())).length,
-      total_revenue: all.reduce((acc, o) => {
-        const pStatus = (o.paymentStatus || o.payment_status || '').toLowerCase();
-        if (pStatus === 'paid' || pStatus === 'success') {
-          return acc + (Number(o.grandTotal || o.total || o.totalAmount || o.total_amount) || 0);
-        }
-        return acc;
-      }, 0),
-    };
-
-    setOrders(filtered);
-    setStats(calculatedStats);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -286,17 +166,13 @@ export default function OrderPage() {
     setShipmentMessage('');
     setReceiptFile(null);
 
-    // Check master dataset first for rich product details
-    const master = getStoredMasterOrders();
-    const foundLocal = master.find(o => String(o.id) === String(orderItem.id) || String(o.orderId) === String(orderItem.orderId));
-
     try {
       const res = await fetch(`/api/admin-orders/${orderItem.id}/`, {
         headers: { 'Accept': 'application/json' },
       });
       if (res.ok) {
         const data = await res.json();
-        const mergedDetail = { ...foundLocal, ...data };
+        const mergedDetail = { ...orderItem, ...data };
         setSelectedOrderDetail(mergedDetail);
         setUpdateOrderStatus(mergedDetail.orderStatus || mergedDetail.order_status || mergedDetail.status || 'Confirmed');
         setUpdatePaymentStatus(mergedDetail.paymentStatus || mergedDetail.payment_status || 'Pending');
@@ -311,23 +187,13 @@ export default function OrderPage() {
       console.error("API admin order detail fetch error:", err);
     }
 
-    if (foundLocal) {
-      setSelectedOrderDetail(foundLocal);
-      setUpdateOrderStatus(foundLocal.orderStatus || foundLocal.order_status || foundLocal.status || 'Confirmed');
-      setUpdatePaymentStatus(foundLocal.paymentStatus || foundLocal.payment_status || 'Pending');
-      setCourierName(foundLocal.courier_name || foundLocal.courierPartner || '');
-      const currentTrk = foundLocal.tracking_number || foundLocal.trackingId || foundLocal.tracking_id || '';
-      setTrackingNumber(currentTrk);
-      setShowTrackingConfirmModal(false);
-    } else {
-      setSelectedOrderDetail(orderItem);
-      setUpdateOrderStatus(orderItem.orderStatus || orderItem.order_status || orderItem.status || 'Confirmed');
-      setUpdatePaymentStatus(orderItem.paymentStatus || orderItem.payment_status || 'Pending');
-      setCourierName(orderItem.courier_name || orderItem.courierPartner || '');
-      const currentTrk = orderItem.tracking_number || orderItem.trackingId || orderItem.tracking_id || '';
-      setTrackingNumber(currentTrk);
-      setShowTrackingConfirmModal(false);
-    }
+    setSelectedOrderDetail(orderItem);
+    setUpdateOrderStatus(orderItem.orderStatus || orderItem.order_status || orderItem.status || 'Confirmed');
+    setUpdatePaymentStatus(orderItem.paymentStatus || orderItem.payment_status || 'Pending');
+    setCourierName(orderItem.courier_name || orderItem.courierPartner || '');
+    const currentTrk = orderItem.tracking_number || orderItem.trackingId || orderItem.tracking_id || '';
+    setTrackingNumber(currentTrk);
+    setShowTrackingConfirmModal(false);
     setOrderDetailLoading(false);
   };
 

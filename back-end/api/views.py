@@ -2166,64 +2166,10 @@ def get_client_ip(request):
 def send_admin_otp_email(target_email, otp_code):
     """
     Sends a cryptographically secure 6-digit OTP to the registered admin email
-    using Django's configured EmailMultiAlternatives (SMTP / Gmail).
-    Features clean transactional layout, MOXIE branding, and plain-text fallback.
+    using the active transport (HTTPS provider on Render Free or SMTP).
     """
-    subject = 'Your MOXIE Admin verification code'
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'MOXIE <tetrionyx@gmail.com>'
-
-    plain_message = (
-        f"MOXIE Admin Verification\n\n"
-        f"Your verification code is:\n\n"
-        f"{otp_code}\n\n"
-        f"This code expires in 5 minutes.\n\n"
-        f"If you did not attempt to sign in to MOXIE Admin, you can safely ignore this message.\n\n"
-        f"MOXIE"
-    )
-
-    html_message = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your MOXIE Admin verification code</title>
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
-  <div style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 36px 32px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); text-align: center;">
-    <div style="margin-bottom: 20px;">
-      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #C9A35C; text-transform: uppercase;">MOXIE</h1>
-    </div>
-    <div style="margin-top: 16px;">
-      <h2 style="font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Admin Verification</h2>
-      <p style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;">Use this verification code to complete your sign in:</p>
-      <div style="background-color: #faf8f5; border: 1px solid #C9A35C; border-radius: 8px; padding: 16px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f172a; margin: 20px 0; font-family: monospace, Courier, sans-serif;">{otp_code}</div>
-      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 20px;">This code expires in <strong>5 minutes</strong>.</p>
-    </div>
-    <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; line-height: 1.4;">
-      If you did not request this code, you can safely ignore this email.<br>
-      <span style="color: #64748b; font-weight: 600; margin-top: 6px; display: inline-block;">MOXIE Security</span>
-    </div>
-  </div>
-</body>
-</html>"""
-
-    if getattr(settings, 'DEBUG', True):
-        print(f"\n{'='*60}\n[MOXIE ADMIN 2FA OTP CODE (LOCAL DEV ONLY)]\nUser: {target_email}\nVerification Code: {otp_code}\n{'='*60}\n", flush=True)
-
-    try:
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=plain_message,
-            from_email=from_email,
-            to=[target_email],
-            reply_to=['tetrionyx@gmail.com'],
-        )
-        email.attach_alternative(html_message, "text/html")
-        email.send(fail_silently=False)
-    except Exception as e:
-        logger.warning("SMTP email send failed (%s: %s).", type(e).__name__, e)
-        if not getattr(settings, 'DEBUG', True):
-            raise
+    from services.email_service import send_admin_otp_email as service_send_admin_otp
+    return service_send_admin_otp(target_email, otp_code)
 
 
 
@@ -2355,12 +2301,18 @@ class AdminApiLoginView(APIView):
             is_locked=False
         )
 
-        # Send email via Gmail SMTP
+        # Send verification email via active transport (Resend HTTPS API on Render Free / SMTP)
         try:
             send_admin_otp_email(target_email, otp_code)
         except Exception as e:
-            logger.error("Admin OTP email send failed: %s: %s", type(e).__name__, e)
-            if not getattr(settings, 'DEBUG', True):
+            logger.error(
+                "[Admin Login] Admin OTP email delivery failed for user '%s' (%s): %s: %s",
+                user.username,
+                mask_admin_email(target_email),
+                type(e).__name__,
+                e
+            )
+            if not getattr(settings, 'DEBUG', False):
                 otp_obj.delete()
                 return Response(
                     {'error': 'Unable to send verification email. Please try again.'},
@@ -2592,12 +2544,18 @@ class AdminResendOtpView(APIView):
 
         request.session['admin_pending_otp_id'] = new_otp_obj.id
 
-        # Send email via Gmail SMTP
+        # Send verification email via active transport (Resend HTTPS API on Render Free / SMTP)
         try:
             send_admin_otp_email(target_email, new_code)
         except Exception as e:
-            logger.error("Admin OTP resend email failed: %s: %s", type(e).__name__, e)
-            if not getattr(settings, 'DEBUG', True):
+            logger.error(
+                "[Admin Resend OTP] Admin OTP resend delivery failed for user '%s' (%s): %s: %s",
+                user.username,
+                mask_admin_email(target_email),
+                type(e).__name__,
+                e
+            )
+            if not getattr(settings, 'DEBUG', False):
                 new_otp_obj.delete()
                 return Response(
                     {'error': 'Unable to send verification email. Please try again.'},
@@ -4823,14 +4781,15 @@ class AdminTestEmailView(APIView):
             return err
         to_email = request.data.get('to_email') or request.user.email or 'admin@moxie.com'
         try:
-            send_mail(
-                subject='Moxie Admin - SMTP Test Email',
-                message='This is a test email sent from Moxie Admin Portal settings.',
-                from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@moxie.com',
-                recipient_list=[to_email],
-                fail_silently=False
+            from services.email_service import send_transactional_email, get_active_email_provider
+            provider = get_active_email_provider()
+            send_transactional_email(
+                to_email=to_email,
+                subject='Moxie Admin - Email Delivery Test',
+                html_content='<div style="font-family: sans-serif; padding: 20px;"><h3>Moxie Admin Portal</h3><p>This is a test email sent from Moxie Admin Portal settings.</p></div>',
+                text_content='This is a test email sent from Moxie Admin Portal settings.'
             )
-            return Response({'success': True, 'message': f'Test email sent to {to_email}'})
+            return Response({'success': True, 'message': f'Test email successfully sent to {to_email} via {provider.upper()}'})
         except Exception as e:
             return Response({'error': f'Failed to send email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -4866,16 +4825,15 @@ class AdminForgotPasswordView(APIView):
         )
 
         try:
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@moxie.com')
-            send_mail(
+            from services.email_service import send_transactional_email
+            send_transactional_email(
+                to_email=target_email,
                 subject='Moxie Admin - Password Reset Code',
-                message=f'Your password reset verification code is: {otp_code}. This code is valid for 15 minutes.',
-                from_email=from_email,
-                recipient_list=[target_email],
-                fail_silently=True
+                html_content=f'<div style="font-family: sans-serif; padding: 20px;"><h2>Moxie Admin</h2><p>Your password reset verification code is: <strong>{otp_code}</strong>. This code is valid for 15 minutes.</p></div>',
+                text_content=f'Your password reset verification code is: {otp_code}. This code is valid for 15 minutes.'
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Admin password reset email delivery failed: %s: %s", type(e).__name__, e)
 
         return Response({'success': True, 'message': 'Verification code sent to your email.'})
 

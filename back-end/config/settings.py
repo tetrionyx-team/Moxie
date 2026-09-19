@@ -234,6 +234,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 # ============================================================
 # STATIC FILES
@@ -359,8 +361,11 @@ if GOOGLE_APPLICATION_CREDENTIALS and os.path.exists(GOOGLE_APPLICATION_CREDENTI
 
 
 # ============================================================
-# EMAIL CONFIGURATION (SMTP / Transactional Emails)
+# EMAIL CONFIGURATION (SMTP / HTTPS Transactional Providers)
 # ============================================================
+EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
+
+# SMTP Configuration (Paid Render instances / Local Dev)
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
     'django.core.mail.backends.smtp.EmailBackend'
@@ -375,6 +380,29 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tetrionyx@gmail.com').strip
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '').strip().strip("'\"")
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MOXIE <tetrionyx@gmail.com>').strip()
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 15))
+
+# HTTPS Email Providers (Render Free Web Service Compatible)
+GMAIL_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID', '').strip()
+GMAIL_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
+GMAIL_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
+GMAIL_SENDER_EMAIL = os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', '').strip()
+
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', os.environ.get('SENDINBLUE_API_KEY', '')).strip()
+BREVO_FROM_EMAIL = os.environ.get('BREVO_FROM_EMAIL', '').strip()
+
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '').strip()
+SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL', '').strip()
+
+POSTMARK_SERVER_TOKEN = os.environ.get('POSTMARK_SERVER_TOKEN', '').strip()
+POSTMARK_FROM_EMAIL = os.environ.get('POSTMARK_FROM_EMAIL', '').strip()
+
+MAILGUN_API_KEY = os.environ.get('MAILGUN_API_KEY', '').strip()
+MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN', '').strip()
+MAILGUN_FROM_EMAIL = os.environ.get('MAILGUN_FROM_EMAIL', '').strip()
+
 
 
 # ============================================================

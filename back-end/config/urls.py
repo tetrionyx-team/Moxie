@@ -628,7 +628,15 @@ def custom_permission_denied(request, exception=None):
 handler404 = custom_page_not_found
 handler403 = custom_permission_denied
 
+def health_check_view(request):
+    return JsonResponse({
+        "status": "ok",
+        "service": "moxie-backend"
+    })
+
+
 urlpatterns = [
+    path('health/', health_check_view, name='health_check'),
     path('admin/login/', custom_admin_login, name='custom_admin_login'),
     path('admin/logout/', custom_logout, name='custom_logout'),
     path('admin/dashboard/', admin_dashboard_redirect, name='admin_dashboard_redirect'),

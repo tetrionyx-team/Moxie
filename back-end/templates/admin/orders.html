@@ -5,7 +5,7 @@
 
 {% block extrahead %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'admin/react/orders.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/react/orders.css' %}?v={% now 'U' %}">
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -21,6 +21,10 @@
 <div id="react-orders-root"></div>
 
 <script>
+    try {
+        localStorage.removeItem('moxie_orders');
+    } catch (e) {}
+
     window.DJANGO_CONTEXT = {
         totalOrders: parseInt("{{ total_orders|default:0 }}"),
         pendingOrders: parseInt("{{ pending_orders|default:0 }}"),
@@ -54,5 +58,5 @@
     };
 </script>
 
-<script type="module" src="{% static 'admin/react/orders.js' %}"></script>
+<script type="module" src="{% static 'admin/react/orders.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

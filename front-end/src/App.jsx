@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useLocation, useParams, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation, useParams } from "react-router-dom";
 
 import Header from "./components/Header/Header";
 import Home from "./pages/Home/Home";
@@ -36,12 +36,12 @@ const ProductsSelector = () => {
 
 const AdminRedirect = ({ target }) => {
   useEffect(() => {
-    const rawBackend = (BACKEND_URL || "").replace(/\/api\/?$/, "");
-    let dest = `${rawBackend}/admin/login/`;
-    if (target === "dashboard") {
-      dest = `${rawBackend}/admin/`;
-    } else if (target === "login") {
+    const rawBackend = (BACKEND_URL || "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
+    let dest = `${rawBackend}/admin/`;
+    if (target === "login") {
       dest = `${rawBackend}/admin/login/`;
+    } else {
+      dest = `${rawBackend}/admin/`;
     }
 
     window.location.href = dest;
@@ -220,7 +220,7 @@ function App() {
         {/* Admin redirect routes */}
         <Route
           path="/admin"
-          element={<Navigate to="/admin/login" replace />}
+          element={<AdminRedirect target="dashboard" />}
         />
 
         <Route
