@@ -10,6 +10,7 @@ import {
 } from "react-icons/lu";
 import { FaStar } from "react-icons/fa";
 import WriteReviewModal from "../Review/WriteReviewModal";
+import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
 import "./MyOrders.css";
 
 export default function MyOrders({
@@ -225,8 +226,18 @@ export default function MyOrders({
 
             const prodName =
               firstProd?.productName || firstProd?.name || order.name || "Moxie Item";
-            const prodImg =
-              firstProd?.image || order.image || (order.products && order.products[0]?.image);
+            const rawProdImg =
+              firstProd?.image ||
+              firstProd?.product_image ||
+              firstProd?.variant_image ||
+              order.image ||
+              order.product_image ||
+              (order.products && order.products[0]?.image) ||
+              (order.items && order.items[0]?.image);
+
+            const fallback = getFallbackImage(prodName, order.category || firstProd?.category);
+            const prodImg = getOrderImageUrl(rawProdImg, prodName, order.category || firstProd?.category);
+
             const prodQty =
               firstProd?.quantity ||
               order.quantity ||
@@ -266,16 +277,16 @@ export default function MyOrders({
                 <div className="order-card-body">
                   <div className="order-product-left">
                     <div className="order-img-wrap">
-                      {prodImg ? (
-                        <img
-                          src={prodImg}
-                          alt={prodName}
-                          className="order-body-img"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <LuShoppingBag size={24} color="#94a3b8" />
-                      )}
+                      <img
+                        src={prodImg || fallback}
+                        alt={prodName}
+                        className="order-body-img"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = fallback;
+                        }}
+                      />
                     </div>
 
                     <div className="order-body-info">

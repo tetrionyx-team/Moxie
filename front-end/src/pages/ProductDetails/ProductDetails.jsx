@@ -229,9 +229,11 @@ export default function ProductDetails() {
   const availableSizes = useMemo(() => {
     if (!product || isWatchCategory(product)) return [];
 
+    const normColor = (c) => String(c || "").trim().toLowerCase();
+
     if (selectedColor && Array.isArray(product.variants) && product.variants.length > 0) {
       const colorMatches = product.variants.filter(
-        (v) => (v.color_name || "").toLowerCase() === selectedColor.toLowerCase()
+        (v) => normColor(v.color_name || v.color) === normColor(selectedColor)
       );
       const sizesFromVariants = Array.from(
         new Set(colorMatches.flatMap((v) => (Array.isArray(v.sizes) ? v.sizes : [])))
@@ -271,19 +273,22 @@ export default function ProductDetails() {
   const selectedVariant = useMemo(() => {
     if (!product || !Array.isArray(product.variants) || product.variants.length === 0) return null;
 
+    const normColor = (c) => String(c || "").trim().toLowerCase();
+    const normSize = (s) => String(s || "").trim().toLowerCase();
+
     if (selectedColor && selectedSize) {
       const exact = product.variants.find(
         (v) =>
-          (v.color_name || "").toLowerCase() === selectedColor.toLowerCase() &&
+          normColor(v.color_name || v.color) === normColor(selectedColor) &&
           Array.isArray(v.sizes) &&
-          v.sizes.map((s) => String(s).toLowerCase()).includes(String(selectedSize).toLowerCase())
+          v.sizes.map(normSize).includes(normSize(selectedSize))
       );
       if (exact) return exact;
     }
 
     if (selectedColor) {
       const colorMatch = product.variants.find(
-        (v) => (v.color_name || "").toLowerCase() === selectedColor.toLowerCase()
+        (v) => normColor(v.color_name || v.color) === normColor(selectedColor)
       );
       if (colorMatch) return colorMatch;
     }
@@ -292,7 +297,7 @@ export default function ProductDetails() {
       const sizeMatch = product.variants.find(
         (v) =>
           Array.isArray(v.sizes) &&
-          v.sizes.map((s) => String(s).toLowerCase()).includes(String(selectedSize).toLowerCase())
+          v.sizes.map(normSize).includes(normSize(selectedSize))
       );
       if (sizeMatch) return sizeMatch;
     }
@@ -336,7 +341,28 @@ export default function ProductDetails() {
     let hasVariantMedia = false;
     if (selectedVariant) {
       if (Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0) {
-        selectedVariant.images.forEach(addImage);
+        const sortedImages = [...selectedVariant.images].sort((a, b) => {
+          const aPri = typeof a === "object" && a?.is_primary ? 1 : 0;
+          const bPri = typeof b === "object" && b?.is_primary ? 1 : 0;
+          return bPri - aPri;
+        });
+        sortedImages.forEach(addImage);
+        hasVariantMedia = true;
+      }
+      if (selectedVariant.image) {
+        addImage(selectedVariant.image);
+        hasVariantMedia = true;
+      }
+      if (selectedVariant.primary_image) {
+        addImage(selectedVariant.primary_image);
+        hasVariantMedia = true;
+      }
+      if (selectedVariant.variant_image) {
+        addImage(selectedVariant.variant_image);
+        hasVariantMedia = true;
+      }
+      if (selectedVariant.main_image) {
+        addImage(selectedVariant.main_image);
         hasVariantMedia = true;
       }
       if (selectedVariant.video) {
@@ -381,13 +407,13 @@ export default function ProductDetails() {
     return firstImg ? firstImg.url : getFallbackImage(product?.category);
   }, [allMedia, product?.category]);
 
-  // Reset active image index whenever product ID changes (e.g. navigating to new product)
+  // Reset active image index whenever product ID or selected variant changes
   useEffect(() => {
     if (mainVideoRef.current) {
       mainVideoRef.current.pause();
     }
     setActiveImageIndex(0);
-  }, [product?.id]);
+  }, [product?.id, selectedVariant?.id]);
 
   // When user selects a thumbnail or color, pause video and update index
   const handleMediaSelect = (index) => {
@@ -886,7 +912,7 @@ export default function ProductDetails() {
 
                 <div className="pdp-color-swatches-row">
                   {backendColors.map((colorObj) => {
-                    const isSelected = selectedColor?.toLowerCase() === colorObj.name.toLowerCase();
+                    const isSelected = selectedColor?.trim().toLowerCase() === colorObj.name.trim().toLowerCase();
 
                     if (colorObj.code) {
                       return (

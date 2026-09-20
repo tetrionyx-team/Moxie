@@ -1,20 +1,7 @@
 import { apiFetch } from "../api/apiConfig";
-import watchImg from "../assets/images/watch1.png";
-import shoeImg from "../assets/images/shoe.svg";
-import capImg from "../assets/images/cap.png";
-import budsImg from "../assets/images/Buds.png";
-import defaultImg from "../assets/images/offer.png";
+import { getOrderImageUrl, getFallbackImage } from "../utils/orderImage";
 
 const ALL_ORDERS_KEY = "moxie_orders";
-
-const getFallbackImage = (name, category) => {
-  const str = (String(name || "") + " " + String(category || "")).toLowerCase();
-  if (str.includes("watch")) return watchImg;
-  if (str.includes("footwear") || str.includes("shoe") || str.includes("slider")) return shoeImg;
-  if (str.includes("cap")) return capImg;
-  if (str.includes("gadget") || str.includes("bud")) return budsImg;
-  return defaultImg;
-};
 
 export const getMasterOrders = () => {
   try {
@@ -49,10 +36,23 @@ export const orderService = {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const formattedOrders = data.map((o) => ({
-            ...o,
-            image: o.image || (o.items && o.items[0]?.image) || getFallbackImage(o.name || o.productName),
-          }));
+          const formattedOrders = data.map((o) => {
+            const firstItem = (Array.isArray(o.items) && o.items[0]) || (Array.isArray(o.products) && o.products[0]) || {};
+            const rawImg = o.image || firstItem.image || firstItem.product_image || firstItem.variant_image;
+            const finalImg = getOrderImageUrl(rawImg, o.name || o.productName, o.category);
+
+            const items = (o.items || o.products || []).map((it) => ({
+              ...it,
+              image: getOrderImageUrl(it.image || it.product_image || it.variant_image, it.name || it.productName, o.category),
+            }));
+
+            return {
+              ...o,
+              image: finalImg,
+              items: items.length > 0 ? items : o.items,
+              products: items.length > 0 ? items : o.products,
+            };
+          });
 
           if (email) {
             try {

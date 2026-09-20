@@ -1,5 +1,5 @@
 import React from "react";
-import watchImg from "../../assets/images/watch1.png";
+import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
 
 export default function OrderDetails({ order, onBack }) {
   if (!order) return null;
@@ -18,7 +18,7 @@ export default function OrderDetails({ order, onBack }) {
           quantity: order.quantity || 1,
           size: order.variant || "Regular",
           color: "Standard",
-          image: order.image || watchImg,
+          image: order.image,
         },
       ];
 
@@ -57,13 +57,21 @@ export default function OrderDetails({ order, onBack }) {
           {products.map((item, idx) => {
             const itemPrice = Number(item.price || 0);
             const itemQty = Number(item.quantity || 1);
+            const rawImg = item.image || item.product_image || item.variant_image || order.image;
+            const fallback = getFallbackImage(item.productName || item.name, order.category);
+            const itemImg = getOrderImageUrl(rawImg, item.productName || item.name, order.category);
+
             return (
               <div key={idx} className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light">
                 <div className="d-flex align-items-center gap-3">
                   <img
-                    src={item.image || watchImg}
+                    src={itemImg || fallback}
                     alt={item.productName || item.name || "Product"}
                     style={{ width: "60px", height: "60px", objectFit: "contain", borderRadius: "6px" }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = fallback;
+                    }}
                   />
                   <div>
                     <h5 className="m-0" style={{ fontSize: "14px", fontWeight: "700" }}>
