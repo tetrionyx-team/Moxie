@@ -2,8 +2,10 @@ import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Banner from "../../components/Banner/Hero";
 import WatchShowcase from "../../components/WatchShowcase/WatchShowcase";
-import MostLovedVideos from "../../components/MostLovedVideos/MostLovedVideos";
+import RecommendedForYou from "../../components/RecommendedForYou/RecommendedForYou";
+import EditorialWatches from "../../components/EditorialWatches/EditorialWatches";
 import SpecialOffer from "../../components/SpecialOffer/SpecialOffer";
+import MostLovedVideos from "../../components/MostLovedVideos/MostLovedVideos";
 import StyleEssentials from "../../components/StyleEssentials/StyleEssentials";
 import PromotionalBanner from "../../components/PromotionalBanner/PromotionalBanner";
 import CustomerTestimonials from "../../components/CustomerTestimonials/CustomerTestimonials";
@@ -41,6 +43,8 @@ function Home() {
     <>
       <Banner />
       <WatchShowcase />
+      <RecommendedForYou />
+      <EditorialWatches />
       <SpecialOffer />
       <MostLovedVideos />
       <StyleEssentials />
