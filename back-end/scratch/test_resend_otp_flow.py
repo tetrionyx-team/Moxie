@@ -98,6 +98,25 @@ class ResendOtpFlowTestSuite(unittest.TestCase):
             self.assertIn('MOXIE Admin Verification', call_args['subject'])
 
     @patch('resend.Emails.send')
+    def test_resend_sender_gmail_fallback(self, mock_resend_send):
+        """Verify that when DEFAULT_FROM_EMAIL or GMAIL_SENDER_EMAIL is gmail.com, Resend safely uses onboarding@resend.dev."""
+        mock_resend_send.return_value = {'id': 'resend_email_test_id_456'}
+
+        with patch.dict(os.environ, {
+            'EMAIL_PROVIDER': 'resend',
+            'RESEND_API_KEY': 're_test_dummy_key',
+            'GMAIL_SENDER_EMAIL': 'MOXIE <tetrionyx@gmail.com>',
+            'DEFAULT_FROM_EMAIL': 'MOXIE <tetrionyx@gmail.com>'
+        }):
+            sent = send_admin_otp_email(self.test_email, '123456')
+            self.assertTrue(sent)
+            mock_resend_send.assert_called_once()
+            call_args = mock_resend_send.call_args[0][0]
+            self.assertEqual(call_args['to'], [self.test_email])
+            self.assertEqual(call_args['from'], 'MOXIE <onboarding@resend.dev>')
+            self.assertNotIn('gmail.com', call_args['from'])
+
+    @patch('resend.Emails.send')
     def test_full_login_otp_verification_flow(self, mock_resend_send):
         """Step 1: Login triggers OTP via Resend -> Step 2: Verify OTP -> Step 3: Authenticated."""
         mock_resend_send.return_value = {'id': 'resend_123'}

@@ -189,6 +189,8 @@ def _send_via_smtp(to_email, subject, html_content, text_content, from_email=Non
 def _send_via_resend(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
     Sends email via Resend Python SDK (HTTPS API).
+    Ensures the FROM address is a valid Resend sender (e.g. 'onboarding@resend.dev' or verified custom domain)
+    and prevents invalid unverified domains like '@gmail.com' from causing 403 Forbidden errors.
     """
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
@@ -196,12 +198,32 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
 
     resend.api_key = api_key
 
-    sender = (
-        from_email
-        or os.environ.get('RESEND_FROM_EMAIL', '').strip()
-        or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or 'MOXIE <onboarding@resend.dev>'
-    )
+    # Priority for Resend sender:
+    # 1. RESEND_FROM_EMAIL environment variable
+    # 2. Explicit from_email argument (if not an unverified @gmail.com)
+    # 3. DEFAULT_FROM_EMAIL setting / env (if not an unverified @gmail.com)
+    # 4. Fallback to Resend's default onboarding testing address: 'MOXIE <onboarding@resend.dev>'
+    resend_env_sender = os.environ.get('RESEND_FROM_EMAIL', '').strip()
+    default_from = os.environ.get('DEFAULT_FROM_EMAIL', '').strip() or getattr(settings, 'DEFAULT_FROM_EMAIL', None) or ''
+
+    sender = ''
+    if resend_env_sender:
+        sender = resend_env_sender
+    elif from_email and 'gmail.com' not in str(from_email).lower():
+        sender = str(from_email).strip()
+    elif default_from and 'gmail.com' not in str(default_from).lower():
+        sender = str(default_from).strip()
+    elif from_email:
+        sender = str(from_email).strip()
+    elif default_from:
+        sender = str(default_from).strip()
+    else:
+        sender = 'MOXIE <onboarding@resend.dev>'
+
+    # Resend cannot send from gmail.com without domain verification.
+    # Automatically switch to Resend test sender if unverified gmail.com is provided.
+    if 'gmail.com' in sender.lower():
+        sender = 'MOXIE <onboarding@resend.dev>'
 
     params = {
         "from": sender,
@@ -213,9 +235,18 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
     if reply_to:
         params["reply_to"] = reply_to
 
-    response = resend.Emails.send(params)
+    try:
+        response = resend.Emails.send(params)
+    except Exception as exc:
+        logger.error("Resend API request exception: %s: %s", type(exc).__name__, str(exc))
+        raise RuntimeError(f"Resend delivery failed: {str(exc)}") from exc
+
     if isinstance(response, dict) and response.get("error"):
-        raise RuntimeError(f"Resend API error: {response.get('error')}")
+        err = response.get("error")
+        err_msg = err.get("message") if isinstance(err, dict) else str(err)
+        err_code = err.get("statusCode") if isinstance(err, dict) else "400"
+        logger.error("Resend API error (%s): %s", err_code, err_msg)
+        raise RuntimeError(f"Resend API error ({err_code}): {err_msg}")
 
     return True
 
@@ -427,12 +458,29 @@ def send_admin_otp_email(target_email, otp_code):
     Preserves exact MOXIE branded HTML & text content and 5-minute expiry notices.
     """
     subject = 'Your MOXIE Admin Verification Code'
-    from_email = (
-        os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
-        or os.environ.get('RESEND_FROM_EMAIL', '').strip()
-        or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or 'MOXIE <tetrionyx@gmail.com>'
-    )
+    provider = get_active_email_provider()
+
+    if provider == 'resend':
+        from_email = (
+            os.environ.get('RESEND_FROM_EMAIL', '').strip()
+            or (os.environ.get('DEFAULT_FROM_EMAIL', '').strip() if 'gmail.com' not in os.environ.get('DEFAULT_FROM_EMAIL', '').lower() else '')
+            or (str(getattr(settings, 'DEFAULT_FROM_EMAIL', '')).strip() if 'gmail.com' not in str(getattr(settings, 'DEFAULT_FROM_EMAIL', '')).lower() else '')
+            or 'MOXIE <onboarding@resend.dev>'
+        )
+    elif provider in ('gmail_api', 'gmail'):
+        from_email = (
+            os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
+            or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
+            or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            or 'MOXIE <tetrionyx@gmail.com>'
+        )
+    else:
+        from_email = (
+            os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
+            or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+            or 'MOXIE <tetrionyx@gmail.com>'
+        )
+
     host_user = getattr(settings, 'EMAIL_HOST_USER', None) or 'tetrionyx@gmail.com'
 
     plain_message = (
