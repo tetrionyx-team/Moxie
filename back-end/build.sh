@@ -14,6 +14,6 @@ if [ -d "react" ]; then
 fi
 
 python manage.py migrate
-python manage.py collectstatic --no-input
+python manage.py collectstatic --clear --no-input
 python manage.py ensure_admin
 
