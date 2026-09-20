@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=https://moxie-backend-hexm.onrender.com/admin/">
   <title>Redirecting to Moxie Admin...</title>
   <script>
     (function() {
-      var backend = "https://moxie-backend-hexm.onrender.com";
-      var dest = backend + "/admin/";
+      var isLocal = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]'
+      );
+      var backend = isLocal ? 'http://127.0.0.1:8000' : 'https://moxie-backend-hexm.onrender.com';
+      var dest = backend + '/admin/';
       try {
         window.location.replace(dest);
       } catch (e) {
@@ -19,7 +23,21 @@
 <body style="font-family: 'Outfit', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc;">
   <div style="text-align: center;">
     <h2 style="color: #111; margin-bottom: 8px;">Redirecting to Moxie Admin Portal...</h2>
-    <p style="color: #64748b; font-size: 14px;">If you are not redirected automatically, <a href="https://moxie-backend-hexm.onrender.com/admin/" style="color: #2563eb; text-decoration: underline;">click here</a>.</p>
+    <p style="color: #64748b; font-size: 14px;">If you are not redirected automatically, <a id="admin-fallback-link" href="#" style="color: #2563eb; text-decoration: underline;">click here</a>.</p>
   </div>
+  <script>
+    (function() {
+      var isLocal = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]'
+      );
+      var backend = isLocal ? 'http://127.0.0.1:8000' : 'https://moxie-backend-hexm.onrender.com';
+      var link = document.getElementById('admin-fallback-link');
+      if (link) {
+        link.href = backend + '/admin/';
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -35,7 +35,19 @@ const ProductsSelector = () => {
 };
 
 const AdminRedirect = ({ target }) => {
-  const rawBackend = (BACKEND_URL || "https://moxie-backend-hexm.onrender.com").replace(/\/api\/?$/, "").replace(/\/+$/, "");
+  const isLocal = typeof window !== "undefined" && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "[::1]"
+  );
+
+  const rawBackend = (
+    BACKEND_URL ||
+    (isLocal
+      ? "http://127.0.0.1:8000"
+      : "https://moxie-backend-hexm.onrender.com")
+  ).replace(/\/api\/?$/, "").replace(/\/+$/, "");
+
   const dest = target === "login" ? `${rawBackend}/admin/login/` : `${rawBackend}/admin/`;
 
   useEffect(() => {
