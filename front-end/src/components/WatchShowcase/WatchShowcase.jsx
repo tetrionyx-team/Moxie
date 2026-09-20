@@ -1,17 +1,27 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { Link } from "react-router-dom";
+import { FiHeart, FiShoppingCart } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
 import { useData } from "../../context/DataContext";
+import { CartContext } from "../../context/CartContext";
+import { WishlistContext } from "../../context/WishlistContext";
+import { useToast } from "../../context/ToastContext";
 import "./WatchShowcase.css";
 
 // Project fallback image
 import placeholderImg from "../../assets/images/offer.png";
 
 /**
- * Format remaining milliseconds into structured countdown display parts
+ * Format remaining milliseconds into structured countdown display parts (Days, Hours, Minutes, Seconds)
  */
 function getCountdownParts(msRemaining) {
   if (msRemaining <= 0) {
-    return null;
+    return {
+      days: "00",
+      hours: "00",
+      minutes: "00",
+      seconds: "00",
+    };
   }
   const totalSeconds = Math.floor(msRemaining / 1000);
   const days = Math.floor(totalSeconds / 86400);
@@ -20,20 +30,20 @@ function getCountdownParts(msRemaining) {
   const seconds = totalSeconds % 60;
 
   const pad = (num) => String(num).padStart(2, "0");
-  const isEndsSoon = totalSeconds <= 6 * 3600; // Under 6 hours
 
   return {
     days: pad(days),
     hours: pad(hours),
     minutes: pad(minutes),
     seconds: pad(seconds),
-    totalDays: days,
-    isEndsSoon,
   };
 }
 
 export default function WatchShowcase() {
   const { featuredProducts = [], featuredServerTime, loading = false } = useData() || {};
+  const { addToCart } = useContext(CartContext) || {};
+  const { toggleWishlist, isInWishlist } = useContext(WishlistContext) || {};
+  const toast = useToast();
 
   // Server time offset calculation (serverTime - clientTime)
   const serverOffsetRef = useRef(0);
@@ -113,27 +123,8 @@ export default function WatchShowcase() {
           p.image ||
           placeholderImg;
 
-        // Feature badge text
-        let defaultBadge = "";
-        let badgeIcon = "";
-        if (item.feature_type === "HOT_SALE") {
-          defaultBadge = "HOT SALE";
-          badgeIcon = "🔥 ";
-        } else if (item.feature_type === "TRENDING") {
-          defaultBadge = "TRENDING";
-          badgeIcon = "⚡ ";
-        } else if (item.feature_type === "OFFER") {
-          defaultBadge = "LIMITED OFFER";
-          badgeIcon = "🏷 ";
-        }
-
-        const rawBadgeText = item.badge_text ? item.badge_text.trim() : defaultBadge;
-        const badgeWithIcon = rawBadgeText.startsWith("🔥") || rawBadgeText.startsWith("⚡") || rawBadgeText.startsWith("🏷")
-          ? rawBadgeText
-          : `${badgeIcon}${rawBadgeText}`;
-
-        // Countdown calculations based on backend end_date
-        let countdown = null;
+        // Countdown calculations based on backend end_date (or default 24h cycle if none)
+        let countdown = { days: "02", hours: "23", minutes: "15", seconds: "30" };
         if (item.end_date) {
           const endMs = new Date(item.end_date).getTime();
           if (!isNaN(endMs)) {
@@ -144,6 +135,7 @@ export default function WatchShowcase() {
 
         return {
           id: item.id,
+          product: p,
           productId: p.id,
           slug: p.slug || String(p.id),
           name: p.name,
@@ -151,14 +143,43 @@ export default function WatchShowcase() {
           originalPrice: discountPercent > 0 ? originalPrice : null,
           discountPercent,
           image: displayImage,
-          badgeText: rawBadgeText,
-          badgeWithIcon,
-          featureType: item.feature_type || "OFFER",
           countdown,
-          hasEndDate: Boolean(item.end_date),
         };
       });
   }, [featuredProducts, nowMs]);
+
+  const handleWishlistClick = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (toggleWishlist && item.product) {
+      toggleWishlist(item.product);
+      const isWished = isInWishlist ? isInWishlist(item.product.id) : false;
+      if (toast) toast(isWished ? "Removed from wishlist" : "Saved to wishlist");
+    }
+  };
+
+  const handleAddToCartClick = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (addToCart && item.product) {
+      const defaultVariant =
+        Array.isArray(item.product.variants) && item.product.variants.length > 0
+          ? item.product.variants[0]
+          : null;
+
+      addToCart(
+        {
+          ...item.product,
+          price: item.sellingPrice,
+          original_price: item.originalPrice,
+          selectedVariant: defaultVariant,
+          variant_id: defaultVariant?.id || item.product.variant_id,
+        },
+        1
+      );
+      if (toast) toast(`${item.name} added to cart`);
+    }
+  };
 
   // Loading skeleton state
   if (loading && (!featuredProducts || featuredProducts.length === 0)) {
@@ -166,7 +187,9 @@ export default function WatchShowcase() {
       <section className="moxie-featured-picks-section" aria-label="Limited Time Picks Loading">
         <div className="moxie-featured-picks-container">
           <header className="moxie-picks-header">
-            <span className="moxie-picks-pill">LIMITED MOXIE EDIT</span>
+            <span className="moxie-picks-pill">
+              <span className="moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
+            </span>
             <h2 className="moxie-picks-title">Limited Time Picks</h2>
             <p className="moxie-picks-subtitle">
               Few pieces. Exclusive prices. Available for a limited time.
@@ -174,11 +197,12 @@ export default function WatchShowcase() {
           </header>
           <div className="moxie-picks-grid">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="moxie-promo-item skeleton-item" aria-hidden="true">
-                <div className="moxie-promo-stage skeleton-box" />
+              <div key={n} className="moxie-promo-card skeleton-card" aria-hidden="true">
+                <div className="skeleton-img" />
                 <div className="skeleton-line skeleton-title" />
                 <div className="skeleton-line skeleton-price" />
                 <div className="skeleton-line skeleton-timer" />
+                <div className="skeleton-line skeleton-btn" />
               </div>
             ))}
           </div>
@@ -197,124 +221,118 @@ export default function WatchShowcase() {
       <div className="moxie-featured-picks-container">
         {/* Section Header */}
         <header className="moxie-picks-header">
-          <span className="moxie-picks-pill">LIMITED MOXIE EDIT</span>
+          <span className="moxie-picks-pill">
+            <span className="moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
+          </span>
           <h2 className="moxie-picks-title">Limited Time Picks</h2>
           <p className="moxie-picks-subtitle">
             Few pieces. Exclusive prices. Available for a limited time.
           </p>
         </header>
 
-        {/* Floating Promotional Showcase Grid (No Big Outer Box / Card) */}
-        <div className={`moxie-picks-grid count-${Math.min(activeItems.length, 4)}`}>
+        {/* Minimal Modern White Card Grid (3 Columns Desktop) */}
+        <div className="moxie-picks-grid">
           {activeItems.map((item) => {
             const productRoute = `/product/${item.slug || item.productId}`;
+            const isWished = isInWishlist ? isInWishlist(item.productId) : false;
 
             return (
-              <Link
-                key={item.id}
-                to={productRoute}
-                className="moxie-promo-item"
-                aria-label={`View ${item.name} details`}
-              >
-                {/* Top Floating Badges Row (Feature Badge on Left, Discount Pill on Right) */}
-                <div className="moxie-promo-badges">
-                  {item.badgeText && (
-                    <span className={`moxie-promo-badge feature-badge ${item.featureType.toLowerCase()}`}>
-                      {item.badgeWithIcon}
-                    </span>
-                  )}
-                  {item.discountPercent > 0 && (
-                    <span className="moxie-promo-badge discount-badge">
+              <article key={item.id} className="moxie-promo-card">
+                {/* Top Badges Row (Discount Pill on Left, Wishlist Heart on Right) */}
+                <div className="moxie-card-top-row">
+                  {item.discountPercent > 0 ? (
+                    <span className="moxie-card-discount-badge">
                       {item.discountPercent}% OFF
                     </span>
+                  ) : (
+                    <span className="moxie-card-discount-badge">SPECIAL</span>
                   )}
+
+                  <button
+                    type="button"
+                    className={`moxie-card-heart-btn ${isWished ? "active" : ""}`}
+                    onClick={(e) => handleWishlistClick(e, item)}
+                    aria-label={isWished ? `Remove ${item.name} from wishlist` : `Add ${item.name} to wishlist`}
+                  >
+                    {isWished ? (
+                      <FaHeart className="moxie-heart-icon filled" />
+                    ) : (
+                      <FiHeart className="moxie-heart-icon" />
+                    )}
+                  </button>
                 </div>
 
-                {/* Subtle Luxury Floating Stage with Soft Glow & Pedestal */}
-                <div className="moxie-promo-stage">
-                  {/* Decorative Sparkle Stars */}
-                  <span className="moxie-stage-sparkle sparkle-top-left" aria-hidden="true">✦</span>
-                  <span className="moxie-stage-sparkle sparkle-mid-left" aria-hidden="true">✦</span>
-                  <span className="moxie-stage-sparkle sparkle-top-right" aria-hidden="true">✦</span>
-                  <span className="moxie-stage-sparkle sparkle-mid-right" aria-hidden="true">✦</span>
-
-                  {/* Centered Product Image */}
+                {/* Product Image Clickable Link */}
+                <Link
+                  to={productRoute}
+                  className="moxie-card-img-wrap"
+                  aria-label={`View ${item.name} details`}
+                >
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="moxie-promo-img"
+                    className="moxie-card-img"
                     loading="lazy"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = placeholderImg;
                     }}
                   />
+                </Link>
 
-                  {/* 3D Gold Luxury Stage Pedestal Disc Base */}
-                  <div className="moxie-promo-pedestal" aria-hidden="true">
-                    <div className="pedestal-top-disc" />
-                    <div className="pedestal-rim-glow" />
-                  </div>
-                </div>
+                {/* Card Content Details */}
+                <div className="moxie-card-body">
+                  {/* Product Title */}
+                  <h3 className="moxie-card-title">
+                    <Link to={productRoute} title={item.name}>
+                      {item.name}
+                    </Link>
+                  </h3>
 
-                {/* Product Name */}
-                <h3 className="moxie-promo-name" title={item.name}>
-                  {item.name}
-                </h3>
-
-                {/* Pricing: Selling Price Large & Bold, Original Price Struck-through */}
-                <div className="moxie-promo-pricing">
-                  <span className="moxie-promo-price-current">
-                    ₹{item.sellingPrice.toLocaleString("en-IN")}
-                  </span>
-                  {item.originalPrice && (
-                    <span className="moxie-promo-price-original">
-                      ₹{item.originalPrice.toLocaleString("en-IN")}
+                  {/* Pricing: Selling Price Bold Large, Strikethrough Original Price */}
+                  <div className="moxie-card-pricing">
+                    <span className="moxie-card-price-current">
+                      ₹{item.sellingPrice.toLocaleString("en-IN")}
                     </span>
-                  )}
-                </div>
-
-                {/* Premium Live Countdown Box */}
-                {item.hasEndDate && item.countdown && (
-                  <div className={`moxie-promo-countdown-box ${item.countdown.isEndsSoon ? "ends-soon" : ""}`}>
-                    <div className="moxie-countdown-header">
-                      <span className="countdown-decor-line" />
-                      <span className="countdown-hourglass-icon">⏳</span>
-                      <span className="countdown-header-title">
-                        {item.countdown.isEndsSoon ? "ENDING SOON" : "OFFER ENDS IN"}
+                    {item.originalPrice && (
+                      <span className="moxie-card-price-original">
+                        ₹{item.originalPrice.toLocaleString("en-IN")}
                       </span>
-                      <span className="countdown-hourglass-icon">⏳</span>
-                      <span className="countdown-decor-line" />
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="moxie-countdown-cells">
-                      {item.countdown.totalDays > 0 && (
-                        <>
-                          <div className="countdown-cell">
-                            <span className="countdown-digit">{item.countdown.days}</span>
-                            <span className="countdown-label">DAYS</span>
-                          </div>
-                          <span className="countdown-colon">:</span>
-                        </>
-                      )}
-                      <div className="countdown-cell">
-                        <span className="countdown-digit">{item.countdown.hours}</span>
-                        <span className="countdown-label">HOURS</span>
-                      </div>
-                      <span className="countdown-colon">:</span>
-                      <div className="countdown-cell">
-                        <span className="countdown-digit">{item.countdown.minutes}</span>
-                        <span className="countdown-label">MINUTES</span>
-                      </div>
-                      <span className="countdown-colon">:</span>
-                      <div className="countdown-cell">
-                        <span className="countdown-digit">{item.countdown.seconds}</span>
-                        <span className="countdown-label">SECONDS</span>
-                      </div>
+                  {/* 4-Box Minimal Countdown */}
+                  <div className="moxie-card-countdown" aria-label="Offer countdown timer">
+                    <div className="moxie-countdown-box">
+                      <span className="moxie-countdown-num">{item.countdown.days}</span>
+                      <span className="moxie-countdown-lbl">DAYS</span>
+                    </div>
+                    <div className="moxie-countdown-box">
+                      <span className="moxie-countdown-num">{item.countdown.hours}</span>
+                      <span className="moxie-countdown-lbl">HOURS</span>
+                    </div>
+                    <div className="moxie-countdown-box">
+                      <span className="moxie-countdown-num">{item.countdown.minutes}</span>
+                      <span className="moxie-countdown-lbl">MINUTES</span>
+                    </div>
+                    <div className="moxie-countdown-box">
+                      <span className="moxie-countdown-num">{item.countdown.seconds}</span>
+                      <span className="moxie-countdown-lbl">SECONDS</span>
                     </div>
                   </div>
-                )}
-              </Link>
+
+                  {/* Full-Width Add To Cart Button */}
+                  <button
+                    type="button"
+                    className="moxie-card-cart-btn"
+                    onClick={(e) => handleAddToCartClick(e, item)}
+                    aria-label={`Add ${item.name} to Cart`}
+                  >
+                    <FiShoppingCart className="moxie-cart-icon" />
+                    <span>Add to Cart</span>
+                  </button>
+                </div>
+              </article>
             );
           })}
         </div>
@@ -322,3 +340,4 @@ export default function WatchShowcase() {
     </section>
   );
 }
+

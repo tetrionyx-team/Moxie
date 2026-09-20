@@ -1,477 +1,357 @@
 /* ===================================================
-   MOXIE — PREMIUM LIMITED-TIME PROMOTIONAL SHOWCASE
+   MOXIE — MINIMAL MODERN (WHITE CLEAN) LIMITED-TIME PICKS
    Palette:
-   - Deep Navy: #071426
-   - Rich Gold: #C99B45 / #D5AD62
-   - Light Gold / Pedestal: #F5E5C8 / #D8B775
-   - Cream Canvas: #FBF7EF / #F7F1E7
-   - Struck Grey: #717F94
+   - Deep Navy: #071426 / #0f172a
+   - Rich Gold / Amber: #FDE08B / #D5AD62 / #C99B45
+   - Clean White: #FFFFFF
+   - Soft Slate Border: #E2E8F0 / #F1F5F9
+   - Muted Gray: #64748B / #94A3B8
    =================================================== */
 
 .moxie-featured-picks-section {
-  background: #fbf7ef;
-  background: linear-gradient(180deg, #fbf7ef 0%, #f7f1e7 100%);
-  padding: 44px 20px 54px;
+  background: #fdfdfd;
+  background: linear-gradient(180deg, #fafafa 0%, #f7f8fa 100%);
+  padding: 48px 20px 56px;
   position: relative;
-  overflow: hidden;
   box-sizing: border-box;
 }
 
 .moxie-featured-picks-container {
-  max-width: 1280px;
+  max-width: 1350px;
   margin: 0 auto;
 }
 
-/* Section Header */
+/* ===================================================
+   1. SECTION HEADER
+   =================================================== */
 .moxie-picks-header {
   text-align: center;
-  max-width: 640px;
-  margin: 0 auto 24px;
+  max-width: 680px;
+  margin: 0 auto 32px;
 }
 
 .moxie-picks-pill {
-  display: inline-block;
-  font-size: 10.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #d5ad62;
-  background: #071426;
-  border: 1px solid rgba(213, 173, 98, 0.35);
-  padding: 5px 16px;
+  color: #071426;
+  background: #fde08b;
+  border: 1px solid rgba(213, 173, 98, 0.4);
+  padding: 6px 16px;
   border-radius: 30px;
-  box-shadow: 0 3px 12px rgba(7, 20, 38, 0.14);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(253, 224, 139, 0.35);
+  line-height: 1;
+}
+
+.moxie-picks-crown {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .moxie-picks-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
   color: #071426;
-  letter-spacing: -0.5px;
-  margin: 0 0 6px 0;
+  letter-spacing: -0.6px;
+  margin: 0 0 8px 0;
   line-height: 1.2;
 }
 
 .moxie-picks-subtitle {
-  font-size: 14px;
+  font-size: 14.5px;
   color: #64748b;
-  line-height: 1.45;
+  line-height: 1.5;
   margin: 0;
   font-weight: 400;
 }
 
 /* ===================================================
-   FLOATING SHOWCASE GRID (NO BIG OUTER BOX/CARD)
+   2. PRODUCT GRID (3 Columns Desktop, 2 Tablet, 1 Mobile)
    =================================================== */
 .moxie-picks-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
   margin: 0 auto;
 }
 
-/* Centering layouts for 1, 2, 3, or 4 products */
-.moxie-picks-grid.count-1 .moxie-promo-item {
-  max-width: 330px;
-}
-
-.moxie-picks-grid.count-2 .moxie-promo-item {
-  max-width: 320px;
-}
-
-.moxie-picks-grid.count-3 .moxie-promo-item {
-  max-width: 300px;
-}
-
-.moxie-picks-grid.count-4 .moxie-promo-item {
-  max-width: 280px;
-}
-
-/* Individual Promotional Item Showcase (Transparent Outer Container, Shorter & Compact) */
-.moxie-promo-item {
-  width: 100%;
-  max-width: 310px;
-  flex: 1 1 270px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+/* ===================================================
+   3. MINIMAL MODERN WHITE PRODUCT CARD
+   =================================================== */
+.moxie-promo-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-  color: inherit;
-  position: relative;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
   box-sizing: border-box;
-  padding: 0;
+  overflow: hidden;
 }
 
-.moxie-promo-item:focus-visible {
-  outline: 2px solid #c99b45;
-  outline-offset: 4px;
-  border-radius: 14px;
+.moxie-promo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(7, 20, 38, 0.08);
+  border-color: #cbd5e1;
 }
 
-/* 1. TOP BADGES ROW (Tighter Spacing) */
-.moxie-promo-badges {
-  width: 100%;
+/* 4. TOP BADGES ROW */
+.moxie-card-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-  z-index: 5;
-  box-sizing: border-box;
+  margin-bottom: 12px;
+  z-index: 2;
 }
 
-.moxie-promo-badge {
-  font-size: 10.5px;
+.moxie-card-discount-badge {
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: #071426;
+  background: #fde08b;
   border-radius: 8px;
   padding: 5px 12px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  white-space: nowrap;
   line-height: 1;
 }
 
-.moxie-promo-badge.feature-badge {
-  background: #071426;
-  color: #d5ad62;
-  border: 1px solid rgba(213, 173, 98, 0.35);
-  box-shadow: 0 3px 10px rgba(7, 20, 38, 0.12);
-}
-
-.moxie-promo-badge.discount-badge {
-  background: #d5ad62;
-  background: linear-gradient(135deg, #e4c585 0%, #d5ad62 100%);
-  color: #071426;
-  border: 1px solid rgba(213, 173, 98, 0.4);
-  box-shadow: 0 3px 10px rgba(213, 173, 98, 0.25);
-  margin-left: auto;
-}
-
-/* 2. COMPACT LUXURY PRODUCT STAGE WITH GLOW & PEDESTAL */
-.moxie-promo-stage {
-  width: 100%;
-  min-height: 220px;
-  position: relative;
+.moxie-card-heart-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2px;
-  background: transparent;
-}
-
-/* Soft Radial Glow behind product */
-.moxie-promo-stage::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(201, 155, 69, 0.14) 0%,
-    rgba(201, 155, 69, 0.04) 45%,
-    transparent 70%
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Decorative Sparkles */
-.moxie-stage-sparkle {
-  position: absolute;
-  color: #d5ad62;
-  pointer-events: none;
-  z-index: 1;
-  line-height: 1;
-}
-
-.sparkle-top-left {
-  top: 18px;
-  left: 12%;
-  font-size: 18px;
-  opacity: 0.85;
-  filter: drop-shadow(0 0 5px rgba(213, 173, 98, 0.5));
-}
-
-.sparkle-mid-left {
-  top: 48px;
-  left: 5%;
-  font-size: 12px;
-  opacity: 0.65;
-}
-
-.sparkle-top-right {
-  top: -4px;
-  right: 8%;
-  font-size: 14px;
-  opacity: 0.75;
-}
-
-.sparkle-mid-right {
-  top: 58px;
-  right: 6%;
-  font-size: 20px;
-  opacity: 0.9;
-  filter: drop-shadow(0 0 6px rgba(213, 173, 98, 0.6));
-}
-
-/* Product Image (Slightly shorter & compact, centered, pointer on desktop) */
-.moxie-promo-img {
-  width: 100%;
-  max-width: 180px;
-  max-height: 215px;
-  object-fit: contain;
-  object-position: center;
-  display: block;
-  z-index: 3;
+  color: #071426;
   cursor: pointer;
-  filter: drop-shadow(0 10px 16px rgba(7, 20, 38, 0.12));
-  transition: transform 220ms ease, filter 220ms ease;
+  padding: 0;
+  transition: all 180ms ease;
 }
 
-/* 3D Gold Luxury Stage Pedestal Disc Base */
-.moxie-promo-pedestal {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 170px;
-  height: 22px;
-  z-index: 2;
-  pointer-events: none;
+.moxie-card-heart-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: scale(1.08);
 }
 
-.pedestal-top-disc {
+.moxie-card-heart-btn.active {
+  color: #ef4444;
+  background: #fff1f2;
+  border-color: #fecaca;
+}
+
+.moxie-heart-icon {
+  font-size: 16px;
+}
+
+.moxie-heart-icon.filled {
+  color: #ef4444;
+}
+
+/* 5. PRODUCT IMAGE */
+.moxie-card-img-wrap {
+  display: block;
+  width: 100%;
+  height: 230px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  text-decoration: none;
+  position: relative;
+}
+
+.moxie-card-img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse at 50% 30%,
-    #fff5e1 0%,
-    #f4dfb5 35%,
-    #d8b674 75%,
-    #b38d42 100%
-  );
-  border: 1px solid rgba(213, 173, 98, 0.6);
-  box-shadow: 0 6px 16px rgba(201, 155, 69, 0.25), 0 2px 6px rgba(7, 20, 38, 0.1);
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 250ms ease;
 }
 
-.pedestal-rim-glow {
-  position: absolute;
-  bottom: -3px;
-  left: 10%;
-  right: 10%;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(7, 20, 38, 0.1);
-  filter: blur(3px);
+.moxie-promo-card:hover .moxie-card-img {
+  transform: scale(1.03);
 }
 
-/* 3. PRODUCT NAME */
-.moxie-promo-name {
-  font-size: 20px;
+/* 6. CARD BODY */
+.moxie-card-body {
+  display: flex;
+  flex-direction: column;
+  margin-top: 14px;
+  flex: 1;
+}
+
+.moxie-card-title {
+  font-size: 18px;
   font-weight: 800;
-  color: #c99b45;
-  text-align: center;
-  margin: 6px 0 2px 0;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  width: 100%;
+  color: #071426;
+  text-align: left;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 180ms ease;
 }
 
-/* 4. PRICING */
-.moxie-promo-pricing {
+.moxie-card-title a {
+  color: #071426;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.moxie-card-title a:hover {
+  color: #c99b45;
+}
+
+/* 7. PRICING */
+.moxie-card-pricing {
   display: flex;
   align-items: baseline;
-  justify-content: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.moxie-promo-price-current {
-  font-size: 24px;
+.moxie-card-price-current {
+  font-size: 22px;
   font-weight: 800;
   color: #071426;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.moxie-promo-price-original {
-  font-size: 16px;
+.moxie-card-price-original {
+  font-size: 15px;
   font-weight: 500;
-  color: #717f94;
+  color: #94a3b8;
   text-decoration: line-through;
   line-height: 1;
 }
 
-/* 5. PREMIUM COUNTDOWN CONTAINER (No Extra Bottom Space) */
-.moxie-promo-countdown-box {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(6px);
-  border: 1.5px solid rgba(213, 173, 98, 0.5);
-  border-radius: 14px;
-  padding: 10px 12px 11px;
-  margin-bottom: 0;
-  box-shadow: 0 3px 14px rgba(201, 155, 69, 0.08);
-  box-sizing: border-box;
-}
-
-.moxie-promo-countdown-box.ends-soon {
-  border-color: rgba(213, 173, 98, 0.85);
-  box-shadow: 0 4px 18px rgba(201, 155, 69, 0.15);
-}
-
-.moxie-countdown-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 8. 4-BOX COMPACT COUNTDOWN */
+.moxie-card-countdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  margin-bottom: 7px;
+  margin-bottom: 14px;
 }
 
-.countdown-decor-line {
-  height: 1px;
-  width: 24px;
-  background: linear-gradient(90deg, transparent 0%, #d5ad62 100%);
-}
-
-.moxie-countdown-header .countdown-decor-line:last-child {
-  background: linear-gradient(90deg, #d5ad62 0%, transparent 100%);
-}
-
-.countdown-hourglass-icon {
-  font-size: 11px;
-}
-
-.countdown-header-title {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: #071426;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.moxie-countdown-cells {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-
-.countdown-cell {
-  background: #071426;
-  border-radius: 10px;
-  padding: 4px 3px 3px;
-  min-width: 52px;
-  flex: 1;
+.moxie-countdown-box {
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 6px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 8px rgba(7, 20, 38, 0.18);
   box-sizing: border-box;
 }
 
-.countdown-digit {
-  font-size: 18px;
+.moxie-countdown-num {
+  font-size: 17px;
   font-weight: 800;
-  color: #d5ad62;
+  color: #071426;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
 }
 
-.countdown-label {
-  font-size: 7.5px;
+.moxie-countdown-lbl {
+  font-size: 8px;
   font-weight: 700;
-  color: #d5ad62;
-  letter-spacing: 0.08em;
+  color: #64748b;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-top: 2px;
+  margin-top: 3px;
   line-height: 1;
 }
 
-.countdown-colon {
+/* 9. ADD TO CART BUTTON */
+.moxie-card-cart-btn {
+  width: 100%;
+  height: 46px;
+  background: #071426;
+  color: #ffffff;
+  border: 1px solid #071426;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  margin-top: auto;
+}
+
+.moxie-card-cart-btn:hover {
+  background: #112238;
+  border-color: #112238;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.2);
+}
+
+.moxie-card-cart-btn:active {
+  transform: scale(0.98);
+}
+
+.moxie-cart-icon {
   font-size: 16px;
-  font-weight: 800;
-  color: #d5ad62;
-  padding: 0 1px;
-  line-height: 1;
 }
 
-/* Hover & Active States on Desktop */
-@media (hover: hover) and (pointer: fine) {
-  .moxie-promo-item:hover .moxie-promo-img {
-    transform: translateY(-3px) scale(1.035);
-    filter: drop-shadow(0 14px 20px rgba(7, 20, 38, 0.18));
-  }
-
-  .moxie-promo-item:hover .moxie-promo-name {
-    color: #071426;
-  }
-}
-
-.moxie-promo-item:active {
-  opacity: 0.95;
-  transform: scale(0.99);
-}
-
-/* Skeleton Loading State */
-.skeleton-item {
+/* ===================================================
+   SKELETON LOADING STATE
+   =================================================== */
+.skeleton-card {
   pointer-events: none;
 }
 
-.skeleton-box {
-  background: rgba(7, 20, 38, 0.06);
-  border-radius: 14px;
+.skeleton-img {
+  width: 100%;
+  height: 230px;
+  border-radius: 12px;
+  background: #f1f5f9;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
 .skeleton-line {
-  background: rgba(7, 20, 38, 0.08);
+  background: #f1f5f9;
   border-radius: 6px;
-  margin: 0 auto;
+  margin-top: 10px;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
 .skeleton-title {
-  width: 65%;
+  width: 70%;
   height: 18px;
-  margin-bottom: 8px;
 }
 
 .skeleton-price {
-  width: 40%;
+  width: 45%;
   height: 20px;
-  margin-bottom: 10px;
 }
 
 .skeleton-timer {
   width: 100%;
-  height: 56px;
-  border-radius: 14px;
-  margin-bottom: 0;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.skeleton-btn {
+  width: 100%;
+  height: 46px;
+  border-radius: 10px;
 }
 
 @keyframes pulse {
@@ -490,36 +370,27 @@
    RESPONSIVE BREAKPOINTS
    =================================================== */
 @media (max-width: 1024px) {
-  .moxie-featured-picks-section {
-    padding: 38px 18px 48px;
-  }
-
-  .moxie-picks-title {
-    font-size: 28px;
-  }
-
   .moxie-picks-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
 
-  .moxie-promo-img {
-    max-width: 165px;
-    max-height: 195px;
+  .moxie-picks-title {
+    font-size: 30px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .moxie-featured-picks-section {
-    padding: 32px 16px 40px;
+    padding: 36px 16px 44px;
   }
 
   .moxie-picks-header {
-    margin-bottom: 18px;
-    padding: 0 8px;
+    margin-bottom: 22px;
   }
 
   .moxie-picks-title {
-    font-size: clamp(22px, 5.5vw, 26px);
+    font-size: 24px;
   }
 
   .moxie-picks-subtitle {
@@ -527,79 +398,23 @@
   }
 
   .moxie-picks-grid {
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 
-  .moxie-promo-item {
-    width: 100%;
-    max-width: 290px;
-    margin: 0 auto;
+  .moxie-card-img-wrap {
+    height: 210px;
   }
 
-  .moxie-promo-stage {
-    min-height: 190px;
+  .moxie-card-title {
+    font-size: 17px;
   }
 
-  .moxie-promo-img {
-    max-width: 150px;
-    max-height: 180px;
+  .moxie-card-price-current {
+    font-size: 20px;
   }
 
-  .moxie-promo-pedestal {
-    width: 145px;
-    height: 18px;
-  }
-
-  .moxie-promo-name {
-    font-size: 18px;
-  }
-
-  .moxie-promo-price-current {
-    font-size: 22px;
-  }
-
-  .moxie-promo-price-original {
+  .moxie-countdown-num {
     font-size: 15px;
-  }
-
-  .moxie-promo-countdown-box {
-    padding: 8px 10px 10px;
-    border-radius: 12px;
-  }
-
-  .countdown-cell {
-    min-width: 46px;
-    padding: 4px 3px 3px;
-    border-radius: 8px;
-  }
-
-  .countdown-digit {
-    font-size: clamp(15px, 4vw, 18px);
-  }
-
-  .countdown-label {
-    font-size: 7.5px;
-  }
-}
-
-@media (max-width: 380px) {
-  .moxie-promo-item {
-    max-width: 270px;
-  }
-
-  .countdown-cell {
-    min-width: 40px;
-    padding: 3px 2px 3px;
-  }
-
-  .countdown-digit {
-    font-size: 14px;
-  }
-
-  .countdown-label {
-    font-size: 7px;
   }
 }
