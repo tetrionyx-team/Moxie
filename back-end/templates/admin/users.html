@@ -5,7 +5,7 @@
 
 {% block extrahead %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'admin/react/adminUsers.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/react/adminUsers.css' %}?v={% now 'U' %}">
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -47,5 +47,5 @@
     };
 </script>
 
-<script type="module" src="{% static 'admin/react/adminUsers.js' %}?v=3"></script>
+<script type="module" src="{% static 'admin/react/adminUsers.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

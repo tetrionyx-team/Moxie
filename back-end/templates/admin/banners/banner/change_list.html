@@ -113,5 +113,5 @@
     })();
 </script>
 
-<script type="module" src="{% static 'admin/react/bannerList.js' %}?v=2"></script>
+<script type="module" src="{% static 'admin/react/bannerList.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

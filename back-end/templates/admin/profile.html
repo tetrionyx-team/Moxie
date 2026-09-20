@@ -5,7 +5,7 @@
 
 {% block extrahead %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'admin/react/profile.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'admin/react/profile.css' %}?v={% now 'U' %}">
 <style>
     body.admin-profile-page #content {
         padding: 0 !important;
@@ -47,5 +47,5 @@
     };
 </script>
 
-<script type="module" src="{% static 'admin/react/profile.js' %}?v=7"></script>
+<script type="module" src="{% static 'admin/react/profile.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

@@ -35,18 +35,16 @@ const ProductsSelector = () => {
 };
 
 const AdminRedirect = ({ target }) => {
+  const rawBackend = (BACKEND_URL || "https://moxie-backend-hexm.onrender.com").replace(/\/api\/?$/, "").replace(/\/+$/, "");
+  const dest = target === "login" ? `${rawBackend}/admin/login/` : `${rawBackend}/admin/`;
+
   useEffect(() => {
-    const rawBackend = (BACKEND_URL || "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
-    let dest = `${rawBackend}/admin/`;
-    if (target === "login") {
-      dest = `${rawBackend}/admin/login/`;
-    } else {
-      dest = `${rawBackend}/admin/`;
+    try {
+      window.location.replace(dest);
+    } catch {
+      window.location.href = dest;
     }
-
-    window.location.href = dest;
-  }, [target]);
-
+  }, [dest]);
 
   return (
     <div
@@ -74,10 +72,26 @@ const AdminRedirect = ({ target }) => {
         style={{
           color: "#8c8c8c",
           fontSize: "14px",
+          marginBottom: "16px",
         }}
       >
         Please wait while we redirect you to the admin interface.
       </p>
+
+      <a
+        href={dest}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#111",
+          color: "#fff",
+          borderRadius: "6px",
+          textDecoration: "none",
+          fontSize: "14px",
+          fontWeight: "500",
+        }}
+      >
+        Click here if not redirected automatically
+      </a>
     </div>
   );
 };
