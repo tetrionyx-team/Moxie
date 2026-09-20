@@ -11,6 +11,383 @@
     <link rel="icon" type="image/png" href="{% static 'images/moxie.png' %}">
     <link rel="shortcut icon" href="{% static 'images/moxie.png' %}">
     <link rel="stylesheet" href="{% static 'admin/css/custom_admin.css' %}?v={% now 'U' %}">
+    <style id="moxie-header-notification-styles">
+        .notification-menu-wrap {
+            position: relative !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+            z-index: 1020 !important;
+        }
+        .notification-button {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+            padding: 0 !important;
+            border-radius: 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #f8fafc !important;
+            border: 1.5px solid #e2e8f0 !important;
+            color: #334155 !important;
+            position: relative !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            text-decoration: none !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            outline: none !important;
+        }
+        .notification-button:hover,
+        .notification-button.active,
+        .notification-button[aria-expanded="true"] {
+            background: #f1f5f9 !important;
+            color: #6657ec !important;
+            border-color: #cbd5e1 !important;
+        }
+        .notification-button svg {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            max-width: 20px !important;
+            min-height: 20px !important;
+            max-height: 20px !important;
+            stroke: currentColor !important;
+            display: block !important;
+            flex-shrink: 0 !important;
+        }
+        .notification-badge {
+            position: absolute !important;
+            top: -3px !important;
+            right: -3px !important;
+            min-width: 18px !important;
+            height: 18px !important;
+            padding: 0 4px !important;
+            border-radius: 9px !important;
+            background: #6657ec !important;
+            color: #ffffff !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+            box-sizing: border-box !important;
+            line-height: 1 !important;
+            z-index: 2 !important;
+        }
+        .notification-popover {
+            position: absolute !important;
+            top: calc(100% + 10px) !important;
+            right: 0 !important;
+            left: auto !important;
+            width: 360px !important;
+            min-width: 320px !important;
+            max-width: calc(100vw - 24px) !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+            z-index: 9999 !important;
+            overflow: hidden !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            text-align: left !important;
+        }
+        @media (max-width: 540px) {
+            .notification-popover {
+                position: fixed !important;
+                top: 72px !important;
+                right: 12px !important;
+                left: 12px !important;
+                width: auto !important;
+                max-width: none !important;
+            }
+        }
+        .notification-popover-header {
+            padding: 13px 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            background: #ffffff !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            margin: 0 !important;
+            height: auto !important;
+        }
+        .notification-popover-title {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .notification-popover-title strong {
+            font-size: 15px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            line-height: 1.2 !important;
+        }
+        .notification-count-pill {
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            background: rgba(102, 87, 236, 0.12) !important;
+            color: #6657ec !important;
+            padding: 2px 7px !important;
+            border-radius: 10px !important;
+            display: inline-block !important;
+            line-height: 1.2 !important;
+        }
+        .mark-all-read-btn {
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: #6657ec !important;
+            cursor: pointer !important;
+            padding: 4px 8px !important;
+            border-radius: 6px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            transition: background 0.15s ease, color 0.15s ease !important;
+            font-family: inherit !important;
+            margin: 0 !important;
+            height: auto !important;
+            min-height: unset !important;
+            width: auto !important;
+            line-height: normal !important;
+        }
+        .mark-all-read-btn:hover {
+            background: #f1f5f9 !important;
+            color: #5845e5 !important;
+        }
+        .mark-all-read-btn svg {
+            width: 13px !important;
+            height: 13px !important;
+            min-width: 13px !important;
+            max-width: 13px !important;
+            min-height: 13px !important;
+            max-height: 13px !important;
+            stroke: currentColor !important;
+            display: block !important;
+            flex-shrink: 0 !important;
+        }
+        .notification-popover-body {
+            max-height: 360px !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+            width: 100% !important;
+        }
+        .notification-popover-item {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+            padding: 12px 16px !important;
+            text-decoration: none !important;
+            border-bottom: 1px solid #f8fafc !important;
+            transition: background 0.15s ease !important;
+            position: relative !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            margin: 0 !important;
+            background: transparent !important;
+        }
+        .notification-popover-item:last-child {
+            border-bottom: none !important;
+        }
+        .notification-popover-item:hover {
+            background: #f8fafc !important;
+        }
+        .notification-popover-item.unread {
+            background: rgba(102, 87, 236, 0.04) !important;
+        }
+        .notification-popover-item.unread:hover {
+            background: rgba(102, 87, 236, 0.08) !important;
+        }
+        .notification-item-avatar {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            border-radius: 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            color: #ffffff !important;
+            flex-shrink: 0 !important;
+            margin-top: 1px !important;
+        }
+        .notification-item-content {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+        }
+        .notification-item-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            margin-bottom: 2px !important;
+        }
+        .notification-item-title {
+            font-size: 13px !important;
+            font-weight: 650 !important;
+            color: #0f172a !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        .notification-popover-item.unread .notification-item-title {
+            font-weight: 750 !important;
+            color: #0f172a !important;
+        }
+        .notification-item-time {
+            font-size: 11px !important;
+            color: #94a3b8 !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+        .notification-item-desc {
+            margin: 0 !important;
+            font-size: 12px !important;
+            color: #64748b !important;
+            line-height: 1.4 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            word-break: break-word !important;
+        }
+        .notification-unread-dot {
+            width: 7px !important;
+            height: 7px !important;
+            min-width: 7px !important;
+            min-height: 7px !important;
+            border-radius: 50% !important;
+            background: #6657ec !important;
+            display: inline-block !important;
+            margin-top: 6px !important;
+            flex-shrink: 0 !important;
+        }
+        .notification-empty-state {
+            padding: 30px 16px !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            color: #94a3b8 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            min-height: 110px !important;
+            margin: 0 !important;
+        }
+        .notification-empty-state svg {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            max-width: 36px !important;
+            min-height: 36px !important;
+            max-height: 36px !important;
+            stroke: #cbd5e1 !important;
+            display: block !important;
+            flex-shrink: 0 !important;
+            margin: 0 auto 2px auto !important;
+        }
+        .notification-empty-state p {
+            margin: 0 !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            color: #64748b !important;
+            line-height: 1.3 !important;
+        }
+        .notification-loading-state {
+            padding: 28px 16px !important;
+            text-align: center !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            color: #94a3b8 !important;
+            font-size: 13px !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
+        .notification-spinner {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px !important;
+            min-height: 18px !important;
+            border: 2px solid #e2e8f0 !important;
+            border-top-color: #6657ec !important;
+            border-radius: 50% !important;
+            animation: notifSpin 0.7s linear infinite !important;
+        }
+        .notification-popover-footer {
+            padding: 10px 14px !important;
+            border-top: 1px solid #f1f5f9 !important;
+            background: #f8fafc !important;
+            text-align: center !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            margin: 0 !important;
+        }
+        .view-all-notifications-link {
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            color: #6657ec !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            transition: all 0.15s ease !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            margin: 0 auto !important;
+            width: auto !important;
+        }
+        .view-all-notifications-link:hover {
+            background: rgba(102, 87, 236, 0.08) !important;
+            color: #5845e5 !important;
+            text-decoration: none !important;
+        }
+        .view-all-notifications-link svg {
+            width: 14px !important;
+            height: 14px !important;
+            min-width: 14px !important;
+            max-width: 14px !important;
+            min-height: 14px !important;
+            max-height: 14px !important;
+            stroke: currentColor !important;
+            display: block !important;
+            flex-shrink: 0 !important;
+        }
+    </style>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
