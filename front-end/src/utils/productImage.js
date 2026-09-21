@@ -52,7 +52,7 @@ export const getProductImageUrl = (product) => {
   if (!product) return NEUTRAL_PLACEHOLDER;
 
   // 1. Direct product-level image fields
-  const directImage = product.image || product.primary_image || product.main_image;
+  const directImage = product.image || product.primary_image || product.main_image || product.thumbnail || product.imageUrl || product.img;
   if (directImage) {
     const resolved = resolveMediaUrl(directImage);
     if (resolved) return resolved;
@@ -61,26 +61,36 @@ export const getProductImageUrl = (product) => {
   // 2. Product images collection
   if (Array.isArray(product.images) && product.images.length > 0) {
     const primary = product.images.find((img) => img?.is_primary) || product.images[0];
-    const raw = typeof primary === "string" ? primary : (primary?.image || primary?.url);
+    const raw = typeof primary === "string" ? primary : (primary?.image || primary?.url || primary?.image_url);
     if (raw) {
       const resolved = resolveMediaUrl(raw);
       if (resolved) return resolved;
     }
   }
 
-  // 3. Variant images collection
+  // 3. Product media collection
+  if (Array.isArray(product.media) && product.media.length > 0) {
+    const primary = product.media.find((m) => m?.type === "IMAGE" && m?.is_primary) || product.media.find((m) => m?.type === "IMAGE" || m?.url);
+    const raw = typeof primary === "string" ? primary : (primary?.url || primary?.image);
+    if (raw) {
+      const resolved = resolveMediaUrl(raw);
+      if (resolved) return resolved;
+    }
+  }
+
+  // 4. Variant images collection
   if (Array.isArray(product.variants) && product.variants.length > 0) {
     for (const v of product.variants) {
       if (Array.isArray(v.images) && v.images.length > 0) {
         const primary = v.images.find((img) => img?.is_primary) || v.images[0];
-        const raw = typeof primary === "string" ? primary : (primary?.image || primary?.url);
+        const raw = typeof primary === "string" ? primary : (primary?.image || primary?.url || primary?.image_url);
         if (raw) {
           const resolved = resolveMediaUrl(raw);
           if (resolved) return resolved;
         }
       }
       if (v.image) {
-        const raw = typeof v.image === "string" ? v.image : (v.image?.image || v.image?.url);
+        const raw = typeof v.image === "string" ? v.image : (v.image?.image || v.image?.url || v.image?.image_url);
         if (raw) {
           const resolved = resolveMediaUrl(raw);
           if (resolved) return resolved;

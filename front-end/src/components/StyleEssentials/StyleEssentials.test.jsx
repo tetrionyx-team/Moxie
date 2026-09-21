@@ -183,4 +183,32 @@ describe("StyleEssentials Dynamic Component", () => {
       1
     );
   });
+
+  it("renders Men T-Shirt with category Clothes correctly in Style Essentials", () => {
+    mockCurrentProducts = [
+      {
+        id: 34,
+        name: "Men T-Shirt",
+        category: "clothes",
+        category_name: "Clothes",
+        category_slug: "clothes",
+        subcategory: "t-shirt",
+        subcategory_name: "T-Shirt",
+        subcategory_slug: "t-shirt",
+        price: 299,
+        original_price: 599,
+        discount_price: 299,
+        stock: true,
+        rawStock: 10,
+        is_active: true,
+        image: null,
+        images: [],
+        variants: [],
+      },
+    ];
+    renderComponent();
+    expect(screen.getByText("Men T-Shirt")).toBeInTheDocument();
+    expect(screen.getByText("₹299")).toBeInTheDocument();
+    expect(screen.getByText("₹599")).toBeInTheDocument();
+  });
 });

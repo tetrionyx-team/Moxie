@@ -28,6 +28,10 @@ export const isShirtCategory = (product) => {
   const prodName = String(product.name || "").toLowerCase().trim();
 
   return (
+    catSlug.includes("clothes") ||
+    catName.includes("clothes") ||
+    catSlug.includes("clothing") ||
+    catName.includes("clothing") ||
     catSlug.includes("shirt") ||
     catName.includes("shirt") ||
     subCatSlug.includes("shirt") ||

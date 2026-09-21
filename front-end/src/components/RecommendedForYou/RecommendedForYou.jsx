@@ -35,6 +35,7 @@ export const isWatchProduct = (product) => {
   }
 
   const unrelatedCategories = [
+    "clothes",
     "clothing",
     "footwear",
     "shoe",

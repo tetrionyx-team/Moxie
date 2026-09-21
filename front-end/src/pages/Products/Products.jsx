@@ -9,8 +9,8 @@ import "./Products.css";
 const ITEMS_PER_PAGE = 9;
 
 const ALIAS_MAP = {
-  watches: { categorySlug: "watches", keywords: ["watch", "watches", "chronograph", "analog", "digital", "smartwatch", "wrist-watch", "wristwatch"], title: "Watches" },
-  watch: { categorySlug: "watches", keywords: ["watch", "watches", "chronograph", "analog", "digital", "smartwatch", "wrist-watch", "wristwatch"], title: "Watches" },
+  watches: { categorySlug: "watch", keywords: ["watch", "watches", "chronograph", "analog", "digital", "smartwatch", "wrist-watch", "wristwatch"], title: "Watches" },
+  watch: { categorySlug: "watch", keywords: ["watch", "watches", "chronograph", "analog", "digital", "smartwatch", "wrist-watch", "wristwatch"], title: "Watches" },
   shoes: { categorySlug: "footwear", keywords: ["shoe", "shoes", "sneaker", "sneakers", "footwear", "boot", "boots"], title: "Shoes" },
   shoe: { categorySlug: "footwear", keywords: ["shoe", "shoes", "sneaker", "sneakers", "footwear", "boot", "boots"], title: "Shoes" },
   footwear: { categorySlug: "footwear", keywords: ["footwear", "shoe", "shoes", "slider", "sliders", "slipper", "sneaker"], title: "Footwear" },
@@ -19,11 +19,14 @@ const ALIAS_MAP = {
   "air-buds": { categorySlug: "gadgets", keywords: ["airpod", "airpods", "bud", "buds", "earbud", "earbuds", "earphone", "headphone", "audio", "air-bud"], title: "Air Buds" },
   airbuds: { categorySlug: "gadgets", keywords: ["airpod", "airpods", "bud", "buds", "earbud", "earbuds", "earphone", "headphone", "audio", "air-bud"], title: "Air Buds" },
   gadgets: { categorySlug: "gadgets", keywords: ["gadget", "gadgets", "bud", "buds", "tech", "audio", "airpod"], title: "Gadgets" },
+  speaker: { categorySlug: "speaker", keywords: ["speaker", "speakers", "marshall", "sound", "audio"], title: "Speaker" },
+  speakers: { categorySlug: "speaker", keywords: ["speaker", "speakers", "marshall", "sound", "audio"], title: "Speakers" },
   caps: { categorySlug: "fashion-bags", keywords: ["cap", "caps", "hat", "hats", "beanie"], title: "Caps" },
-  clothing: { categorySlug: "clothing", keywords: ["t-shirt", "shirt", "hoodie", "hoodies", "streetwear", "essentials", "sweatshirt"], title: "Clothing" },
+  clothes: { categorySlug: "clothes", keywords: ["clothes", "clothing", "apparel", "shirt", "t-shirt", "tshirt", "hoodie", "hoodies", "streetwear", "essentials", "sweatshirt"], title: "Clothes" },
+  clothing: { categorySlug: "clothes", keywords: ["clothes", "clothing", "apparel", "shirt", "t-shirt", "tshirt", "hoodie", "hoodies", "streetwear", "essentials", "sweatshirt"], title: "Clothes" },
   accessories: { categorySlug: "fashion-bags", keywords: ["accessory", "accessories", "bag", "bags", "cap", "caps", "belt", "wallet", "sunglass", "sunglasses"], title: "Accessories" },
   "fashion-bags": { categorySlug: "fashion-bags", keywords: ["fashion", "bag", "bags", "cap", "caps", "accessories"], title: "Fashion & Bags" },
-  "style-essentials": { categorySlug: "style-essentials", keywords: ["clothing", "apparel", "shirt", "t-shirt", "tshirt", "oversized", "hoodie", "hoodies", "sweatshirt", "sweatshirts", "footwear", "shoe", "shoes", "sneaker", "sneakers", "slipper", "slippers", "slide", "slides", "slider", "sliders", "sandal", "sandals"], title: "Style Essentials" },
+  "style-essentials": { categorySlug: "style-essentials", keywords: ["clothes", "clothing", "apparel", "shirt", "t-shirt", "tshirt", "oversized", "hoodie", "hoodies", "sweatshirt", "sweatshirts", "footwear", "shoe", "shoes", "sneaker", "sneakers", "slipper", "slippers", "slide", "slides", "slider", "sliders", "sandal", "sandals"], title: "Style Essentials" },
   deals: { categorySlug: "deals", keywords: [], title: "Hot Deals" },
 };
 
@@ -112,10 +115,20 @@ export default function Products() {
   const activeCategoryObj = useMemo(() => {
     if (isAllCategory) return null;
     if (alias) {
-      return categories.find((c) => (c.slug || "").toLowerCase() === alias.categorySlug.toLowerCase()) || null;
+      const match =
+        categories.find((c) => (c.slug || "").toLowerCase() === alias.categorySlug.toLowerCase()) ||
+        categories.find((c) => (c.name || "").toLowerCase() === alias.title.toLowerCase()) ||
+        categories.find((c) => (c.slug || "").toLowerCase() === currentCategorySlug) ||
+        categories.find((c) => (c.name || "").toLowerCase() === currentCategorySlug);
+      if (match) return match;
     }
     if (currentCategorySlug) {
-      return categories.find((c) => (c.slug || "").toLowerCase() === currentCategorySlug) || null;
+      return (
+        categories.find((c) => (c.slug || "").toLowerCase() === currentCategorySlug) ||
+        categories.find((c) => (c.name || "").toLowerCase() === currentCategorySlug) ||
+        categories.find((c) => String(c.id) === currentCategorySlug) ||
+        null
+      );
     }
     return null;
   }, [categories, currentCategorySlug, alias, isAllCategory]);
@@ -181,13 +194,32 @@ export default function Products() {
   const { availableSubcategories, availableColors, availableSizes } = useMemo(() => {
     let baseProducts = products;
     if (activeCategoryObj) {
-      baseProducts = baseProducts.filter(
-        (p) => (p.category || "").toLowerCase() === (activeCategoryObj.slug || "").toLowerCase()
-      );
+      const targetSlug = (activeCategoryObj.slug || "").toLowerCase();
+      const targetName = (activeCategoryObj.name || "").toLowerCase();
+      const targetId = String(activeCategoryObj.id || "");
+      baseProducts = baseProducts.filter((p) => {
+        const pCatSlug = String(p.category_slug || p.category || "").toLowerCase();
+        const pCatName = String(p.category_name || "").toLowerCase();
+        const pCatId = String(p.category_id !== undefined ? p.category_id : (typeof p.category === "number" ? p.category : ""));
+        return (
+          pCatSlug === targetSlug ||
+          pCatName === targetName ||
+          (pCatId && pCatId === targetId) ||
+          (alias && alias.keywords.some((k) => pCatSlug.includes(k) || pCatName.includes(k)))
+        );
+      });
     } else if (alias) {
-      baseProducts = baseProducts.filter(
-        (p) => (p.category || "").toLowerCase() === alias.categorySlug.toLowerCase()
-      );
+      const targetCat = alias.categorySlug.toLowerCase();
+      const keywords = alias.keywords;
+      baseProducts = baseProducts.filter((p) => {
+        const cat = String(p.category_slug || p.category || "").toLowerCase();
+        const catName = String(p.category_name || "").toLowerCase();
+        const sub = String(p.subcategory_slug || p.subcategory_name || p.subcategory || "").toLowerCase();
+        const name = String(p.name || "").toLowerCase();
+        const catMatches = cat === targetCat || catName === targetCat || keywords.some((k) => cat.includes(k) || catName.includes(k));
+        const keywordMatches = keywords.length === 0 || keywords.some((k) => sub.includes(k) || name.includes(k));
+        return catMatches || keywordMatches;
+      });
     }
 
     // Subcategories from API category or active products
@@ -258,35 +290,56 @@ export default function Products() {
       list = list.filter((p) => Number(p.discount || 0) > 0 || (Boolean(p.oldPrice) && Number(p.oldPrice) > Number(p.price)));
     } else if (isAllCategory) {
       // All products - no category filter applied
+    } else if (activeCategoryObj) {
+      const targetSlug = (activeCategoryObj.slug || "").toLowerCase();
+      const targetName = (activeCategoryObj.name || "").toLowerCase();
+      const targetId = String(activeCategoryObj.id || "");
+      list = list.filter((p) => {
+        const pCatSlug = String(p.category_slug || p.category || "").toLowerCase();
+        const pCatName = String(p.category_name || "").toLowerCase();
+        const pCatId = String(p.category_id !== undefined ? p.category_id : (typeof p.category === "number" ? p.category : ""));
+        return (
+          pCatSlug === targetSlug ||
+          pCatName === targetName ||
+          (pCatId && pCatId === targetId) ||
+          (alias && alias.keywords.some((k) => pCatSlug.includes(k) || pCatName.includes(k)))
+        );
+      });
     } else if (alias) {
       const targetCat = alias.categorySlug.toLowerCase();
       const keywords = alias.keywords;
       list = list.filter((p) => {
-        const cat = (p.category || "").toLowerCase();
-        const sub = (p.subcategory || "").toLowerCase();
-        const name = (p.name || "").toLowerCase();
-        const catMatches = cat === targetCat || keywords.some((k) => cat.includes(k));
+        const cat = String(p.category_slug || p.category || "").toLowerCase();
+        const catName = String(p.category_name || "").toLowerCase();
+        const sub = String(p.subcategory_slug || p.subcategory_name || p.subcategory || "").toLowerCase();
+        const name = String(p.name || "").toLowerCase();
+        const catMatches = cat === targetCat || catName === targetCat || keywords.some((k) => cat.includes(k) || catName.includes(k));
         const keywordMatches = keywords.length === 0 || keywords.some((k) => sub.includes(k) || name.includes(k));
         return catMatches || keywordMatches;
       });
     } else if (currentCategorySlug) {
       list = list.filter((p) => {
-        const cat = (p.category || "").toLowerCase();
-        const catSlug = (p.category_slug || "").toLowerCase();
-        return cat === currentCategorySlug || catSlug === currentCategorySlug;
+        const cat = String(p.category || "").toLowerCase();
+        const catSlug = String(p.category_slug || "").toLowerCase();
+        const catName = String(p.category_name || "").toLowerCase();
+        return cat === currentCategorySlug || catSlug === currentCategorySlug || catName === currentCategorySlug;
       });
     }
 
     // Filter by subcategory
-    if (currentSubcategorySlug) {
+    if (currentSubcategorySlug && currentSubcategorySlug !== "all") {
       list = list.filter((p) => {
-        const sub = (p.subcategory || "").toLowerCase();
-        const subSlug = (p.subcategory_slug || "").toLowerCase();
-        const name = (p.name || "").toLowerCase();
+        const sub = String(p.subcategory || "").toLowerCase();
+        const subSlug = String(p.subcategory_slug || "").toLowerCase();
+        const subName = String(p.subcategory_name || "").toLowerCase();
+        const name = String(p.name || "").toLowerCase();
         return (
           sub === currentSubcategorySlug ||
           subSlug === currentSubcategorySlug ||
+          subName === currentSubcategorySlug ||
           sub.includes(currentSubcategorySlug) ||
+          subSlug.includes(currentSubcategorySlug) ||
+          subName.includes(currentSubcategorySlug) ||
           name.includes(currentSubcategorySlug)
         );
       });
@@ -377,6 +430,7 @@ export default function Products() {
     currentAvailability,
     currentSort,
     alias,
+    activeCategoryObj,
   ]);
 
   // Total pages and Paginated subset

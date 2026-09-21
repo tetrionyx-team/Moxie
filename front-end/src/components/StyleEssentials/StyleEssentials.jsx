@@ -15,6 +15,7 @@ export const isStyleEssentialsProduct = (product) => {
   const name = String(product.name || "").toLowerCase();
 
   const clothingKeywords = [
+    "clothes",
     "clothing",
     "apparel",
     "shirt",
