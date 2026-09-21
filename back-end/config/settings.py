@@ -87,6 +87,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary_storage',
+    'cloudinary',
     'django.contrib.humanize',
 
     # Third-party apps
@@ -238,7 +240,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ============================================================
-# STATIC FILES
+# STATIC & MEDIA FILE STORAGE (Cloudinary Media + WhiteNoise Static)
 # ============================================================
 
 STATIC_URL = 'static/'
@@ -248,7 +250,27 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+}
+
+STORAGES = {
+    "default": {
+        "BACKEND": "services.storage.AutoMediaCloudinaryStorage" if os.environ.get('CLOUDINARY_CLOUD_NAME') else "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
+DEFAULT_FILE_STORAGE = "services.storage.AutoMediaCloudinaryStorage" if os.environ.get('CLOUDINARY_CLOUD_NAME') else "django.core.files.storage.FileSystemStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # ============================================================
@@ -276,15 +298,6 @@ else:
 
 if frontend_url_env and frontend_url_env not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(frontend_url_env)
-
-
-# ============================================================
-# MEDIA FILES
-# ============================================================
-
-MEDIA_URL = '/media/'
-
-MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # ============================================================

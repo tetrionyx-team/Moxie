@@ -1,43 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getCategories } from "../api/categoryApi";
-import { API_URL, BACKEND_URL } from "../config";
-
-import watchImg from "../assets/images/watch1.png";
-import shoeImg from "../assets/images/shoe.svg";
-import capImg from "../assets/images/cap.png";
-import budsImg from "../assets/images/Buds.png";
-import defaultImg from "../assets/images/offer.png";
+import { API_URL } from "../config";
+import {
+  getProductImageUrl,
+  resolveMediaUrl,
+} from "../utils/productImage";
 
 const DataContext = createContext(null);
-const API_ORIGIN = BACKEND_URL;
-
-const getImageUrl = (image) => {
-  if (!image) return null;
-  let cleanImage = image;
-  if (typeof cleanImage === "string") {
-    cleanImage = cleanImage
-      .replace(/^http:\/\/127\.0\.0\.1:8000/, API_ORIGIN)
-      .replace(/^http:\/\/localhost:8000/, API_ORIGIN);
-
-    if (cleanImage.startsWith("http://") || cleanImage.startsWith("https://")) {
-      return cleanImage;
-    }
-  }
-  try {
-    return new URL(cleanImage, API_ORIGIN).href;
-  } catch {
-    return cleanImage;
-  }
-};
-
-const getFallbackImage = (categorySlug) => {
-  const slug = String(categorySlug || "").toLowerCase();
-  if (slug.includes("watch")) return watchImg;
-  if (slug.includes("footwear") || slug.includes("shoe") || slug.includes("slider")) return shoeImg;
-  if (slug.includes("cap")) return capImg;
-  if (slug.includes("gadget") || slug.includes("bud")) return budsImg;
-  return defaultImg;
-};
 
 export const DataProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
@@ -124,14 +93,10 @@ export const DataProvider = ({ children }) => {
             }
           });
         }
-        const primaryImage = backendImages.find((img) => img.is_primary) || backendImages[0];
-        const imageUrl = getImageUrl(p.image || primaryImage?.image);
+        const finalImage = getProductImageUrl(p);
         const imageUrls = backendImages
-          .map((img) => getImageUrl(img.image))
+          .map((img) => resolveMediaUrl(typeof img === "string" ? img : (img.image || img.url)))
           .filter(Boolean);
-
-        const fallback = getFallbackImage(p.category_slug);
-        const finalImage = imageUrl || fallback;
         const finalImages = imageUrls.length > 0 ? imageUrls : [finalImage];
 
         const rawPPrice = Number(p.price || 0);
@@ -160,7 +125,7 @@ export const DataProvider = ({ children }) => {
 
         const variants = (p.variants || []).map((v) => {
           const varImages = Array.isArray(v.images)
-            ? v.images.map((img) => getImageUrl(img.image)).filter(Boolean)
+            ? v.images.map((img) => resolveMediaUrl(typeof img === "string" ? img : (img.image || img.url))).filter(Boolean)
             : [];
           const vPrice = Number(v.price || rawPPrice);
           const vDisc = v.discount_price !== undefined && v.discount_price !== null && v.discount_price !== "" && Number(v.discount_price) > 0

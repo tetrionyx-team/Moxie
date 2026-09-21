@@ -13,22 +13,7 @@ import {
   LuMinus,
   LuLock,
 } from "react-icons/lu";
-import "./CartDrawer.css";
-
-import watchFallbackImg from "../../assets/images/watch1.png";
-import shoeFallbackImg from "../../assets/images/shoe.svg";
-import capFallbackImg from "../../assets/images/cap.png";
-import budsFallbackImg from "../../assets/images/Buds.png";
-import defaultFallbackImg from "../../assets/images/offer.png";
-
-const getFallbackImage = (category, name) => {
-  const str = (String(category || "") + " " + String(name || "")).toLowerCase();
-  if (str.includes("watch")) return watchFallbackImg;
-  if (str.includes("footwear") || str.includes("shoe") || str.includes("slider") || str.includes("slipper")) return shoeFallbackImg;
-  if (str.includes("cap")) return capFallbackImg;
-  if (str.includes("gadget") || str.includes("bud") || str.includes("airpod")) return budsFallbackImg;
-  return defaultFallbackImg;
-};
+import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 // Luxury 3D MOXIE Shopping Bag Graphic
 const MoxieBagIllustration = () => (
@@ -281,8 +266,7 @@ export default function CartDrawer() {
             <div className="cart-drawer-items-list">
               {cart.map((item) => {
                 const itemKey = item.cartItemId || item.id;
-                const fallback = getFallbackImage(item.category, item.name);
-                const itemImage = item.image || fallback;
+                const itemImage = getProductImageUrl(item);
                 const brand =
                   item.brand ||
                   item.specifications?.Brand ||
@@ -317,7 +301,7 @@ export default function CartDrawer() {
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = fallback;
+                          e.currentTarget.src = NEUTRAL_PLACEHOLDER;
                         }}
                       />
                     </div>

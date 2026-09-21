@@ -33,11 +33,7 @@ import { orderService } from "../../services/orderService";
 import { apiFetch } from "../../api/apiConfig";
 import "./Checkout.css";
 
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
+import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 // Custom Road icon for Street / Area
 const RoadIcon = () => (
@@ -67,15 +63,6 @@ const UpiIcon = () => (
     <path d="M6 14L2 26H7L8.5 21H12.5L14 14H6Z" fill="#4B6584" />
   </svg>
 );
-
-const getFallbackImage = (category, name) => {
-  const str = (String(category || "") + " " + String(name || "")).toLowerCase();
-  if (str.includes("watch")) return watchImg;
-  if (str.includes("footwear") || str.includes("shoe") || str.includes("slider")) return shoeImg;
-  if (str.includes("cap")) return capImg;
-  if (str.includes("gadget") || str.includes("bud")) return budsImg;
-  return defaultImg;
-};
 
 export default function Checkout() {
   const { cart = [], clearCart } = useContext(CartContext) || {};
@@ -453,7 +440,7 @@ export default function Checkout() {
       quantity: Number(item.quantity) || 1,
       size: item.selectedSize || item.size || "Regular",
       color: item.selectedColor || item.color || "Standard",
-      image: item.image || getFallbackImage(item.category, item.name),
+      image: getProductImageUrl(item),
     }));
 
     const effectiveEmail = user?.email || "shopper@moxie.com";
@@ -1177,9 +1164,7 @@ export default function Checkout() {
               {/* Items List */}
               <div className="checkout-items-list">
                 {checkoutList.map((item, idx) => {
-                  const fallback = getFallbackImage(item.category, item.name);
-                  const itemImgSrc =
-                    item.image && !item.image.includes("ChatGPT_Image") ? item.image : fallback;
+                  const itemImgSrc = getProductImageUrl(item);
                   const itemPrice = Number(item.price) || 0;
                   const itemOldPrice = Number(item.oldPrice) || Number(item.mrp) || 0;
                   const itemQty = Number(item.quantity) || 1;
@@ -1192,7 +1177,7 @@ export default function Checkout() {
                           alt={item.name}
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = fallback;
+                            e.target.src = NEUTRAL_PLACEHOLDER;
                           }}
                         />
                       </div>

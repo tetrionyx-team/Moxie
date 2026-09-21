@@ -9,23 +9,10 @@ import ProfileSidebar from "../../components/Profile/ProfileSidebar";
 import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
 import { LuHeart, LuShoppingCart, LuTrash2, LuShoppingBag, LuSparkles } from "react-icons/lu";
 
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
+import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 import "./Wishlist.css";
 import "../../components/Profile/Profile.css";
-
-const getFallbackImage = (category) => {
-  const cat = String(category || "").toLowerCase();
-  if (cat.includes("watch")) return watchImg;
-  if (cat.includes("footwear") || cat.includes("shoe") || cat.includes("slider")) return shoeImg;
-  if (cat.includes("cap")) return capImg;
-  if (cat.includes("gadget") || cat.includes("bud")) return budsImg;
-  return defaultImg;
-};
 
 export default function Wishlist({ embedded = false }) {
   const { wishlist = [], removeFromWishlist } = useContext(WishlistContext) || {};
@@ -156,7 +143,7 @@ export default function Wishlist({ embedded = false }) {
           {wishlist.map((product) => {
             if (!product) return null;
             const inCart = Array.isArray(cart) && cart.some((item) => item?.id === product.id);
-            const fallback = getFallbackImage(product.category);
+            const displayImg = getProductImageUrl(product);
             const displayPrice = typeof product.price === "number" ? product.price : 0;
             const displayOldPrice =
               typeof product.oldPrice === "number" && product.oldPrice > displayPrice
@@ -178,13 +165,13 @@ export default function Wishlist({ embedded = false }) {
                     aria-label={`View ${product.name}`}
                   >
                     <img
-                      src={product.image || fallback}
+                      src={displayImg}
                       alt={product.name || "Product"}
                       className="wishlist-product-img"
                       loading="lazy"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = fallback;
+                        e.target.src = NEUTRAL_PLACEHOLDER;
                       }}
                     />
                   </Link>

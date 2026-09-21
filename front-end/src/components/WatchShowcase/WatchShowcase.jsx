@@ -8,8 +8,7 @@ import { WishlistContext } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
 import "./WatchShowcase.css";
 
-// Project fallback image
-import placeholderImg from "../../assets/images/offer.png";
+import { resolveMediaUrl, getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 /**
  * Format remaining milliseconds into structured countdown display parts (Days, Hours, Minutes, Seconds)
@@ -116,12 +115,11 @@ export default function WatchShowcase() {
           discountPercent = Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
         }
 
-        // Image priority: showcase_image -> display_image -> product.image -> fallback
+        // Image priority: showcase_image -> display_image -> getProductImageUrl(p)
         const displayImage =
-          item.showcase_image ||
-          item.display_image ||
-          p.image ||
-          placeholderImg;
+          resolveMediaUrl(item.showcase_image) ||
+          resolveMediaUrl(item.display_image) ||
+          getProductImageUrl(p);
 
         // Countdown calculations based on backend end_date (or default 24h cycle if none)
         let countdown = { days: "02", hours: "23", minutes: "15", seconds: "30" };
@@ -275,7 +273,7 @@ export default function WatchShowcase() {
                     loading="lazy"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
-                      e.currentTarget.src = placeholderImg;
+                      e.currentTarget.src = NEUTRAL_PLACEHOLDER;
                     }}
                   />
                 </Link>

@@ -10,11 +10,7 @@ import {
 
 import "./ProductCard.css";
 
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
+import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 /**
  * Identifies if a product is a Shirt or T-Shirt
@@ -78,29 +74,6 @@ export const isWatchCategory = (product) => {
  * Backwards-compatibility alias
  */
 export const isPremiumFashionCategory = isShirtCategory;
-
-const getFallbackImage = (category) => {
-  const cat = String(category || "").toLowerCase();
-
-  if (cat.includes("watch")) return watchImg;
-
-  if (
-    cat.includes("footwear") ||
-    cat.includes("shoe") ||
-    cat.includes("slider") ||
-    cat.includes("slipper")
-  ) {
-    return shoeImg;
-  }
-
-  if (cat.includes("cap")) return capImg;
-
-  if (cat.includes("gadget") || cat.includes("bud")) {
-    return budsImg;
-  }
-
-  return defaultImg;
-};
 
 export default function ProductCard({ product }) {
   const { cart = [], addToCart } = useContext(CartContext) || {};
@@ -206,7 +179,7 @@ export default function ProductCard({ product }) {
     }
   };
 
-  const fallback = getFallbackImage(product?.category || product?.category_slug);
+  const displayImage = getProductImageUrl(product);
 
   // Universal pricing resolution for ProductCard:
   // Final Rule:
@@ -266,13 +239,13 @@ export default function ProductCard({ product }) {
           </button>
 
           <img
-            src={product.image || fallback}
+            src={displayImage}
             alt={product.name}
             className="premium-card-img"
             loading="lazy"
             onError={(e) => {
               e.currentTarget.onerror = null;
-              e.currentTarget.src = fallback;
+              e.currentTarget.src = NEUTRAL_PLACEHOLDER;
             }}
           />
         </div>

@@ -3,22 +3,7 @@ import { Link } from "react-router-dom";
 import { CartContext } from "../../context/CartContext";
 import { WishlistContext } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
-import "./Cart.css";
-
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
-
-const getFallbackImage = (category, name) => {
-  const str = (String(category || "") + " " + String(name || "")).toLowerCase();
-  if (str.includes("watch")) return watchImg;
-  if (str.includes("footwear") || str.includes("shoe") || str.includes("slider")) return shoeImg;
-  if (str.includes("cap")) return capImg;
-  if (str.includes("gadget") || str.includes("bud")) return budsImg;
-  return defaultImg;
-};
+import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 export default function Cart() {
   const { cart = [], updateQuantity, removeFromCart, clearCart } = useContext(CartContext) || {};
@@ -84,8 +69,7 @@ export default function Cart() {
             <div className="cart-items-column">
               <div className="cart-items-card-list">
                 {cart.map((item) => {
-                  const fallback = getFallbackImage(item.category, item.name);
-                  const itemImgSrc = item.image && !item.image.includes("ChatGPT_Image") ? item.image : fallback;
+                  const itemImgSrc = getProductImageUrl(item);
                   const itemSubtotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
                   const itemKey = `${item.id}-${item.selectedSize || "nosize"}-${item.selectedColor || "nocolor"}`;
                   const maxStock = typeof item.stock === "number" && item.stock > 0 ? item.stock : 99;
@@ -101,7 +85,7 @@ export default function Cart() {
                             className="cart-item-thumb-img"
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = fallback;
+                              e.target.src = NEUTRAL_PLACEHOLDER;
                             }}
                           />
                         </div>

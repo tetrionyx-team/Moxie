@@ -10,63 +10,13 @@ import { getSaleState, getSaleStateLabel } from "../../utils/inventory";
 import ProductCard, { isWatchCategory } from "../../components/Product/ProductCard";
 import { getProductReviews } from "../../api/reviewApi";
 import { API_BASE_URL } from "../../api/apiConfig";
-import { BACKEND_URL } from "../../config";
 import "./ProductDetails.css";
 
-import watchImg from "../../assets/images/watch1.png";
-import shoeImg from "../../assets/images/shoe.svg";
-import capImg from "../../assets/images/cap.png";
-import budsImg from "../../assets/images/Buds.png";
-import defaultImg from "../../assets/images/offer.png";
+import { resolveMediaUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
-const getImageUrl = (image) => {
-  if (!image) return null;
-  let cleanImage = image;
-  if (typeof cleanImage === "string") {
-    cleanImage = cleanImage
-      .replace(/^http:\/\/127\.0\.0\.1:8000/, BACKEND_URL)
-      .replace(/^http:\/\/localhost:8000/, BACKEND_URL)
-      .replace(/^http:\/\/localhost(?!:)/, BACKEND_URL);
+const getImageUrl = (image) => resolveMediaUrl(image);
 
-    if (cleanImage.startsWith("http://") || cleanImage.startsWith("https://")) {
-      return cleanImage;
-    }
-  }
-  try {
-    return new URL(cleanImage, BACKEND_URL).href;
-  } catch {
-    return cleanImage;
-  }
-};
-
-const getVideoUrl = (video) => {
-  if (!video) return null;
-  let cleanVideo = video;
-  if (typeof cleanVideo === "string") {
-    cleanVideo = cleanVideo
-      .replace(/^http:\/\/127\.0\.0\.1:8000/, BACKEND_URL)
-      .replace(/^http:\/\/localhost:8000/, BACKEND_URL)
-      .replace(/^http:\/\/localhost(?!:)/, BACKEND_URL);
-
-    if (cleanVideo.startsWith("http://") || cleanVideo.startsWith("https://")) {
-      return cleanVideo;
-    }
-  }
-  try {
-    return new URL(cleanVideo, BACKEND_URL).href;
-  } catch {
-    return cleanVideo;
-  }
-};
-
-const getFallbackImage = (categorySlug) => {
-  const slug = String(categorySlug || "").toLowerCase();
-  if (slug.includes("watch")) return watchImg;
-  if (slug.includes("footwear") || slug.includes("shoe") || slug.includes("slider") || slug.includes("slipper")) return shoeImg;
-  if (slug.includes("cap")) return capImg;
-  if (slug.includes("gadget") || slug.includes("bud")) return budsImg;
-  return defaultImg;
-};
+const getVideoUrl = (video) => resolveMediaUrl(video);
 
 export default function ProductDetails() {
   const { productId, category: paramCategory } = useParams();
@@ -391,7 +341,7 @@ export default function ProductDetails() {
     if (mediaList.length === 0) {
       mediaList.push({
         type: "image",
-        url: getFallbackImage(product.category || product.category_slug),
+        url: NEUTRAL_PLACEHOLDER,
         isVideo: false,
       });
     }
@@ -404,8 +354,8 @@ export default function ProductDetails() {
   // Primary static image specifically for Cart, Wishlist, Checkout, Orders (strictly image, never video)
   const primaryStaticImage = useMemo(() => {
     const firstImg = allMedia.find((m) => m.type === "image");
-    return firstImg ? firstImg.url : getFallbackImage(product?.category);
-  }, [allMedia, product?.category]);
+    return firstImg ? firstImg.url : NEUTRAL_PLACEHOLDER;
+  }, [allMedia]);
 
   // Reset active image index whenever product ID or selected variant changes
   useEffect(() => {
@@ -747,7 +697,7 @@ export default function ProductDetails() {
                         className="pdp-thumb-img"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = getFallbackImage(product.category);
+                          e.currentTarget.src = NEUTRAL_PLACEHOLDER;
                         }}
                       />
                     )}
@@ -786,7 +736,7 @@ export default function ProductDetails() {
                     onClick={() => setIsZoomOpen(true)}
                     onError={(e) => {
                       e.currentTarget.onerror = null;
-                      e.currentTarget.src = getFallbackImage(product.category);
+                      e.currentTarget.src = NEUTRAL_PLACEHOLDER;
                     }}
                   />
 
@@ -830,7 +780,7 @@ export default function ProductDetails() {
                         className="pdp-mobile-thumb-img"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = getFallbackImage(product.category);
+                          e.currentTarget.src = NEUTRAL_PLACEHOLDER;
                         }}
                       />
                     )}
