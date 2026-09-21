@@ -1,6 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { FiShoppingBag, FiTruck, FiShield, FiCheck, FiChevronRight, FiZoomIn, FiX, FiHeadphones } from "react-icons/fi";
+import {
+  FiShoppingBag,
+  FiTruck,
+  FiShield,
+  FiCheck,
+  FiChevronRight,
+  FiChevronLeft,
+  FiZoomIn,
+  FiX,
+  FiHeadphones,
+  FiZap,
+} from "react-icons/fi";
 import { FaHeart, FaRegHeart, FaStar, FaRegStar } from "react-icons/fa";
 import { useData } from "../../context/DataContext";
 import { CartContext } from "../../context/CartContext";
@@ -751,6 +762,31 @@ export default function ProductDetails() {
                   </button>
                 </>
               )}
+
+              {/* Bottom Pagination / Navigation Capsule */}
+              {allMedia.length > 1 && (
+                <div className="pdp-gallery-pager-capsule">
+                  <button
+                    type="button"
+                    className="pdp-gallery-nav-btn"
+                    onClick={() => handleMediaSelect((activeImageIndex - 1 + allMedia.length) % allMedia.length)}
+                    aria-label="Previous image"
+                  >
+                    <FiChevronLeft />
+                  </button>
+                  <span className="pdp-gallery-counter">
+                    {activeImageIndex + 1} / {allMedia.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="pdp-gallery-nav-btn"
+                    onClick={() => handleMediaSelect((activeImageIndex + 1) % allMedia.length)}
+                    aria-label="Next image"
+                  >
+                    <FiChevronRight />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mobile Horizontal Thumbnails */}
@@ -794,7 +830,7 @@ export default function ProductDetails() {
           <div className="pdp-info-column">
             {/* Category / Brand Eyebrow */}
             <div className="pdp-category-eyebrow">
-              {product.category_name || (typeof product.category === "object" ? product.category?.name?.toUpperCase() : String(product.category || "MOXIE").toUpperCase())}
+              {product.category_name || (typeof product.category === "object" ? product.category?.name?.toUpperCase() : String(product.category || "WATCH").toUpperCase())}
             </div>
 
             {/* Product Title */}
@@ -815,7 +851,14 @@ export default function ProductDetails() {
                   <span className="pdp-rating-score-val">{averageRating}</span>
                 </div>
               ) : (
-                <span className="pdp-no-rating-label">No reviews yet</span>
+                <div className="pdp-no-rating-stars-row">
+                  <div className="pdp-stars-group empty">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FaRegStar key={star} className="star-empty-outline" />
+                    ))}
+                  </div>
+                  <span className="pdp-no-rating-label">No reviews yet</span>
+                </div>
               )}
 
               {totalReviewsCount > 0 ? (
@@ -850,21 +893,22 @@ export default function ProductDetails() {
 
             <div className="pdp-divider" />
 
-            {/* Color Options (ONLY when backend has colors) */}
+            {/* Color Options (ONLY when backend has colors) + Stock Pill */}
             {backendColors.length > 0 && (
               <div className="pdp-option-group">
                 <div className="pdp-option-header">
-                  <span className="pdp-option-title">Color :</span>
+                  <span className="pdp-option-title">COLOR :</span>
                   <strong className="pdp-option-selected-name">
                     {selectedColor ? selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1) : ""}
                   </strong>
                 </div>
 
-                <div className="pdp-color-swatches-row">
-                  {backendColors.map((colorObj) => {
-                    const isSelected = selectedColor?.trim().toLowerCase() === colorObj.name.trim().toLowerCase();
+                <div className="pdp-color-and-stock-row">
+                  <div className="pdp-color-swatches-row">
+                    {backendColors.map((colorObj) => {
+                      const isSelected = selectedColor?.trim().toLowerCase() === colorObj.name.trim().toLowerCase();
+                      const colorCode = colorObj.code || (colorObj.name.toLowerCase() === "black" ? "#000000" : "#ffffff");
 
-                    if (colorObj.code) {
                       return (
                         <button
                           key={colorObj.name}
@@ -876,26 +920,20 @@ export default function ProductDetails() {
                         >
                           <span
                             className="pdp-swatch-circle"
-                            style={{ backgroundColor: colorObj.code }}
+                            style={{ backgroundColor: colorCode }}
                           />
                           {isSelected && <FiCheck className="pdp-swatch-check" />}
                         </button>
                       );
-                    }
+                    })}
+                  </div>
 
-                    return (
-                      <button
-                        key={colorObj.name}
-                        type="button"
-                        className={`pdp-color-pill-btn ${isSelected ? "selected" : ""}`}
-                        onClick={() => handleColorSelect(colorObj.name)}
-                        title={colorObj.name}
-                        aria-pressed={isSelected}
-                      >
-                        {colorObj.name}
-                      </button>
-                    );
-                  })}
+                  {/* Inline In-Stock Pill */}
+                  <div className="pdp-stock-status-inline">
+                    <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
+                      <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -904,9 +942,9 @@ export default function ProductDetails() {
             {availableSizes.length > 0 && (
               <div className="pdp-option-group">
                 <div className="pdp-option-header">
-                  <span className="pdp-option-title">SIZE</span>
+                  <span className="pdp-option-title">SIZE :</span>
                   {selectedSize && (
-                    <strong className="pdp-option-selected-name">: {selectedSize}</strong>
+                    <strong className="pdp-option-selected-name">{selectedSize}</strong>
                   )}
                 </div>
 
@@ -929,107 +967,116 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Modern Purchase & Actions Section */}
-            <div className="pdp-purchase-card">
-              {/* Stock & Quantity Control Header */}
-              <div className="pdp-purchase-header-row">
-                <div className="pdp-stock-status-row">
-                  <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
-                    <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
-                  </span>
-                </div>
-
-                {isAvailable && (
-                  <div className="pdp-quantity-row">
-                    <span className="pdp-qty-label">QTY</span>
-                    <div className="pdp-qty-control-box">
-                      <button
-                        type="button"
-                        className="pdp-qty-btn"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1}
-                        aria-label="Decrease quantity"
-                      >
-                        −
-                      </button>
-                      <span className="pdp-qty-number">{quantity}</span>
-                      <button
-                        type="button"
-                        className="pdp-qty-btn"
-                        onClick={() => setQuantity(Math.min(availableMaxStock, quantity + 1))}
-                        disabled={quantity >= availableMaxStock}
-                        aria-label="Increase quantity"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {/* If no colors exist, display Standalone Stock status */}
+            {backendColors.length === 0 && (
+              <div className="pdp-standalone-stock-row">
+                <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
+                  <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
+                </span>
               </div>
+            )}
 
-              {/* CTA Action Buttons */}
-              <div className="pdp-action-buttons-stack">
+            {/* Quantity Selector */}
+            {isAvailable && (
+              <div className="pdp-quantity-inline-row">
+                <span className="pdp-qty-label">Quantity :</span>
+                <div className="pdp-qty-control-box">
+                  <button
+                    type="button"
+                    className="pdp-qty-btn"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <span className="pdp-qty-number">{quantity}</span>
+                  <button
+                    type="button"
+                    className="pdp-qty-btn"
+                    onClick={() => setQuantity(Math.min(availableMaxStock, quantity + 1))}
+                    disabled={quantity >= availableMaxStock}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* CTA Action Buttons */}
+            <div className="pdp-action-buttons-stack">
+              <button
+                type="button"
+                className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
+                onClick={handleAddToCart}
+                disabled={!isAvailable}
+              >
+                <FiShoppingBag className="pdp-btn-icon" />
+                <span>
+                  {!isAvailable
+                    ? stateLabel
+                    : inCart
+                    ? "Added to Cart (+)"
+                    : "ADD TO CART"}
+                </span>
+              </button>
+
+              <div className="pdp-secondary-actions-row">
                 <button
                   type="button"
-                  className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
-                  onClick={handleAddToCart}
+                  className="pdp-buy-now-btn"
+                  onClick={handleBuyNow}
                   disabled={!isAvailable}
                 >
-                  <FiShoppingBag className="pdp-btn-icon" />
-                  <span>
-                    {!isAvailable
-                      ? stateLabel
-                      : inCart
-                      ? "Added to Cart (+)"
-                      : "Add to Cart"}
-                  </span>
+                  <FiZap className="pdp-btn-icon-zap" />
+                  <span>BUY NOW</span>
                 </button>
 
-                <div className="pdp-secondary-actions-row">
-                  <button
-                    type="button"
-                    className="pdp-buy-now-btn"
-                    onClick={handleBuyNow}
-                    disabled={!isAvailable}
-                  >
-                    Buy Now
-                  </button>
+                <button
+                  type="button"
+                  className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
+                  onClick={handleWishlistToggle}
+                  aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+                  title={wished ? "Remove from wishlist" : "Save to wishlist"}
+                >
+                  {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
+                </button>
+              </div>
+            </div>
 
-                  <button
-                    type="button"
-                    className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
-                    onClick={handleWishlistToggle}
-                    aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
-                    title={wished ? "Remove from wishlist" : "Save to wishlist"}
-                  >
-                    {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
-                  </button>
+            {/* Trust / Service Card (3 equal columns) */}
+            <div className="pdp-trust-service-card">
+              <div className="pdp-trust-col">
+                <FiShield className="pdp-trust-icon" />
+                <div className="pdp-trust-text-wrap">
+                  <strong>Secure Payment</strong>
+                  <span>100% secure checkout</span>
                 </div>
               </div>
-
-              {/* Lightweight Trust / Service Row */}
-              <div className="pdp-trust-service-strip">
-                <div className="pdp-trust-item">
-                  <FiShield className="pdp-trust-icon" />
-                  <span>Secure Payment</span>
-                </div>
-                <div className="pdp-trust-item">
-                  <FiTruck className="pdp-trust-icon" />
-                  <span>Order Tracking</span>
-                </div>
-                <div className="pdp-trust-item">
-                  <FiHeadphones className="pdp-trust-icon" />
-                  <span>Customer Support</span>
+              <div className="pdp-trust-col">
+                <FiTruck className="pdp-trust-icon" />
+                <div className="pdp-trust-text-wrap">
+                  <strong>Order Tracking</strong>
+                  <span>Track your order easily</span>
                 </div>
               </div>
-
-              {/* Informational Payment Methods */}
-              <div className="pdp-payment-options-note">
-                Payment options available: <strong>UPI · Cards · Net Banking · COD</strong>
+              <div className="pdp-trust-col">
+                <FiHeadphones className="pdp-trust-icon" />
+                <div className="pdp-trust-text-wrap">
+                  <strong>Customer Support</strong>
+                  <span>Here to help, always</span>
+                </div>
               </div>
+            </div>
+
+            {/* Informational Payment Methods */}
+            <div className="pdp-payment-options-note">
+              Payment options available: <strong>UPI · Cards · Net Banking · COD</strong>
             </div>
           </div>
         </div>
+
 
         {/* LOWER SECTION: Details, Shipping & Customer Reviews Tabs */}
         <section className="pdp-lower-section" ref={reviewsSectionRef} id="reviews-section">

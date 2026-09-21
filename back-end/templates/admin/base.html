@@ -11,6 +11,9 @@
     <link rel="icon" type="image/png" href="{% static 'images/moxie.png' %}">
     <link rel="shortcut icon" href="{% static 'images/moxie.png' %}">
     <link rel="stylesheet" href="{% static 'admin/css/custom_admin_v2.css' %}">
+    <script>
+        window.STOREFRONT_URL = "{{ frontend_url|default:'http://localhost:3000/'|escapejs }}";
+    </script>
     <style id="moxie-header-notification-styles">
         #nav-sidebar .sidebar-brand,
         .sidebar-brand {
@@ -798,7 +801,7 @@
 
             <!-- Simple Go to Storefront Button (Logs out Admin session securely) -->
             <div style="padding: 16px; margin-top: auto;">
-                <a id="storefront-link" href="http://localhost:3000" onclick="window.goToStorefront(event)"
+                <a id="storefront-link" href="{{ frontend_url|default:'http://localhost:3000/' }}" onclick="window.goToStorefront(event)"
                     style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #6657ec; color: #ffffff; padding: 12px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; transition: background 0.2s; font-size: 14px; cursor: pointer;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -1025,11 +1028,10 @@
             }
         });
 
-        // Dynamic Storefront URL resolution (Localhost vs Production Origin)
+        // Dynamic Storefront URL resolution
         const sfLink = document.getElementById('storefront-link');
-        if (sfLink) {
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            sfLink.href = isLocal ? 'http://localhost:3000' : (window.STOREFRONT_URL || window.location.origin);
+        if (sfLink && window.STOREFRONT_URL) {
+            sfLink.href = window.STOREFRONT_URL;
         }
 
         // Sidebar Hamburger Close on ESC
@@ -1523,12 +1525,10 @@
                 localStorage.removeItem('admin_user');
             } catch (err) {}
 
-            var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            var sfUrl = isLocal ? 'http://localhost:3000' : (window.STOREFRONT_URL || window.location.origin);
             var sfLink = document.getElementById('storefront-link');
-            if (sfLink && sfLink.href && sfLink.href !== '#' && !sfLink.href.startsWith('javascript:')) {
-                sfUrl = sfLink.href;
-            }
+            var sfUrl = (sfLink && sfLink.href && sfLink.href !== '#' && !sfLink.href.startsWith('javascript:'))
+                ? sfLink.href
+                : (window.STOREFRONT_URL || 'http://localhost:3000/');
 
             var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
             fetch('/api/admin/logout/', {

@@ -20,9 +20,11 @@ document.addEventListener('click', function (e) {
     if (!searchInput || !searchDropdown) return;
 
     let activeIndex = -1;
-    const storefrontUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:3000'
-        : (window.STOREFRONT_URL || window.location.origin);
+    const storefrontUrl = window.STOREFRONT_URL || (
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:3000/'
+            : 'https://moxie-jri0.onrender.com/'
+    );
 
     // Quick navigation items map
     const dashboardMenus = [
@@ -282,11 +284,10 @@ document.addEventListener('click', function (e) {
     }
 })();
 
-// Dynamic Storefront URL resolution (Localhost vs Production Origin)
+// Dynamic Storefront URL resolution
 const sfLink = document.getElementById('storefront-link');
-if (sfLink) {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    sfLink.href = isLocal ? 'http://localhost:3000' : (window.STOREFRONT_URL || window.location.origin);
+if (sfLink && window.STOREFRONT_URL) {
+    sfLink.href = window.STOREFRONT_URL;
 }
 
 // Sidebar Hamburger Close on ESC

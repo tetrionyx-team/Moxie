@@ -186,7 +186,7 @@ export default function WatchShowcase() {
         <div className="moxie-featured-picks-container">
           <header className="moxie-picks-header">
             <span className="moxie-picks-pill">
-              <span className="moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
+              <span className="emoji moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
             </span>
             <h2 className="moxie-picks-title">Limited Time Picks</h2>
             <p className="moxie-picks-subtitle">
@@ -220,7 +220,7 @@ export default function WatchShowcase() {
         {/* Section Header */}
         <header className="moxie-picks-header">
           <span className="moxie-picks-pill">
-            <span className="moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
+            <span className="emoji moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
           </span>
           <h2 className="moxie-picks-title">Limited Time Picks</h2>
           <p className="moxie-picks-subtitle">
@@ -236,8 +236,9 @@ export default function WatchShowcase() {
 
             return (
               <article key={item.id} className="moxie-promo-card">
-                {/* Top Badges Row (Discount Pill on Left, Wishlist Heart on Right) */}
-                <div className="moxie-card-top-row">
+                {/* Full-Width Image Area with Overlaid Badges */}
+                <div className="moxie-card-media-wrap">
+                  {/* Dynamic Discount Badge (Top-Left) */}
                   {item.discountPercent > 0 ? (
                     <span className="moxie-card-discount-badge">
                       {item.discountPercent}% OFF
@@ -246,6 +247,7 @@ export default function WatchShowcase() {
                     <span className="moxie-card-discount-badge">SPECIAL</span>
                   )}
 
+                  {/* Wishlist Button (Top-Right) */}
                   <button
                     type="button"
                     className={`moxie-card-heart-btn ${isWished ? "active" : ""}`}
@@ -258,25 +260,25 @@ export default function WatchShowcase() {
                       <FiHeart className="moxie-heart-icon" />
                     )}
                   </button>
-                </div>
 
-                {/* Product Image Clickable Link */}
-                <Link
-                  to={productRoute}
-                  className="moxie-card-img-wrap"
-                  aria-label={`View ${item.name} details`}
-                >
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="moxie-card-img"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = NEUTRAL_PLACEHOLDER;
-                    }}
-                  />
-                </Link>
+                  {/* Product Image Clickable Link */}
+                  <Link
+                    to={productRoute}
+                    className="moxie-card-img-link"
+                    aria-label={`View ${item.name} details`}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="moxie-card-img"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = NEUTRAL_PLACEHOLDER;
+                      }}
+                    />
+                  </Link>
+                </div>
 
                 {/* Card Content Details */}
                 <div className="moxie-card-body">
@@ -287,7 +289,7 @@ export default function WatchShowcase() {
                     </Link>
                   </h3>
 
-                  {/* Pricing: Selling Price Bold Large, Strikethrough Original Price */}
+                  {/* Pricing */}
                   <div className="moxie-card-pricing">
                     <span className="moxie-card-price-current">
                       ₹{item.sellingPrice.toLocaleString("en-IN")}

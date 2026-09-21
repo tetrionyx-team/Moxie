@@ -278,8 +278,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # ============================================================
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-frontend_url_env = os.environ.get('FRONTEND_URL', os.environ.get('FRONTEND_ORIGIN', '')).strip()
+FRONTEND_URL = os.environ.get('FRONTEND_URL', os.environ.get('FRONTEND_ORIGIN', 'http://localhost:3000' if DEBUG else 'https://moxie-jri0.onrender.com')).strip().rstrip('/')
+frontend_url_env = FRONTEND_URL
 
 csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins_env:

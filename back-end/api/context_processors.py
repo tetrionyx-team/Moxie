@@ -44,8 +44,11 @@ def admin_permissions_context(request):
 
 def store_settings_context(request):
     """
-    Context processor that injects current StoreSettings into all templates.
+    Context processor that injects current StoreSettings and frontend_url into all templates.
     """
+    from django.conf import settings
+    raw_frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000' if getattr(settings, 'DEBUG', True) else 'https://moxie-jri0.onrender.com')
+    frontend_url = raw_frontend_url.rstrip('/') + '/'
     try:
         from .models import StoreSettings
         settings_obj = StoreSettings.objects.filter(id=1).first()
@@ -55,10 +58,12 @@ def store_settings_context(request):
             'store_settings': settings_obj,
             'store_name': settings_obj.store_name or 'Moxie',
             'store_logo_url': settings_obj.store_logo.url if settings_obj.store_logo else None,
+            'frontend_url': frontend_url,
         }
     except Exception:
         return {
             'store_settings': None,
             'store_name': 'Moxie',
             'store_logo_url': None,
+            'frontend_url': frontend_url,
         }

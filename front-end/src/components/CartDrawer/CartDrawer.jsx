@@ -14,6 +14,8 @@ import {
   LuLock,
 } from "react-icons/lu";
 import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
+import "./CartDrawer.css";
+
 
 // Luxury 3D MOXIE Shopping Bag Graphic
 const MoxieBagIllustration = () => (
