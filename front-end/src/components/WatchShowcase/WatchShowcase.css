@@ -1,6 +1,6 @@
 /* ===================================================
-   MOXIE — STATIC PREMIUM LIMITED-TIME PICKS
-   No animation / Zero motion
+   MOXIE — FINAL APPROVED LIMITED TIME PICKS
+   Compact Premium Ecommerce Showcase (Zero Animation)
    Palette:
    - Deep Navy: #071426
    - Rich Gold / Amber: #FDE08B / #D5AF66 / #C99B45
@@ -11,15 +11,15 @@
    =================================================== */
 
 .moxie-featured-picks-section {
-  background: #fdfdfd;
+  background: #fafafa;
   background: linear-gradient(180deg, #fafafa 0%, #f7f8fa 100%);
-  padding: 56px 28px 68px;
+  padding: 48px 28px 60px;
   position: relative;
   box-sizing: border-box;
 }
 
 .moxie-featured-picks-container {
-  max-width: 1420px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -29,7 +29,7 @@
 .moxie-picks-header {
   text-align: center;
   max-width: 680px;
-  margin: 0 auto 36px;
+  margin: 0 auto 32px;
 }
 
 .moxie-picks-pill {
@@ -43,30 +43,30 @@
   color: #071426;
   background: #fde08b;
   border: 1px solid rgba(213, 173, 98, 0.4);
-  padding: 6px 16px;
+  padding: 5px 14px;
   border-radius: 30px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(253, 224, 139, 0.35);
   line-height: 1;
 }
 
 .moxie-picks-crown {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
   vertical-align: -0.05em;
 }
 
 .moxie-picks-title {
-  font-size: 38px;
+  font-size: 36px;
   font-weight: 800;
   color: #071426;
-  letter-spacing: -0.6px;
-  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  margin: 0 0 6px 0;
   line-height: 1.2;
 }
 
 .moxie-picks-subtitle {
-  font-size: 15px;
+  font-size: 14.5px;
   color: #64748b;
   line-height: 1.5;
   margin: 0;
@@ -78,19 +78,19 @@
    =================================================== */
 .moxie-picks-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
   margin: 0 auto;
   align-items: stretch;
 }
 
 /* ===================================================
-   3. STATIC PREMIUM WHITE PRODUCT CARD
+   3. STATIC COMPACT PRODUCT CARD
    =================================================== */
 .moxie-promo-card {
   background: #ffffff;
   border: 1px solid rgba(7, 20, 38, 0.08);
-  border-radius: 20px;
+  border-radius: 18px;
   padding: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   display: flex;
@@ -101,16 +101,16 @@
 }
 
 /* ===================================================
-   4. FULL-WIDTH PRODUCT IMAGE AT TOP (LANDSCAPE COVER LOOK)
+   4. FULL-WIDTH PRODUCT IMAGE AT TOP (340px Desktop)
    =================================================== */
 .moxie-card-media-wrap {
   position: relative;
   width: 100%;
-  height: 440px;
+  height: 340px;
   background: #f8f6f1;
   overflow: hidden;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
   display: block;
 }
 
@@ -136,14 +136,14 @@
   top: 14px;
   left: 14px;
   z-index: 3;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #071426;
   background: #fde08b;
   border-radius: 10px;
-  padding: 6px 13px;
+  padding: 5px 12px;
   display: inline-flex;
   align-items: center;
   line-height: 1;
@@ -186,26 +186,28 @@
 }
 
 /* ===================================================
-   5. CARD BODY CONTENT
+   5. CARD BODY CONTENT (Compact & Aligned)
    =================================================== */
 .moxie-card-body {
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   flex: 1;
   box-sizing: border-box;
 }
 
-/* Product Title */
+/* Product Title (2-line consistent area) */
 .moxie-card-title {
   font-size: 20px;
   font-weight: 800;
   color: #071426;
   text-align: left;
   margin: 0 0 8px 0;
-  line-height: 1.3;
-  min-height: 26px;
-  white-space: nowrap;
+  line-height: 1.25;
+  height: 48px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -220,11 +222,11 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .moxie-card-price-current {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   color: #071426;
   letter-spacing: -0.02em;
@@ -232,7 +234,7 @@
 }
 
 .moxie-card-price-original {
-  font-size: 15.5px;
+  font-size: 15px;
   font-weight: 500;
   color: #94a3b8;
   text-decoration: line-through;
@@ -242,9 +244,9 @@
 /* 4-Box Compact Countdown Timer */
 .moxie-card-countdown {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .moxie-countdown-box {
@@ -252,6 +254,7 @@
   border: 1px solid rgba(7, 20, 38, 0.06);
   border-radius: 10px;
   padding: 8px 4px;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -268,7 +271,7 @@
 }
 
 .moxie-countdown-lbl {
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
   color: #64748b;
   letter-spacing: 0.06em;
@@ -280,7 +283,7 @@
 /* Full-Width Add To Cart Button */
 .moxie-card-cart-btn {
   width: 100%;
-  height: 56px;
+  height: 54px;
   background: #071426;
   color: #ffffff;
   border: none;
@@ -299,7 +302,7 @@
 }
 
 .moxie-cart-icon {
-  font-size: 17px;
+  font-size: 16px;
   color: #ffffff;
 }
 
@@ -312,9 +315,9 @@
 
 .skeleton-img {
   width: 100%;
-  height: 440px;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
+  height: 340px;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
   background: #f1f5f9;
 }
 
@@ -342,82 +345,113 @@
 
 .skeleton-btn {
   width: 100%;
-  height: 56px;
+  height: 54px;
   border-radius: 14px;
 }
 
 /* ===================================================
-   RESPONSIVE BREAKPOINTS
+   RESPONSIVE BREAKPOINTS (TABLET & MOBILE)
    =================================================== */
-@media (max-width: 1024px) {
+@media (max-width: 991px) {
   .moxie-featured-picks-section {
-    padding: 44px 20px 54px;
+    padding: 40px 20px 48px;
   }
 
   .moxie-picks-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
   }
 
   .moxie-picks-title {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .moxie-card-media-wrap {
-    height: 360px;
+    height: 300px;
   }
 
   .skeleton-img {
-    height: 360px;
+    height: 300px;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 576px) {
   .moxie-featured-picks-section {
-    padding: 36px 16px 44px;
+    padding: 32px 16px 40px;
   }
 
   .moxie-picks-header {
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .moxie-picks-title {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .moxie-picks-subtitle {
-    font-size: 13.5px;
+    font-size: 13px;
   }
 
   .moxie-picks-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 18px;
   }
 
   .moxie-card-media-wrap {
-    height: 320px;
-    min-height: 280px;
+    height: 230px;
   }
 
   .skeleton-img {
-    height: 320px;
-    min-height: 280px;
+    height: 230px;
+  }
+
+  .moxie-card-heart-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .moxie-card-discount-badge {
+    font-size: 13px;
+    padding: 4px 10px;
   }
 
   .moxie-card-body {
-    padding: 18px 16px 18px;
+    padding: 14px;
   }
 
   .moxie-card-title {
-    font-size: 19px;
+    font-size: 18px;
+    height: 44px;
+  }
+
+  .moxie-card-pricing {
+    margin-bottom: 12px;
   }
 
   .moxie-card-price-current {
-    font-size: 22px;
+    font-size: 26px;
+  }
+
+  .moxie-card-price-original {
+    font-size: 14px;
+  }
+
+  .moxie-card-countdown {
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .moxie-countdown-box {
+    height: 50px;
+    padding: 6px 2px;
   }
 
   .moxie-countdown-num {
     font-size: 15px;
+  }
+
+  .moxie-countdown-lbl {
+    font-size: 8px;
   }
 
   .moxie-card-cart-btn {

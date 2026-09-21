@@ -26,7 +26,7 @@ const isLocalhost = Boolean(
 
 export const BACKEND_URL = (
   isLocalhost
-    ? (getEnv("VITE_LOCAL_BACKEND_URL") || getEnv("REACT_APP_LOCAL_BACKEND_URL") || "http://127.0.0.1:8000")
+    ? (getEnv("VITE_LOCAL_BACKEND_URL") || getEnv("REACT_APP_LOCAL_BACKEND_URL") || getEnv("VITE_BACKEND_URL") || getEnv("REACT_APP_BACKEND_URL") || "http://127.0.0.1:8000")
     : (getEnv("VITE_BACKEND_URL") || getEnv("REACT_APP_BACKEND_URL") || (getEnv("VITE_API_BASE_URL") || getEnv("REACT_APP_API_URL") || "").replace(/\/api\/?$/, "") || "https://moxie-backend-hexm.onrender.com")
 ).replace(/\/+$/, "");
 
