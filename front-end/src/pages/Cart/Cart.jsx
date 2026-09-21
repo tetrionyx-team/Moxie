@@ -4,6 +4,7 @@ import { CartContext } from "../../context/CartContext";
 import { WishlistContext } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
 import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
+import "./Cart.css";
 
 export default function Cart() {
   const { cart = [], updateQuantity, removeFromCart, clearCart } = useContext(CartContext) || {};
@@ -40,30 +41,29 @@ export default function Cart() {
   };
 
   return (
-    <div className="cart-page-wrapper">
-      <div className="cart-page-container">
-        {cart.length > 0 ? (
-          <>
-            {/* Header Bar */}
-            <div className="cart-page-header">
-              <div className="cart-header-title-box">
-                <span className="cart-header-eyebrow">Your Bag</span>
-                <h1 className="cart-header-heading">
-                  Shopping Cart{" "}
-                  <span className="cart-count-pill">({totalItemsCount})</span>
-                </h1>
-              </div>
-              <button
-                type="button"
-                className="cart-clear-btn"
-                onClick={clearCart}
-                title="Remove all items"
-              >
-                Clear Cart
-              </button>
+    <div className={`cart-page-wrapper ${cart.length === 0 ? "cart-page-empty" : ""}`}>
+      {cart.length > 0 ? (
+        <div className="cart-page-container">
+          {/* Header Bar */}
+          <div className="cart-page-header">
+            <div className="cart-header-title-box">
+              <span className="cart-header-eyebrow">Your Bag</span>
+              <h1 className="cart-header-heading">
+                Shopping Cart{" "}
+                <span className="cart-count-pill">({totalItemsCount})</span>
+              </h1>
             </div>
+            <button
+              type="button"
+              className="cart-clear-btn"
+              onClick={clearCart}
+              title="Remove all items"
+            >
+              Clear Cart
+            </button>
+          </div>
 
-            <div className="cart-layout-grid">
+          <div className="cart-layout-grid">
             {/* Left Column: Cart Item Cards */}
             <div className="cart-items-column">
               <div className="cart-items-card-list">
@@ -249,48 +249,42 @@ export default function Cart() {
               </div>
             </aside>
           </div>
-        </>
+        </div>
       ) : (
-          /* Premium MOXIE Empty Cart State */
-          <div className="cart-empty-state-wrapper">
-            <div className="cart-empty-state-card">
-              <span className="cart-empty-eyebrow">YOUR BAG</span>
-              
-              <div className="empty-cart-icon-circle">
-                <svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <path d="M16 10a4 4 0 0 1-8 0"></path>
-                </svg>
-              </div>
-
-              <h2 className="empty-cart-heading">Your shopping bag is empty</h2>
-              <p className="empty-cart-text">
-                Looks like you haven't added anything yet.
-                <br className="empty-cart-br" />
-                Explore our curated collection and find your next favourite.
-              </p>
-
-              <Link to="/products" className="empty-cart-cta-btn">
-                CONTINUE SHOPPING
-              </Link>
-
-              <Link to="/products" className="empty-cart-secondary-link">
-                Explore Products →
-              </Link>
-            </div>
+        /* Premium MOXIE Empty Cart State */
+        <div className="cart-empty-container">
+          <span className="cart-empty-label">YOUR BAG</span>
+          
+          <div className="cart-empty-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
           </div>
-        )}
-      </div>
+
+          <h1 className="cart-empty-title">Your shopping bag is empty</h1>
+          
+          <p className="cart-empty-description">
+            Looks like you haven't added anything yet.
+            <br className="empty-cart-br" />
+            Explore our curated collection and find your next favourite.
+          </p>
+
+          <div className="cart-empty-actions">
+            <Link to="/products" className="cart-empty-cta-btn">
+              CONTINUE SHOPPING
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
