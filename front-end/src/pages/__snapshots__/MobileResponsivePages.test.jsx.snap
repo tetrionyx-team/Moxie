@@ -9,69 +9,70 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
       class="cart-page-container"
     >
       <div
-        class="cart-page-header"
+        class="cart-empty-state-wrapper"
       >
         <div
-          class="cart-header-title-box"
+          class="cart-empty-state-card"
         >
           <span
-            class="cart-header-eyebrow"
+            class="cart-empty-eyebrow"
           >
-            Your Bag
+            YOUR BAG
           </span>
-          <h1
-            class="cart-header-heading"
+          <div
+            class="empty-cart-icon-circle"
           >
-            Shopping Cart 
-          </h1>
-        </div>
-      </div>
-      <div
-        class="cart-empty-state-card"
-      >
-        <div
-          class="empty-cart-icon-circle"
-        >
-          <svg
-            fill="none"
-            height="44"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-            width="44"
+            <svg
+              fill="none"
+              height="36"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="36"
+            >
+              <path
+                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              />
+              <line
+                x1="3"
+                x2="21"
+                y1="6"
+                y2="6"
+              />
+              <path
+                d="M16 10a4 4 0 0 1-8 0"
+              />
+            </svg>
+          </div>
+          <h2
+            class="empty-cart-heading"
           >
-            <path
-              d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+            Your shopping bag is empty
+          </h2>
+          <p
+            class="empty-cart-text"
+          >
+            Looks like you haven't added anything yet.
+            <br
+              class="empty-cart-br"
             />
-            <line
-              x1="3"
-              x2="21"
-              y1="6"
-              y2="6"
-            />
-            <path
-              d="M16 10a4 4 0 0 1-8 0"
-            />
-          </svg>
+            Explore our curated collection and find your next favourite.
+          </p>
+          <a
+            class="empty-cart-cta-btn"
+            href="/products"
+          >
+            CONTINUE SHOPPING
+          </a>
+          <a
+            class="empty-cart-secondary-link"
+            href="/products"
+          >
+            Explore Products →
+          </a>
         </div>
-        <h2
-          class="empty-cart-heading"
-        >
-          Your cart is empty
-        </h2>
-        <p
-          class="empty-cart-text"
-        >
-          Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
-        </p>
-        <a
-          class="empty-cart-cta-btn"
-          href="/products"
-        >
-          CONTINUE SHOPPING
-        </a>
       </div>
     </div>
   </div>
@@ -1946,6 +1947,393 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy S8/S9 (360px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Recommended For You"
+    class="recommended-section"
+  >
+    <div
+      class="recommended-container"
+    >
+      <div
+        class="recommended-header"
+      >
+        <div
+          class="recommended-header-center"
+        >
+          <span
+            class="recommended-subtitle"
+          >
+            MOXIE GADGETS & STYLE
+          </span>
+          <h2
+            class="recommended-title"
+          >
+            RECOMMENDED FOR YOU
+          </h2>
+        </div>
+        <a
+          aria-label="View all Watch products"
+          class="recommended-view-all"
+          href="/products?category=watches"
+        >
+          View All →
+        </a>
+      </div>
+      <div
+        class="recommended-grid"
+      >
+        <article
+          class="moxie-premium-card"
+        >
+          <a
+            class="premium-card-link"
+            href="/product/1"
+          >
+            <div
+              class="premium-card-media"
+            >
+              <button
+                aria-label="Add to wishlist"
+                class="premium-heart-btn "
+                type="button"
+              >
+                <svg
+                  class="premium-heart-icon"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  viewBox="0 0 24 24"
+                  width="18"
+                >
+                  <path
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <img
+                alt="Moxie Luxury Watch"
+                class="premium-card-img"
+                loading="lazy"
+                src="http://127.0.0.1:8000/watch1.jpg"
+              />
+            </div>
+            <div
+              class="premium-card-body"
+            >
+              <h3
+                class="premium-card-title"
+              >
+                Moxie Luxury Watch
+              </h3>
+              <div
+                class="product-price-row premium-price-section"
+              >
+                <span
+                  class="product-current-price premium-current-price"
+                >
+                  ₹4,999
+                </span>
+                <span
+                  class="product-original-price premium-old-price"
+                >
+                  ₹7,999
+                </span>
+              </div>
+            </div>
+          </a>
+          <div
+            class="premium-btn-wrapper"
+          >
+            <button
+              aria-label="Add Moxie Luxury Watch to cart"
+              class="premium-add-cart-btn "
+              disabled=""
+              type="button"
+            >
+              <svg
+                class="premium-bag-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span
+                class="premium-btn-sep"
+              />
+              <span
+                class="premium-btn-text"
+              >
+                OUT OF STOCK
+              </span>
+              <svg
+                class="premium-arrow-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M9 5l7 7-7 7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section
+    aria-label="Just In Time Moxie Collections"
+    class="editorial-section"
+  >
+    <div
+      class="editorial-container"
+    >
+      <header
+        class="editorial-header"
+      >
+        <div
+          class="editorial-header-top"
+        >
+          <span
+            aria-hidden="true"
+            class="editorial-line"
+          />
+          <h2
+            class="editorial-title-main"
+          >
+            JUST IN TIME
+          </h2>
+          <span
+            aria-hidden="true"
+            class="editorial-line right"
+          />
+        </div>
+        <h3
+          class="editorial-title-moxie"
+        >
+          MOXIE
+        </h3>
+      </header>
+      <div
+        class="editorial-grid"
+      >
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="The World of Casio Luxury Watch Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_1_black_gold.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                THE WORLD OF CASIO
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View THE WORLD OF CASIO Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Edifice Premium Chronograph Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_4_silver_blue.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                EDIFICE COLLECTION
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View EDIFICE COLLECTION Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Moxie Signature Luxury Watch Series"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_2_two_tone.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                MOXIE SIGNATURE
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View MOXIE SIGNATURE Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
   <div
     class="container offers-section"
   >
@@ -2635,7 +3023,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                 alt="Moxie Sport Shoes"
                 class="premium-card-img"
                 loading="lazy"
-                src="shoes1.jpg"
+                src="http://127.0.0.1:8000/shoes1.jpg"
               />
             </div>
             <div
@@ -6499,7 +6887,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                     alt="Moxie Luxury Watch"
                     class="premium-card-img"
                     loading="lazy"
-                    src="watch1.jpg"
+                    src="http://127.0.0.1:8000/watch1.jpg"
                   />
                 </div>
                 <div
@@ -7765,69 +8153,70 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
       class="cart-page-container"
     >
       <div
-        class="cart-page-header"
+        class="cart-empty-state-wrapper"
       >
         <div
-          class="cart-header-title-box"
+          class="cart-empty-state-card"
         >
           <span
-            class="cart-header-eyebrow"
+            class="cart-empty-eyebrow"
           >
-            Your Bag
+            YOUR BAG
           </span>
-          <h1
-            class="cart-header-heading"
+          <div
+            class="empty-cart-icon-circle"
           >
-            Shopping Cart 
-          </h1>
-        </div>
-      </div>
-      <div
-        class="cart-empty-state-card"
-      >
-        <div
-          class="empty-cart-icon-circle"
-        >
-          <svg
-            fill="none"
-            height="44"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-            width="44"
+            <svg
+              fill="none"
+              height="36"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="36"
+            >
+              <path
+                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              />
+              <line
+                x1="3"
+                x2="21"
+                y1="6"
+                y2="6"
+              />
+              <path
+                d="M16 10a4 4 0 0 1-8 0"
+              />
+            </svg>
+          </div>
+          <h2
+            class="empty-cart-heading"
           >
-            <path
-              d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+            Your shopping bag is empty
+          </h2>
+          <p
+            class="empty-cart-text"
+          >
+            Looks like you haven't added anything yet.
+            <br
+              class="empty-cart-br"
             />
-            <line
-              x1="3"
-              x2="21"
-              y1="6"
-              y2="6"
-            />
-            <path
-              d="M16 10a4 4 0 0 1-8 0"
-            />
-          </svg>
+            Explore our curated collection and find your next favourite.
+          </p>
+          <a
+            class="empty-cart-cta-btn"
+            href="/products"
+          >
+            CONTINUE SHOPPING
+          </a>
+          <a
+            class="empty-cart-secondary-link"
+            href="/products"
+          >
+            Explore Products →
+          </a>
         </div>
-        <h2
-          class="empty-cart-heading"
-        >
-          Your cart is empty
-        </h2>
-        <p
-          class="empty-cart-text"
-        >
-          Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
-        </p>
-        <a
-          class="empty-cart-cta-btn"
-          href="/products"
-        >
-          CONTINUE SHOPPING
-        </a>
       </div>
     </div>
   </div>
@@ -9702,6 +10091,393 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7 / S20 (412px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Recommended For You"
+    class="recommended-section"
+  >
+    <div
+      class="recommended-container"
+    >
+      <div
+        class="recommended-header"
+      >
+        <div
+          class="recommended-header-center"
+        >
+          <span
+            class="recommended-subtitle"
+          >
+            MOXIE GADGETS & STYLE
+          </span>
+          <h2
+            class="recommended-title"
+          >
+            RECOMMENDED FOR YOU
+          </h2>
+        </div>
+        <a
+          aria-label="View all Watch products"
+          class="recommended-view-all"
+          href="/products?category=watches"
+        >
+          View All →
+        </a>
+      </div>
+      <div
+        class="recommended-grid"
+      >
+        <article
+          class="moxie-premium-card"
+        >
+          <a
+            class="premium-card-link"
+            href="/product/1"
+          >
+            <div
+              class="premium-card-media"
+            >
+              <button
+                aria-label="Add to wishlist"
+                class="premium-heart-btn "
+                type="button"
+              >
+                <svg
+                  class="premium-heart-icon"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  viewBox="0 0 24 24"
+                  width="18"
+                >
+                  <path
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <img
+                alt="Moxie Luxury Watch"
+                class="premium-card-img"
+                loading="lazy"
+                src="http://127.0.0.1:8000/watch1.jpg"
+              />
+            </div>
+            <div
+              class="premium-card-body"
+            >
+              <h3
+                class="premium-card-title"
+              >
+                Moxie Luxury Watch
+              </h3>
+              <div
+                class="product-price-row premium-price-section"
+              >
+                <span
+                  class="product-current-price premium-current-price"
+                >
+                  ₹4,999
+                </span>
+                <span
+                  class="product-original-price premium-old-price"
+                >
+                  ₹7,999
+                </span>
+              </div>
+            </div>
+          </a>
+          <div
+            class="premium-btn-wrapper"
+          >
+            <button
+              aria-label="Add Moxie Luxury Watch to cart"
+              class="premium-add-cart-btn "
+              disabled=""
+              type="button"
+            >
+              <svg
+                class="premium-bag-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span
+                class="premium-btn-sep"
+              />
+              <span
+                class="premium-btn-text"
+              >
+                OUT OF STOCK
+              </span>
+              <svg
+                class="premium-arrow-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M9 5l7 7-7 7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section
+    aria-label="Just In Time Moxie Collections"
+    class="editorial-section"
+  >
+    <div
+      class="editorial-container"
+    >
+      <header
+        class="editorial-header"
+      >
+        <div
+          class="editorial-header-top"
+        >
+          <span
+            aria-hidden="true"
+            class="editorial-line"
+          />
+          <h2
+            class="editorial-title-main"
+          >
+            JUST IN TIME
+          </h2>
+          <span
+            aria-hidden="true"
+            class="editorial-line right"
+          />
+        </div>
+        <h3
+          class="editorial-title-moxie"
+        >
+          MOXIE
+        </h3>
+      </header>
+      <div
+        class="editorial-grid"
+      >
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="The World of Casio Luxury Watch Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_1_black_gold.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                THE WORLD OF CASIO
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View THE WORLD OF CASIO Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Edifice Premium Chronograph Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_4_silver_blue.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                EDIFICE COLLECTION
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View EDIFICE COLLECTION Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Moxie Signature Luxury Watch Series"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_2_two_tone.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                MOXIE SIGNATURE
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View MOXIE SIGNATURE Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
   <div
     class="container offers-section"
   >
@@ -10391,7 +11167,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                 alt="Moxie Sport Shoes"
                 class="premium-card-img"
                 loading="lazy"
-                src="shoes1.jpg"
+                src="http://127.0.0.1:8000/shoes1.jpg"
               />
             </div>
             <div
@@ -14255,7 +15031,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                     alt="Moxie Luxury Watch"
                     class="premium-card-img"
                     loading="lazy"
-                    src="watch1.jpg"
+                    src="http://127.0.0.1:8000/watch1.jpg"
                   />
                 </div>
                 <div
@@ -15521,69 +16297,70 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       class="cart-page-container"
     >
       <div
-        class="cart-page-header"
+        class="cart-empty-state-wrapper"
       >
         <div
-          class="cart-header-title-box"
+          class="cart-empty-state-card"
         >
           <span
-            class="cart-header-eyebrow"
+            class="cart-empty-eyebrow"
           >
-            Your Bag
+            YOUR BAG
           </span>
-          <h1
-            class="cart-header-heading"
+          <div
+            class="empty-cart-icon-circle"
           >
-            Shopping Cart 
-          </h1>
-        </div>
-      </div>
-      <div
-        class="cart-empty-state-card"
-      >
-        <div
-          class="empty-cart-icon-circle"
-        >
-          <svg
-            fill="none"
-            height="44"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-            width="44"
+            <svg
+              fill="none"
+              height="36"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="36"
+            >
+              <path
+                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              />
+              <line
+                x1="3"
+                x2="21"
+                y1="6"
+                y2="6"
+              />
+              <path
+                d="M16 10a4 4 0 0 1-8 0"
+              />
+            </svg>
+          </div>
+          <h2
+            class="empty-cart-heading"
           >
-            <path
-              d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+            Your shopping bag is empty
+          </h2>
+          <p
+            class="empty-cart-text"
+          >
+            Looks like you haven't added anything yet.
+            <br
+              class="empty-cart-br"
             />
-            <line
-              x1="3"
-              x2="21"
-              y1="6"
-              y2="6"
-            />
-            <path
-              d="M16 10a4 4 0 0 1-8 0"
-            />
-          </svg>
+            Explore our curated collection and find your next favourite.
+          </p>
+          <a
+            class="empty-cart-cta-btn"
+            href="/products"
+          >
+            CONTINUE SHOPPING
+          </a>
+          <a
+            class="empty-cart-secondary-link"
+            href="/products"
+          >
+            Explore Products →
+          </a>
         </div>
-        <h2
-          class="empty-cart-heading"
-        >
-          Your cart is empty
-        </h2>
-        <p
-          class="empty-cart-text"
-        >
-          Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
-        </p>
-        <a
-          class="empty-cart-cta-btn"
-          href="/products"
-        >
-          CONTINUE SHOPPING
-        </a>
       </div>
     </div>
   </div>
@@ -17458,6 +18235,393 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 12/13/14 (390px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Recommended For You"
+    class="recommended-section"
+  >
+    <div
+      class="recommended-container"
+    >
+      <div
+        class="recommended-header"
+      >
+        <div
+          class="recommended-header-center"
+        >
+          <span
+            class="recommended-subtitle"
+          >
+            MOXIE GADGETS & STYLE
+          </span>
+          <h2
+            class="recommended-title"
+          >
+            RECOMMENDED FOR YOU
+          </h2>
+        </div>
+        <a
+          aria-label="View all Watch products"
+          class="recommended-view-all"
+          href="/products?category=watches"
+        >
+          View All →
+        </a>
+      </div>
+      <div
+        class="recommended-grid"
+      >
+        <article
+          class="moxie-premium-card"
+        >
+          <a
+            class="premium-card-link"
+            href="/product/1"
+          >
+            <div
+              class="premium-card-media"
+            >
+              <button
+                aria-label="Add to wishlist"
+                class="premium-heart-btn "
+                type="button"
+              >
+                <svg
+                  class="premium-heart-icon"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  viewBox="0 0 24 24"
+                  width="18"
+                >
+                  <path
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <img
+                alt="Moxie Luxury Watch"
+                class="premium-card-img"
+                loading="lazy"
+                src="http://127.0.0.1:8000/watch1.jpg"
+              />
+            </div>
+            <div
+              class="premium-card-body"
+            >
+              <h3
+                class="premium-card-title"
+              >
+                Moxie Luxury Watch
+              </h3>
+              <div
+                class="product-price-row premium-price-section"
+              >
+                <span
+                  class="product-current-price premium-current-price"
+                >
+                  ₹4,999
+                </span>
+                <span
+                  class="product-original-price premium-old-price"
+                >
+                  ₹7,999
+                </span>
+              </div>
+            </div>
+          </a>
+          <div
+            class="premium-btn-wrapper"
+          >
+            <button
+              aria-label="Add Moxie Luxury Watch to cart"
+              class="premium-add-cart-btn "
+              disabled=""
+              type="button"
+            >
+              <svg
+                class="premium-bag-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span
+                class="premium-btn-sep"
+              />
+              <span
+                class="premium-btn-text"
+              >
+                OUT OF STOCK
+              </span>
+              <svg
+                class="premium-arrow-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M9 5l7 7-7 7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section
+    aria-label="Just In Time Moxie Collections"
+    class="editorial-section"
+  >
+    <div
+      class="editorial-container"
+    >
+      <header
+        class="editorial-header"
+      >
+        <div
+          class="editorial-header-top"
+        >
+          <span
+            aria-hidden="true"
+            class="editorial-line"
+          />
+          <h2
+            class="editorial-title-main"
+          >
+            JUST IN TIME
+          </h2>
+          <span
+            aria-hidden="true"
+            class="editorial-line right"
+          />
+        </div>
+        <h3
+          class="editorial-title-moxie"
+        >
+          MOXIE
+        </h3>
+      </header>
+      <div
+        class="editorial-grid"
+      >
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="The World of Casio Luxury Watch Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_1_black_gold.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                THE WORLD OF CASIO
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View THE WORLD OF CASIO Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Edifice Premium Chronograph Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_4_silver_blue.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                EDIFICE COLLECTION
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View EDIFICE COLLECTION Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Moxie Signature Luxury Watch Series"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_2_two_tone.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                MOXIE SIGNATURE
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View MOXIE SIGNATURE Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
   <div
     class="container offers-section"
   >
@@ -18147,7 +19311,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 alt="Moxie Sport Shoes"
                 class="premium-card-img"
                 loading="lazy"
-                src="shoes1.jpg"
+                src="http://127.0.0.1:8000/shoes1.jpg"
               />
             </div>
             <div
@@ -22011,7 +23175,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     alt="Moxie Luxury Watch"
                     class="premium-card-img"
                     loading="lazy"
-                    src="watch1.jpg"
+                    src="http://127.0.0.1:8000/watch1.jpg"
                   />
                 </div>
                 <div
@@ -23277,69 +24441,70 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       class="cart-page-container"
     >
       <div
-        class="cart-page-header"
+        class="cart-empty-state-wrapper"
       >
         <div
-          class="cart-header-title-box"
+          class="cart-empty-state-card"
         >
           <span
-            class="cart-header-eyebrow"
+            class="cart-empty-eyebrow"
           >
-            Your Bag
+            YOUR BAG
           </span>
-          <h1
-            class="cart-header-heading"
+          <div
+            class="empty-cart-icon-circle"
           >
-            Shopping Cart 
-          </h1>
-        </div>
-      </div>
-      <div
-        class="cart-empty-state-card"
-      >
-        <div
-          class="empty-cart-icon-circle"
-        >
-          <svg
-            fill="none"
-            height="44"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-            width="44"
+            <svg
+              fill="none"
+              height="36"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="36"
+            >
+              <path
+                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              />
+              <line
+                x1="3"
+                x2="21"
+                y1="6"
+                y2="6"
+              />
+              <path
+                d="M16 10a4 4 0 0 1-8 0"
+              />
+            </svg>
+          </div>
+          <h2
+            class="empty-cart-heading"
           >
-            <path
-              d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+            Your shopping bag is empty
+          </h2>
+          <p
+            class="empty-cart-text"
+          >
+            Looks like you haven't added anything yet.
+            <br
+              class="empty-cart-br"
             />
-            <line
-              x1="3"
-              x2="21"
-              y1="6"
-              y2="6"
-            />
-            <path
-              d="M16 10a4 4 0 0 1-8 0"
-            />
-          </svg>
+            Explore our curated collection and find your next favourite.
+          </p>
+          <a
+            class="empty-cart-cta-btn"
+            href="/products"
+          >
+            CONTINUE SHOPPING
+          </a>
+          <a
+            class="empty-cart-secondary-link"
+            href="/products"
+          >
+            Explore Products →
+          </a>
         </div>
-        <h2
-          class="empty-cart-heading"
-        >
-          Your cart is empty
-        </h2>
-        <p
-          class="empty-cart-text"
-        >
-          Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
-        </p>
-        <a
-          class="empty-cart-cta-btn"
-          href="/products"
-        >
-          CONTINUE SHOPPING
-        </a>
       </div>
     </div>
   </div>
@@ -25214,6 +26379,393 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 14/15 Pro Max (430px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Recommended For You"
+    class="recommended-section"
+  >
+    <div
+      class="recommended-container"
+    >
+      <div
+        class="recommended-header"
+      >
+        <div
+          class="recommended-header-center"
+        >
+          <span
+            class="recommended-subtitle"
+          >
+            MOXIE GADGETS & STYLE
+          </span>
+          <h2
+            class="recommended-title"
+          >
+            RECOMMENDED FOR YOU
+          </h2>
+        </div>
+        <a
+          aria-label="View all Watch products"
+          class="recommended-view-all"
+          href="/products?category=watches"
+        >
+          View All →
+        </a>
+      </div>
+      <div
+        class="recommended-grid"
+      >
+        <article
+          class="moxie-premium-card"
+        >
+          <a
+            class="premium-card-link"
+            href="/product/1"
+          >
+            <div
+              class="premium-card-media"
+            >
+              <button
+                aria-label="Add to wishlist"
+                class="premium-heart-btn "
+                type="button"
+              >
+                <svg
+                  class="premium-heart-icon"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  viewBox="0 0 24 24"
+                  width="18"
+                >
+                  <path
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <img
+                alt="Moxie Luxury Watch"
+                class="premium-card-img"
+                loading="lazy"
+                src="http://127.0.0.1:8000/watch1.jpg"
+              />
+            </div>
+            <div
+              class="premium-card-body"
+            >
+              <h3
+                class="premium-card-title"
+              >
+                Moxie Luxury Watch
+              </h3>
+              <div
+                class="product-price-row premium-price-section"
+              >
+                <span
+                  class="product-current-price premium-current-price"
+                >
+                  ₹4,999
+                </span>
+                <span
+                  class="product-original-price premium-old-price"
+                >
+                  ₹7,999
+                </span>
+              </div>
+            </div>
+          </a>
+          <div
+            class="premium-btn-wrapper"
+          >
+            <button
+              aria-label="Add Moxie Luxury Watch to cart"
+              class="premium-add-cart-btn "
+              disabled=""
+              type="button"
+            >
+              <svg
+                class="premium-bag-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span
+                class="premium-btn-sep"
+              />
+              <span
+                class="premium-btn-text"
+              >
+                OUT OF STOCK
+              </span>
+              <svg
+                class="premium-arrow-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M9 5l7 7-7 7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section
+    aria-label="Just In Time Moxie Collections"
+    class="editorial-section"
+  >
+    <div
+      class="editorial-container"
+    >
+      <header
+        class="editorial-header"
+      >
+        <div
+          class="editorial-header-top"
+        >
+          <span
+            aria-hidden="true"
+            class="editorial-line"
+          />
+          <h2
+            class="editorial-title-main"
+          >
+            JUST IN TIME
+          </h2>
+          <span
+            aria-hidden="true"
+            class="editorial-line right"
+          />
+        </div>
+        <h3
+          class="editorial-title-moxie"
+        >
+          MOXIE
+        </h3>
+      </header>
+      <div
+        class="editorial-grid"
+      >
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="The World of Casio Luxury Watch Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_1_black_gold.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                THE WORLD OF CASIO
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View THE WORLD OF CASIO Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Edifice Premium Chronograph Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_4_silver_blue.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                EDIFICE COLLECTION
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View EDIFICE COLLECTION Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Moxie Signature Luxury Watch Series"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_2_two_tone.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                MOXIE SIGNATURE
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View MOXIE SIGNATURE Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
   <div
     class="container offers-section"
   >
@@ -25903,7 +27455,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 alt="Moxie Sport Shoes"
                 class="premium-card-img"
                 loading="lazy"
-                src="shoes1.jpg"
+                src="http://127.0.0.1:8000/shoes1.jpg"
               />
             </div>
             <div
@@ -29767,7 +31319,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     alt="Moxie Luxury Watch"
                     class="premium-card-img"
                     loading="lazy"
-                    src="watch1.jpg"
+                    src="http://127.0.0.1:8000/watch1.jpg"
                   />
                 </div>
                 <div
@@ -31033,69 +32585,70 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       class="cart-page-container"
     >
       <div
-        class="cart-page-header"
+        class="cart-empty-state-wrapper"
       >
         <div
-          class="cart-header-title-box"
+          class="cart-empty-state-card"
         >
           <span
-            class="cart-header-eyebrow"
+            class="cart-empty-eyebrow"
           >
-            Your Bag
+            YOUR BAG
           </span>
-          <h1
-            class="cart-header-heading"
+          <div
+            class="empty-cart-icon-circle"
           >
-            Shopping Cart 
-          </h1>
-        </div>
-      </div>
-      <div
-        class="cart-empty-state-card"
-      >
-        <div
-          class="empty-cart-icon-circle"
-        >
-          <svg
-            fill="none"
-            height="44"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-            width="44"
+            <svg
+              fill="none"
+              height="36"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="36"
+            >
+              <path
+                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              />
+              <line
+                x1="3"
+                x2="21"
+                y1="6"
+                y2="6"
+              />
+              <path
+                d="M16 10a4 4 0 0 1-8 0"
+              />
+            </svg>
+          </div>
+          <h2
+            class="empty-cart-heading"
           >
-            <path
-              d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+            Your shopping bag is empty
+          </h2>
+          <p
+            class="empty-cart-text"
+          >
+            Looks like you haven't added anything yet.
+            <br
+              class="empty-cart-br"
             />
-            <line
-              x1="3"
-              x2="21"
-              y1="6"
-              y2="6"
-            />
-            <path
-              d="M16 10a4 4 0 0 1-8 0"
-            />
-          </svg>
+            Explore our curated collection and find your next favourite.
+          </p>
+          <a
+            class="empty-cart-cta-btn"
+            href="/products"
+          >
+            CONTINUE SHOPPING
+          </a>
+          <a
+            class="empty-cart-secondary-link"
+            href="/products"
+          >
+            Explore Products →
+          </a>
         </div>
-        <h2
-          class="empty-cart-heading"
-        >
-          Your cart is empty
-        </h2>
-        <p
-          class="empty-cart-text"
-        >
-          Looks like you haven't added anything yet. Explore our curated collections and discover your next favorite item.
-        </p>
-        <a
-          class="empty-cart-cta-btn"
-          href="/products"
-        >
-          CONTINUE SHOPPING
-        </a>
       </div>
     </div>
   </div>
@@ -32970,6 +34523,393 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone SE (320px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Recommended For You"
+    class="recommended-section"
+  >
+    <div
+      class="recommended-container"
+    >
+      <div
+        class="recommended-header"
+      >
+        <div
+          class="recommended-header-center"
+        >
+          <span
+            class="recommended-subtitle"
+          >
+            MOXIE GADGETS & STYLE
+          </span>
+          <h2
+            class="recommended-title"
+          >
+            RECOMMENDED FOR YOU
+          </h2>
+        </div>
+        <a
+          aria-label="View all Watch products"
+          class="recommended-view-all"
+          href="/products?category=watches"
+        >
+          View All →
+        </a>
+      </div>
+      <div
+        class="recommended-grid"
+      >
+        <article
+          class="moxie-premium-card"
+        >
+          <a
+            class="premium-card-link"
+            href="/product/1"
+          >
+            <div
+              class="premium-card-media"
+            >
+              <button
+                aria-label="Add to wishlist"
+                class="premium-heart-btn "
+                type="button"
+              >
+                <svg
+                  class="premium-heart-icon"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  viewBox="0 0 24 24"
+                  width="18"
+                >
+                  <path
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <img
+                alt="Moxie Luxury Watch"
+                class="premium-card-img"
+                loading="lazy"
+                src="http://127.0.0.1:8000/watch1.jpg"
+              />
+            </div>
+            <div
+              class="premium-card-body"
+            >
+              <h3
+                class="premium-card-title"
+              >
+                Moxie Luxury Watch
+              </h3>
+              <div
+                class="product-price-row premium-price-section"
+              >
+                <span
+                  class="product-current-price premium-current-price"
+                >
+                  ₹4,999
+                </span>
+                <span
+                  class="product-original-price premium-old-price"
+                >
+                  ₹7,999
+                </span>
+              </div>
+            </div>
+          </a>
+          <div
+            class="premium-btn-wrapper"
+          >
+            <button
+              aria-label="Add Moxie Luxury Watch to cart"
+              class="premium-add-cart-btn "
+              disabled=""
+              type="button"
+            >
+              <svg
+                class="premium-bag-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span
+                class="premium-btn-sep"
+              />
+              <span
+                class="premium-btn-text"
+              >
+                OUT OF STOCK
+              </span>
+              <svg
+                class="premium-arrow-icon"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <path
+                  d="M9 5l7 7-7 7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section
+    aria-label="Just In Time Moxie Collections"
+    class="editorial-section"
+  >
+    <div
+      class="editorial-container"
+    >
+      <header
+        class="editorial-header"
+      >
+        <div
+          class="editorial-header-top"
+        >
+          <span
+            aria-hidden="true"
+            class="editorial-line"
+          />
+          <h2
+            class="editorial-title-main"
+          >
+            JUST IN TIME
+          </h2>
+          <span
+            aria-hidden="true"
+            class="editorial-line right"
+          />
+        </div>
+        <h3
+          class="editorial-title-moxie"
+        >
+          MOXIE
+        </h3>
+      </header>
+      <div
+        class="editorial-grid"
+      >
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="The World of Casio Luxury Watch Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_1_black_gold.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                THE WORLD OF CASIO
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View THE WORLD OF CASIO Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Edifice Premium Chronograph Collection"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_4_silver_blue.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                EDIFICE COLLECTION
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View EDIFICE COLLECTION Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+        <article
+          class="editorial-card"
+        >
+          <a
+            aria-hidden="true"
+            class="editorial-img-container"
+            href="/products/watches"
+            tabindex="-1"
+          >
+            <img
+              alt="Moxie Signature Luxury Watch Series"
+              class="editorial-img"
+              loading="lazy"
+              src="watch_2_two_tone.jpeg"
+            />
+            <div
+              class="editorial-img-overlay"
+            />
+          </a>
+          <div
+            class="editorial-card-content"
+          >
+            <div
+              class="editorial-card-info"
+            >
+              <h4
+                class="editorial-card-title"
+              >
+                MOXIE SIGNATURE
+              </h4>
+              <a
+                class="editorial-card-link"
+                href="/products/watches"
+              >
+                View Collection
+              </a>
+            </div>
+            <a
+              aria-label="View MOXIE SIGNATURE Collection"
+              class="editorial-arrow-btn"
+              href="/products/watches"
+            >
+              <svg
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
   <div
     class="container offers-section"
   >
@@ -33659,7 +35599,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 alt="Moxie Sport Shoes"
                 class="premium-card-img"
                 loading="lazy"
-                src="shoes1.jpg"
+                src="http://127.0.0.1:8000/shoes1.jpg"
               />
             </div>
             <div
@@ -37523,7 +39463,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     alt="Moxie Luxury Watch"
                     class="premium-card-img"
                     loading="lazy"
-                    src="watch1.jpg"
+                    src="http://127.0.0.1:8000/watch1.jpg"
                   />
                 </div>
                 <div

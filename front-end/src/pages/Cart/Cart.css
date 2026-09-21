@@ -464,64 +464,108 @@
   font-size: 14px;
 }
 
-/* Empty State Card */
+/* ===================================================
+   PREMIUM MOXIE EMPTY CART STATE
+   =================================================== */
+.cart-empty-state-wrapper {
+  padding: 32px 0 56px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .cart-empty-state-card {
   background: #ffffff;
-  border: 1px solid #e8ecf1;
-  border-radius: 20px;
-  padding: 64px 32px;
+  border: 1px solid rgba(201, 155, 69, 0.2);
+  border-radius: 24px;
+  padding: 48px 32px 40px;
   text-align: center;
-  max-width: 580px;
-  margin: 20px auto;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(7, 20, 38, 0.04);
+}
+
+.cart-empty-eyebrow {
+  display: block;
+  color: #c99b45;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
 }
 
 .empty-cart-icon-circle {
-  width: 80px;
-  height: 80px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: #faf5e9;
+  color: #071426;
+  border: 1px solid rgba(201, 155, 69, 0.25);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin: 0 auto 18px auto;
 }
 
 .empty-cart-heading {
   font-size: 22px;
   font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 8px 0;
+  color: #071426;
+  margin: 0 0 10px 0;
+  line-height: 1.25;
 }
 
 .empty-cart-text {
   font-size: 14px;
-  color: #64748b;
-  line-height: 1.5;
-  margin: 0 auto 24px auto;
-  max-width: 420px;
+  color: #667085;
+  line-height: 1.6;
+  margin: 0 auto 28px auto;
+  max-width: 380px;
 }
 
 .empty-cart-cta-btn {
-  display: inline-block;
-  background-color: #111317;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  height: 54px;
+  min-height: 52px;
+  background-color: #071426;
   color: #ffffff;
-  padding: 12px 28px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   text-decoration: none;
-  transition: all 0.22s ease;
+  margin: 0 auto 14px auto;
+  transition: all 0.2s ease;
 }
 
 .empty-cart-cta-btn:hover {
-  background-color: #c9a35c;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(201, 163, 92, 0.3);
+  background-color: #c99b45;
+  color: #071426;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(201, 155, 69, 0.28);
+}
+
+.empty-cart-secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #c99b45;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.empty-cart-secondary-link:hover {
+  color: #071426;
+  transform: translateX(2px);
 }
 
 /* ==========================================================================
@@ -547,6 +591,30 @@
 
   .cart-page-container {
     padding: 0 16px;
+  }
+
+  .cart-empty-state-wrapper {
+    padding: 16px 0 calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cart-empty-state-card {
+    padding: 36px 18px 32px;
+    border-radius: 20px;
+  }
+
+  .empty-cart-heading {
+    font-size: 19px;
+  }
+
+  .empty-cart-text {
+    font-size: 13.5px;
+    margin-bottom: 22px;
+  }
+
+  .empty-cart-cta-btn {
+    height: 52px;
+    max-width: 100%;
+    font-size: 13.5px;
   }
 
   .cart-item-row {

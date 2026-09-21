@@ -215,7 +215,7 @@ export default function WatchShowcase() {
   }
 
   return (
-    <section className="moxie-featured-picks-section" aria-label="Limited Time Featured Products">
+    <section className="moxie-featured-picks-section" id="limited-time-picks" aria-label="Limited Time Featured Products">
       <div className="moxie-featured-picks-container">
         {/* Section Header */}
         <header className="moxie-picks-header">

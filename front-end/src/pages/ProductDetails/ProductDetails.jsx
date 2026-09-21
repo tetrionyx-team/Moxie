@@ -1004,8 +1004,8 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* CTA Action Buttons */}
-            <div className="pdp-action-buttons-stack">
+            {/* CTA Action Buttons (2-Column Grid) */}
+            <div className="pdp-action-buttons-grid">
               <button
                 type="button"
                 className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
@@ -1022,27 +1022,25 @@ export default function ProductDetails() {
                 </span>
               </button>
 
-              <div className="pdp-secondary-actions-row">
-                <button
-                  type="button"
-                  className="pdp-buy-now-btn"
-                  onClick={handleBuyNow}
-                  disabled={!isAvailable}
-                >
-                  <FiZap className="pdp-btn-icon-zap" />
-                  <span>BUY NOW</span>
-                </button>
+              <button
+                type="button"
+                className="pdp-buy-now-btn"
+                onClick={handleBuyNow}
+                disabled={!isAvailable}
+              >
+                <FiZap className="pdp-btn-icon-zap" />
+                <span>BUY NOW</span>
+              </button>
 
-                <button
-                  type="button"
-                  className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
-                  onClick={handleWishlistToggle}
-                  aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
-                  title={wished ? "Remove from wishlist" : "Save to wishlist"}
-                >
-                  {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
-                </button>
-              </div>
+              <button
+                type="button"
+                className={`pdp-wishlist-toggle-btn ${wished ? "active" : ""}`}
+                onClick={handleWishlistToggle}
+                aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+                title={wished ? "Remove from wishlist" : "Save to wishlist"}
+              >
+                {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
+              </button>
             </div>
 
             {/* Trust / Service Card (3 equal columns) */}

@@ -116,15 +116,10 @@ describe("WatchShowcase (Limited-Time Picks) Component", () => {
     expect(screen.getByText("Fossil Automatic")).toBeInTheDocument();
     expect(screen.getByText("Casio Vintage")).toBeInTheDocument();
 
-    // Badges
-    expect(screen.getByText(/HOT SALE/i)).toBeInTheDocument();
-    expect(screen.getByText(/LIMITED OFFER/i)).toBeInTheDocument();
-    expect(screen.getByText(/TRENDING/i)).toBeInTheDocument();
-
-    // Calculated discount badge: (1000 - 600) / 1000 = 40%
+    // Calculated discount badges: (1000 - 600) / 1000 = 40%, (1500 - 1200) / 1500 = 20%
     expect(screen.getByText("40% OFF")).toBeInTheDocument();
-    // (1500 - 1200) / 1500 = 20%
     expect(screen.getByText("20% OFF")).toBeInTheDocument();
+    expect(screen.getByText("SPECIAL")).toBeInTheDocument();
 
     // Pricing
     expect(screen.getByText("₹600")).toBeInTheDocument();
@@ -134,14 +129,14 @@ describe("WatchShowcase (Limited-Time Picks) Component", () => {
     expect(screen.getByText("₹850")).toBeInTheDocument();
 
     // Timer on offer product with end_date
-    expect(screen.getByText(/ENDS IN/i)).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Offer countdown timer").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DAYS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("HOURS").length).toBeGreaterThan(0);
 
     // Exact direct Product links
-    const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(3);
-    expect(links[0]).toHaveAttribute("href", "/product/arabic-aura");
-    expect(links[1]).toHaveAttribute("href", "/product/fossil-automatic");
-    expect(links[2]).toHaveAttribute("href", "/product/casio-vintage");
+    expect(screen.getByRole("link", { name: "Arabic Aura" })).toHaveAttribute("href", "/product/arabic-aura");
+    expect(screen.getByRole("link", { name: "Fossil Automatic" })).toHaveAttribute("href", "/product/fossil-automatic");
+    expect(screen.getByRole("link", { name: "Casio Vintage" })).toHaveAttribute("href", "/product/casio-vintage");
   });
 
   test("automatically filters out expired offers and future scheduled campaigns", () => {
