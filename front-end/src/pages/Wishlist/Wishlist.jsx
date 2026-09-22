@@ -7,6 +7,7 @@ import { useToast } from "../../context/ToastContext";
 import { profileService } from "../../services/profileService";
 import ProfileSidebar from "../../components/Profile/ProfileSidebar";
 import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
+import AccountMobileNav from "../../components/Profile/AccountMobileNav";
 import { LuHeart, LuShoppingCart, LuTrash2, LuShoppingBag, LuSparkles } from "react-icons/lu";
 
 import { getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
@@ -267,23 +268,14 @@ export default function Wishlist({ embedded = false }) {
       <main className="account-main-layout">
         {/* Mobile Select Tab Navigation */}
         <div className="profile-mobile-nav">
-          <select
-            className="profile-mobile-select"
-            value="wishlist"
-            onChange={(e) => {
-              if (e.target.value === "wishlist") {
-                navigate("/wishlist");
-              } else {
-                navigate("/profile", { state: { tab: e.target.value } });
+          <AccountMobileNav
+            activeTab="wishlist"
+            onSelectTab={(tab) => {
+              if (tab !== "wishlist") {
+                navigate("/profile", { state: { tab } });
               }
             }}
-          >
-            <option value="profile">My Profile</option>
-            <option value="orders">My Orders</option>
-            <option value="wishlist">My Wishlist</option>
-            <option value="addresses">My Addresses</option>
-            <option value="security">Account & Security</option>
-          </select>
+          />
         </div>
 
         {/* 2-Column Grid Layout matching My Address / Profile */}

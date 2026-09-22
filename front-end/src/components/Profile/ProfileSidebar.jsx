@@ -7,9 +7,16 @@ import {
   LuMapPin,
   LuShieldCheck,
   LuLogOut,
+  LuChevronRight,
 } from "react-icons/lu";
 
-export default function ProfileSidebar({ activeTab, setActiveTab, profile, onLogout }) {
+export default function ProfileSidebar({
+  activeTab,
+  setActiveTab,
+  profile,
+  user,
+  onLogout,
+}) {
   const navigate = useNavigate();
 
   const menuItems = [
@@ -39,9 +46,34 @@ export default function ProfileSidebar({ activeTab, setActiveTab, profile, onLog
     }
   };
 
+  const displayName =
+    profile?.name ||
+    user?.name ||
+    (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
+    (user?.email ? user.email.split("@")[0] : "Sarah Kapoor");
+
+  const avatarInitial = (displayName || "M").charAt(0).toUpperCase();
+
   return (
     <aside className="profile-sidebar-container" aria-label="Account navigation">
-      {/* Navigation menu items */}
+      {/* 1. Top Customer Profile Card */}
+      <button
+        type="button"
+        className="profile-sidebar-user-card"
+        onClick={() => handleMenuClick({ id: "profile" })}
+        aria-label="View profile details"
+      >
+        <div className="sidebar-user-avatar" aria-hidden="true">
+          <span>{avatarInitial}</span>
+        </div>
+        <div className="sidebar-user-meta">
+          <span className="sidebar-user-name">{displayName}</span>
+          <span className="sidebar-user-welcome">Welcome to Moxie</span>
+        </div>
+        <LuChevronRight className="sidebar-user-arrow" aria-hidden="true" />
+      </button>
+
+      {/* 2. Navigation Menu Items */}
       <nav className="profile-menu-nav">
         {menuItems.map((item) => {
           const isActive =
@@ -77,6 +109,15 @@ export default function ProfileSidebar({ activeTab, setActiveTab, profile, onLog
           <span className="profile-menu-label">Logout</span>
         </button>
       </nav>
+
+      {/* 3. Bottom Luxury Aesthetic Card */}
+      <div className="sidebar-aesthetic-banner" aria-hidden="true">
+        <div className="aesthetic-banner-inner">
+          <p className="aesthetic-quote">Good style follows you always.</p>
+          <span className="aesthetic-gold-line" />
+          <span className="aesthetic-moxie-brand">M O X I E</span>
+        </div>
+      </div>
     </aside>
   );
 }

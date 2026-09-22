@@ -15,7 +15,6 @@ import {
   LuCrown,
   LuZap,
   LuChevronRight,
-  LuPackage,
 } from "react-icons/lu";
 
 // Custom Road icon for Street / Area / Locality field matching the MOXIE luxury design
@@ -496,40 +495,7 @@ export default function Addresses({
         </div>
       )}
 
-      {/* 4. Bottom Promo / Value Banner */}
-      <div className="addresses-bottom-banner">
-        <div className="banner-left-visual">
-          <div className="banner-package-icon-wrap" aria-hidden="true">
-            <LuPackage />
-          </div>
-          <div className="banner-text-block">
-            <span className="banner-eyebrow">
-              A SMALL STEP FOR A SMOOTHER SHOPPING EXPERIENCE
-            </span>
-            <h3 className="banner-heading">Add and manage your addresses</h3>
-            <p className="banner-desc">
-              Save your delivery addresses to enjoy a faster, more seamless checkout experience
-              across all your favorite styles on MOXIE.
-            </p>
-          </div>
-        </div>
-        <div className="banner-right-action">
-          <button
-            type="button"
-            className="banner-add-btn"
-            onClick={handleOpenAddModal}
-          >
-            <LuPlus className="btn-icon" aria-hidden="true" />
-            <span>Add New Address</span>
-          </button>
-          <div className="banner-script-quote">
-            <span className="script-text">Good Style Travels Far ♡</span>
-            <span className="script-sub">SHOP MORE. WORRY LESS.</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Add / Edit Address Modal */}
+      {/* 4. Add / Edit Address Modal */}
       {isModalOpen && (
         <div
           className="address-modal-overlay"

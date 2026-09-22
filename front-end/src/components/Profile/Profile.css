@@ -40,20 +40,101 @@
 }
 
 .account-main-layout {
-  max-width: 1540px;
+  max-width: 1600px;
   margin: 0 auto;
   min-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
+  padding: 32px 36px 80px;
+  box-sizing: border-box;
 }
 
 .account-layout-grid,
 .profile-layout-grid {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  align-items: stretch;
-  min-height: calc(100vh - 80px);
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  min-height: calc(100vh - 160px);
   width: 100%;
+}
+
+/* Mobile Navigation Select */
+.profile-mobile-nav {
+  display: none;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.profile-mobile-select {
+  width: 100%;
+  height: 48px;
+  background-color: #ffffff;
+  border: 1px solid #eae4d9;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #071426;
+  outline: none;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(7, 20, 38, 0.04);
+}
+
+@media (max-width: 1024px) {
+  .account-main-layout {
+    padding: 24px 20px 80px;
+  }
+
+  .account-layout-grid,
+  .profile-layout-grid {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .account-main-layout {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 16px calc(110px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .account-page-wrapper,
+  .profile-page-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .profile-mobile-nav {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 0;
+  }
+
+  .account-layout-grid,
+  .profile-layout-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+
+  .account-content-panel {
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .profile-sidebar-container,
+  .profile-sidebar-card {
+    display: none !important;
+  }
 }
 
 /* ------------------------------------------------------------
@@ -61,21 +142,89 @@
    ------------------------------------------------------------ */
 .profile-sidebar-container,
 .profile-sidebar-card {
-  background-color: var(--moxie-acc-sidebar-bg);
-  border-right: 1px solid var(--moxie-acc-border);
-  padding: 32px 18px 40px 24px;
+  background-color: #ffffff;
+  border: 1px solid #ece4d8;
+  border-radius: 20px;
+  padding: 24px 18px 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 20px;
   box-sizing: border-box;
   width: 100%;
+  box-shadow: 0 2px 12px rgba(7, 20, 38, 0.02);
 }
 
-/* Navigation List */
+/* 2A. Top Customer Profile Card in Sidebar */
+.profile-sidebar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fdfbf7;
+  border: 1px solid #f1ece4;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.profile-sidebar-user-card:hover {
+  background: #fbf7ef;
+  border-color: #e2d2b5;
+  transform: translateY(-1px);
+}
+
+.sidebar-user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f3e8cf;
+  border: 1px solid #e2d2b5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: #071426;
+  flex-shrink: 0;
+}
+
+.sidebar-user-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-user-name {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: #071426;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-welcome {
+  font-size: 12px;
+  color: #8c827a;
+  margin-top: 1px;
+}
+
+.sidebar-user-arrow {
+  color: #94a3b8;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* 2B. Navigation List */
 .profile-menu-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
 }
 
@@ -99,6 +248,7 @@
   box-sizing: border-box;
   width: 100%;
   font-family: inherit;
+  position: relative;
 }
 
 .profile-menu-icon-wrap {
@@ -126,58 +276,101 @@
 
 .profile-menu-btn:hover {
   background-color: rgba(197, 160, 89, 0.08);
-  color: #111111;
+  color: #071426;
 }
 
 .profile-menu-btn:hover .profile-menu-icon-wrap {
-  color: #111111;
+  color: #071426;
 }
 
-/* Selected / Active State: Soft champagne/gold tint */
+/* Selected / Active State: Soft champagne/gold tint + Left gold accent bar */
 .profile-menu-btn.active {
-  background-color: var(--moxie-acc-gold-light);
-  color: #111111;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.12);
+  background-color: #fbf7ef;
+  color: #071426;
+  font-weight: 750;
+  border-left: 3.5px solid #c5a059;
+  border-radius: 0 12px 12px 0;
 }
 
 .profile-menu-btn.active .profile-menu-icon-wrap {
-  color: #111111;
+  color: #071426;
 }
 
 /* Sidebar Divider */
 .profile-menu-divider {
   height: 1px;
-  background-color: rgba(0, 0, 0, 0.07);
-  margin: 14px 8px;
+  background-color: #f1ece4;
+  margin: 10px 4px;
 }
 
 /* Logout Button */
 .profile-menu-btn-logout {
-  color: #374151;
+  color: #4b5563;
 }
 
 .profile-menu-btn-logout:hover {
   background-color: #fee2e2;
   color: #dc2626;
+  border-left: none;
+  border-radius: 12px;
 }
 
 .profile-menu-btn-logout:hover .profile-menu-icon-wrap {
   color: #dc2626;
 }
 
+/* 2C. Bottom Luxury Aesthetic Banner in Sidebar */
+.sidebar-aesthetic-banner {
+  margin-top: 8px;
+  padding: 24px 18px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #faf6ee 0%, #f4ecdc 100%);
+  border: 1px solid #ebdcc4;
+  text-align: center;
+  box-sizing: border-box;
+}
 
+.aesthetic-banner-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.aesthetic-quote {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
+  color: #071426;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.aesthetic-gold-line {
+  width: 32px;
+  height: 1.5px;
+  background: #c5a059;
+  margin: 2px 0;
+}
+
+.aesthetic-moxie-brand {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #071426;
+  text-transform: uppercase;
+}
 
 /* ------------------------------------------------------------
    4. RIGHT CONTENT AREA & HEADER
    ------------------------------------------------------------ */
 .account-content-panel,
 .profile-content-card {
-  padding: 36px 44px 48px;
+  padding: 0;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background-color: var(--moxie-acc-cream-bg);
+  background-color: transparent;
 }
 
 .profile-details-container {
@@ -844,10 +1037,9 @@
 
   .profile-mobile-nav {
     display: block;
-    padding: 12px 16px 0;
+    padding: 0;
   }
 
-  .account-content-panel,
   .profile-content-card {
     padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
   }
@@ -1958,29 +2150,233 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1023px) {
   .addresses-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
   }
   .addresses-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
   }
 }
 
-@media (max-width: 768px) {
-  .addresses-summary-grid {
-    grid-template-columns: 1fr;
-  }
-  .addresses-grid {
-    grid-template-columns: 1fr;
-  }
-  .addresses-bottom-banner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .banner-right-action {
-    align-items: flex-start;
+@media (max-width: 767px) {
+  .addresses-container {
     width: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .addresses-header-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: nowrap;
+  }
+
+  .addresses-title-block {
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .addresses-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+  }
+
+  .addresses-page-title {
+    font-size: clamp(26px, 6vw, 30px);
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  .addresses-page-subtitle {
+    display: none;
+  }
+
+  .address-add-btn {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* 3 Summary Cards -> Compact 2-column grid + horizontal strip */
+  .addresses-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .summary-stat-card {
+    padding: 12px 14px;
+    border-radius: 14px;
+    gap: 10px;
+    min-height: 72px;
+    box-sizing: border-box;
+  }
+
+  .summary-stat-card.informational {
+    grid-column: span 2;
+    min-height: 64px;
+    height: auto;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stat-icon-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  .stat-number {
+    font-size: 20px;
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .stat-label.prominent {
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+
+  .stat-desc {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+
+  .stat-arrow-circle {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+
+  /* Saved Address Cards */
+  .addresses-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .address-item-card {
+    background: #ffffff;
+    border: 1px solid #eae4d9;
+    border-radius: 16px;
+    padding: 14px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(7, 20, 38, 0.03);
+  }
+
+  .address-card-header {
+    margin-bottom: 10px;
+  }
+
+  .address-type-pill {
+    font-size: 10.5px;
+    padding: 3px 10px;
+  }
+
+  .address-default-badge {
+    font-size: 10.5px;
+    padding: 3px 10px;
+  }
+
+  .address-card-body {
+    margin-bottom: 12px;
+  }
+
+  .address-user-name {
+    font-size: 16px;
+    font-weight: 750;
+    margin-bottom: 2px;
+  }
+
+  .address-user-phone {
+    font-size: 12.5px;
+    margin-bottom: 8px;
+  }
+
+  .address-location-box {
+    gap: 8px;
+  }
+
+  .address-loc-pin-icon {
+    font-size: 14px;
+    margin-top: 2px;
+  }
+
+  .address-location-text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .address-landmark-text {
+    font-size: 12px;
+  }
+
+  /* Actions */
+  .address-actions-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid #f1ece4;
+  }
+
+  .address-action-btn,
+  .address-default-indicator-pill {
+    height: 40px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 12px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .address-btn-edit {
+    border-color: #071426;
+    color: #071426;
+  }
+
+  .address-btn-delete {
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  .address-btn-default {
+    margin-left: 0;
+    background: #fbf7ef;
+    border-color: rgba(201, 155, 69, 0.4);
+    color: #92400e;
+  }
+
+  .address-default-indicator-pill {
+    margin-left: 0;
   }
 }
 

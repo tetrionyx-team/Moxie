@@ -3,76 +3,64 @@
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy S8/S9 (360px) renders Cart page on mobile 1`] = `
 <DocumentFragment>
   <div
-    class="cart-page-wrapper"
+    class="cart-page-wrapper cart-page-empty"
   >
     <div
-      class="cart-page-container"
+      class="cart-empty-container"
     >
-      <div
-        class="cart-empty-state-wrapper"
+      <span
+        class="cart-empty-label"
       >
-        <div
-          class="cart-empty-state-card"
+        YOUR BAG
+      </span>
+      <div
+        class="cart-empty-icon"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.6"
+          viewBox="0 0 24 24"
         >
-          <span
-            class="cart-empty-eyebrow"
-          >
-            YOUR BAG
-          </span>
-          <div
-            class="empty-cart-icon-circle"
-          >
-            <svg
-              fill="none"
-              height="36"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.6"
-              viewBox="0 0 24 24"
-              width="36"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-              />
-              <line
-                x1="3"
-                x2="21"
-                y1="6"
-                y2="6"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-              />
-            </svg>
-          </div>
-          <h2
-            class="empty-cart-heading"
-          >
-            Your shopping bag is empty
-          </h2>
-          <p
-            class="empty-cart-text"
-          >
-            Looks like you haven't added anything yet.
-            <br
-              class="empty-cart-br"
-            />
-            Explore our curated collection and find your next favourite.
-          </p>
-          <a
-            class="empty-cart-cta-btn"
-            href="/products"
-          >
-            CONTINUE SHOPPING
-          </a>
-          <a
-            class="empty-cart-secondary-link"
-            href="/products"
-          >
-            Explore Products →
-          </a>
-        </div>
+          <path
+            d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+          />
+          <line
+            x1="3"
+            x2="21"
+            y1="6"
+            y2="6"
+          />
+          <path
+            d="M16 10a4 4 0 0 1-8 0"
+          />
+        </svg>
+      </div>
+      <h1
+        class="cart-empty-title"
+      >
+        Your shopping bag is empty
+      </h1>
+      <p
+        class="cart-empty-description"
+      >
+        Looks like you haven't added anything yet.
+        <br
+          class="empty-cart-br"
+        />
+        Explore our curated collection and find your next favourite.
+      </p>
+      <div
+        class="cart-empty-actions"
+      >
+        <a
+          class="cart-empty-cta-btn"
+          href="/products"
+        >
+          CONTINUE SHOPPING
+        </a>
       </div>
     </div>
   </div>
@@ -6983,35 +6971,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Address
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Orders
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -7020,6 +7013,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                A
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Alex Moxie
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -7245,6 +7283,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -7651,35 +7711,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Addresses
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Wishlist
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -7688,6 +7753,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                S
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Sarah Kapoor
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -7913,6 +8023,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -8147,76 +8279,64 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7 / S20 (412px) renders Cart page on mobile 1`] = `
 <DocumentFragment>
   <div
-    class="cart-page-wrapper"
+    class="cart-page-wrapper cart-page-empty"
   >
     <div
-      class="cart-page-container"
+      class="cart-empty-container"
     >
-      <div
-        class="cart-empty-state-wrapper"
+      <span
+        class="cart-empty-label"
       >
-        <div
-          class="cart-empty-state-card"
+        YOUR BAG
+      </span>
+      <div
+        class="cart-empty-icon"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.6"
+          viewBox="0 0 24 24"
         >
-          <span
-            class="cart-empty-eyebrow"
-          >
-            YOUR BAG
-          </span>
-          <div
-            class="empty-cart-icon-circle"
-          >
-            <svg
-              fill="none"
-              height="36"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.6"
-              viewBox="0 0 24 24"
-              width="36"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-              />
-              <line
-                x1="3"
-                x2="21"
-                y1="6"
-                y2="6"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-              />
-            </svg>
-          </div>
-          <h2
-            class="empty-cart-heading"
-          >
-            Your shopping bag is empty
-          </h2>
-          <p
-            class="empty-cart-text"
-          >
-            Looks like you haven't added anything yet.
-            <br
-              class="empty-cart-br"
-            />
-            Explore our curated collection and find your next favourite.
-          </p>
-          <a
-            class="empty-cart-cta-btn"
-            href="/products"
-          >
-            CONTINUE SHOPPING
-          </a>
-          <a
-            class="empty-cart-secondary-link"
-            href="/products"
-          >
-            Explore Products →
-          </a>
-        </div>
+          <path
+            d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+          />
+          <line
+            x1="3"
+            x2="21"
+            y1="6"
+            y2="6"
+          />
+          <path
+            d="M16 10a4 4 0 0 1-8 0"
+          />
+        </svg>
+      </div>
+      <h1
+        class="cart-empty-title"
+      >
+        Your shopping bag is empty
+      </h1>
+      <p
+        class="cart-empty-description"
+      >
+        Looks like you haven't added anything yet.
+        <br
+          class="empty-cart-br"
+        />
+        Explore our curated collection and find your next favourite.
+      </p>
+      <div
+        class="cart-empty-actions"
+      >
+        <a
+          class="cart-empty-cta-btn"
+          href="/products"
+        >
+          CONTINUE SHOPPING
+        </a>
       </div>
     </div>
   </div>
@@ -15127,35 +15247,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Address
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Orders
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -15164,6 +15289,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                A
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Alex Moxie
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -15389,6 +15559,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -15795,35 +15987,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Addresses
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Wishlist
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -15832,6 +16029,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                S
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Sarah Kapoor
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -16057,6 +16299,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -16291,76 +16555,64 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 12/13/14 (390px) renders Cart page on mobile 1`] = `
 <DocumentFragment>
   <div
-    class="cart-page-wrapper"
+    class="cart-page-wrapper cart-page-empty"
   >
     <div
-      class="cart-page-container"
+      class="cart-empty-container"
     >
-      <div
-        class="cart-empty-state-wrapper"
+      <span
+        class="cart-empty-label"
       >
-        <div
-          class="cart-empty-state-card"
+        YOUR BAG
+      </span>
+      <div
+        class="cart-empty-icon"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.6"
+          viewBox="0 0 24 24"
         >
-          <span
-            class="cart-empty-eyebrow"
-          >
-            YOUR BAG
-          </span>
-          <div
-            class="empty-cart-icon-circle"
-          >
-            <svg
-              fill="none"
-              height="36"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.6"
-              viewBox="0 0 24 24"
-              width="36"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-              />
-              <line
-                x1="3"
-                x2="21"
-                y1="6"
-                y2="6"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-              />
-            </svg>
-          </div>
-          <h2
-            class="empty-cart-heading"
-          >
-            Your shopping bag is empty
-          </h2>
-          <p
-            class="empty-cart-text"
-          >
-            Looks like you haven't added anything yet.
-            <br
-              class="empty-cart-br"
-            />
-            Explore our curated collection and find your next favourite.
-          </p>
-          <a
-            class="empty-cart-cta-btn"
-            href="/products"
-          >
-            CONTINUE SHOPPING
-          </a>
-          <a
-            class="empty-cart-secondary-link"
-            href="/products"
-          >
-            Explore Products →
-          </a>
-        </div>
+          <path
+            d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+          />
+          <line
+            x1="3"
+            x2="21"
+            y1="6"
+            y2="6"
+          />
+          <path
+            d="M16 10a4 4 0 0 1-8 0"
+          />
+        </svg>
+      </div>
+      <h1
+        class="cart-empty-title"
+      >
+        Your shopping bag is empty
+      </h1>
+      <p
+        class="cart-empty-description"
+      >
+        Looks like you haven't added anything yet.
+        <br
+          class="empty-cart-br"
+        />
+        Explore our curated collection and find your next favourite.
+      </p>
+      <div
+        class="cart-empty-actions"
+      >
+        <a
+          class="cart-empty-cta-btn"
+          href="/products"
+        >
+          CONTINUE SHOPPING
+        </a>
       </div>
     </div>
   </div>
@@ -23271,35 +23523,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Address
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Orders
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -23308,6 +23565,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                A
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Alex Moxie
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -23533,6 +23835,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -23939,35 +24263,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Addresses
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Wishlist
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -23976,6 +24305,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                S
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Sarah Kapoor
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -24201,6 +24575,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -24435,76 +24831,64 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 14/15 Pro Max (430px) renders Cart page on mobile 1`] = `
 <DocumentFragment>
   <div
-    class="cart-page-wrapper"
+    class="cart-page-wrapper cart-page-empty"
   >
     <div
-      class="cart-page-container"
+      class="cart-empty-container"
     >
-      <div
-        class="cart-empty-state-wrapper"
+      <span
+        class="cart-empty-label"
       >
-        <div
-          class="cart-empty-state-card"
+        YOUR BAG
+      </span>
+      <div
+        class="cart-empty-icon"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.6"
+          viewBox="0 0 24 24"
         >
-          <span
-            class="cart-empty-eyebrow"
-          >
-            YOUR BAG
-          </span>
-          <div
-            class="empty-cart-icon-circle"
-          >
-            <svg
-              fill="none"
-              height="36"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.6"
-              viewBox="0 0 24 24"
-              width="36"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-              />
-              <line
-                x1="3"
-                x2="21"
-                y1="6"
-                y2="6"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-              />
-            </svg>
-          </div>
-          <h2
-            class="empty-cart-heading"
-          >
-            Your shopping bag is empty
-          </h2>
-          <p
-            class="empty-cart-text"
-          >
-            Looks like you haven't added anything yet.
-            <br
-              class="empty-cart-br"
-            />
-            Explore our curated collection and find your next favourite.
-          </p>
-          <a
-            class="empty-cart-cta-btn"
-            href="/products"
-          >
-            CONTINUE SHOPPING
-          </a>
-          <a
-            class="empty-cart-secondary-link"
-            href="/products"
-          >
-            Explore Products →
-          </a>
-        </div>
+          <path
+            d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+          />
+          <line
+            x1="3"
+            x2="21"
+            y1="6"
+            y2="6"
+          />
+          <path
+            d="M16 10a4 4 0 0 1-8 0"
+          />
+        </svg>
+      </div>
+      <h1
+        class="cart-empty-title"
+      >
+        Your shopping bag is empty
+      </h1>
+      <p
+        class="cart-empty-description"
+      >
+        Looks like you haven't added anything yet.
+        <br
+          class="empty-cart-br"
+        />
+        Explore our curated collection and find your next favourite.
+      </p>
+      <div
+        class="cart-empty-actions"
+      >
+        <a
+          class="cart-empty-cta-btn"
+          href="/products"
+        >
+          CONTINUE SHOPPING
+        </a>
       </div>
     </div>
   </div>
@@ -31415,35 +31799,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Address
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Orders
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -31452,6 +31841,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                A
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Alex Moxie
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -31677,6 +32111,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -32083,35 +32539,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Addresses
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Wishlist
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -32120,6 +32581,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                S
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Sarah Kapoor
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -32345,6 +32851,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -32579,76 +33107,64 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone SE (320px) renders Cart page on mobile 1`] = `
 <DocumentFragment>
   <div
-    class="cart-page-wrapper"
+    class="cart-page-wrapper cart-page-empty"
   >
     <div
-      class="cart-page-container"
+      class="cart-empty-container"
     >
-      <div
-        class="cart-empty-state-wrapper"
+      <span
+        class="cart-empty-label"
       >
-        <div
-          class="cart-empty-state-card"
+        YOUR BAG
+      </span>
+      <div
+        class="cart-empty-icon"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.6"
+          viewBox="0 0 24 24"
         >
-          <span
-            class="cart-empty-eyebrow"
-          >
-            YOUR BAG
-          </span>
-          <div
-            class="empty-cart-icon-circle"
-          >
-            <svg
-              fill="none"
-              height="36"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.6"
-              viewBox="0 0 24 24"
-              width="36"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-              />
-              <line
-                x1="3"
-                x2="21"
-                y1="6"
-                y2="6"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-              />
-            </svg>
-          </div>
-          <h2
-            class="empty-cart-heading"
-          >
-            Your shopping bag is empty
-          </h2>
-          <p
-            class="empty-cart-text"
-          >
-            Looks like you haven't added anything yet.
-            <br
-              class="empty-cart-br"
-            />
-            Explore our curated collection and find your next favourite.
-          </p>
-          <a
-            class="empty-cart-cta-btn"
-            href="/products"
-          >
-            CONTINUE SHOPPING
-          </a>
-          <a
-            class="empty-cart-secondary-link"
-            href="/products"
-          >
-            Explore Products →
-          </a>
-        </div>
+          <path
+            d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+          />
+          <line
+            x1="3"
+            x2="21"
+            y1="6"
+            y2="6"
+          />
+          <path
+            d="M16 10a4 4 0 0 1-8 0"
+          />
+        </svg>
+      </div>
+      <h1
+        class="cart-empty-title"
+      >
+        Your shopping bag is empty
+      </h1>
+      <p
+        class="cart-empty-description"
+      >
+        Looks like you haven't added anything yet.
+        <br
+          class="empty-cart-br"
+        />
+        Explore our curated collection and find your next favourite.
+      </p>
+      <div
+        class="cart-empty-actions"
+      >
+        <a
+          class="cart-empty-cta-btn"
+          href="/products"
+        >
+          CONTINUE SHOPPING
+        </a>
       </div>
     </div>
   </div>
@@ -39559,35 +40075,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Address
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Orders
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -39596,6 +40117,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                A
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Alex Moxie
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -39821,6 +40387,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"
@@ -40227,35 +40815,40 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       <div
         class="profile-mobile-nav"
       >
-        <select
-          class="profile-mobile-select"
+        <div
+          class="account-mobile-nav-wrapper"
         >
-          <option
-            value="profile"
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="Select Account Page Section"
+            class="account-mobile-nav-trigger "
+            type="button"
           >
-            My Profile
-          </option>
-          <option
-            value="orders"
-          >
-            My Orders
-          </option>
-          <option
-            value="wishlist"
-          >
-            My Wishlist
-          </option>
-          <option
-            value="addresses"
-          >
-            My Addresses
-          </option>
-          <option
-            value="security"
-          >
-            Account & Security
-          </option>
-        </select>
+            <span
+              class="trigger-label"
+            >
+              My Wishlist
+            </span>
+            <svg
+              aria-hidden="true"
+              class="trigger-chevron "
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div
         class="account-layout-grid"
@@ -40264,6 +40857,51 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           aria-label="Account navigation"
           class="profile-sidebar-container"
         >
+          <button
+            aria-label="View profile details"
+            class="profile-sidebar-user-card"
+            type="button"
+          >
+            <div
+              aria-hidden="true"
+              class="sidebar-user-avatar"
+            >
+              <span>
+                S
+              </span>
+            </div>
+            <div
+              class="sidebar-user-meta"
+            >
+              <span
+                class="sidebar-user-name"
+              >
+                Sarah Kapoor
+              </span>
+              <span
+                class="sidebar-user-welcome"
+              >
+                Welcome to Moxie
+              </span>
+            </div>
+            <svg
+              aria-hidden="true"
+              class="sidebar-user-arrow"
+              fill="none"
+              height="1em"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m9 18 6-6-6-6"
+              />
+            </svg>
+          </button>
           <nav
             class="profile-menu-nav"
           >
@@ -40489,6 +41127,28 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               </span>
             </button>
           </nav>
+          <div
+            aria-hidden="true"
+            class="sidebar-aesthetic-banner"
+          >
+            <div
+              class="aesthetic-banner-inner"
+            >
+              <p
+                class="aesthetic-quote"
+              >
+                Good style follows you always.
+              </p>
+              <span
+                class="aesthetic-gold-line"
+              />
+              <span
+                class="aesthetic-moxie-brand"
+              >
+                M O X I E
+              </span>
+            </div>
+          </div>
         </aside>
         <section
           class="account-content-panel"

@@ -66,6 +66,7 @@ from .courier_service import (
     validate_tracking_number,
     get_external_carrier_tracking_url,
     STATUS_DISPLAY_NAMES,
+    CourierTrackingService,
 )
 from .ocr_service import extract_tracking_from_receipt
 from .permissions_utils import (
@@ -3503,116 +3504,287 @@ class TrackingLookupView(APIView):
     permission_classes = []
 
     def post(self, request):
-        tracking_num = (request.data.get('tracking_number') or request.data.get('tracking_id') or request.data.get('query') or '').strip()
-        return self._lookup(tracking_num)
+        tracking_num = (
+            request.data.get('tracking_query') or
+            request.data.get('tracking_number') or
+            request.data.get('trackingNumber') or
+            request.data.get('tracking_id') or
+            request.data.get('trackingId') or
+            request.data.get('order_id') or
+            request.data.get('orderId') or
+            request.data.get('order_number') or
+            request.data.get('query') or
+            request.data.get('q') or
+            ''
+        ).strip()
+        courier_hint = (request.data.get('courier') or request.data.get('courier_name') or '').strip()
+        return self._lookup(tracking_num, courier_hint=courier_hint)
 
     def get(self, request):
-        tracking_num = (request.query_params.get('tracking_number') or request.query_params.get('tracking') or request.query_params.get('tracking_id') or request.query_params.get('q') or '').strip()
-        return self._lookup(tracking_num)
+        tracking_num = (
+            request.query_params.get('tracking_query') or
+            request.query_params.get('tracking_number') or
+            request.query_params.get('trackingNumber') or
+            request.query_params.get('tracking') or
+            request.query_params.get('tracking_id') or
+            request.query_params.get('trackingId') or
+            request.query_params.get('order_id') or
+            request.query_params.get('orderId') or
+            request.query_params.get('order_number') or
+            request.query_params.get('q') or
+            request.query_params.get('query') or
+            ''
+        ).strip()
+        courier_hint = (request.query_params.get('courier') or request.query_params.get('courier_name') or '').strip()
+        return self._lookup(tracking_num, courier_hint=courier_hint)
 
-    def _lookup(self, query):
+    def _lookup(self, query, courier_hint=None):
         if not query:
-            return Response({'error': 'Tracking number or order ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False,
+                'error_code': 'EMPTY_INPUT',
+                'error': 'Enter an order ID or tracking number.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         clean_query = query.strip()
-        clean_num = ''.join(c for c in clean_query if c.isdigit())
         store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
 
+        # Detect pattern: Is it India Post / ST Courier or typical Consignment / AWB format?
+        is_india_post = bool(re.match(r'^[A-Za-z]{2}\s*[0-9]{9}\s*[A-Za-z]{2}$', clean_query, re.IGNORECASE))
+        is_st_courier = bool(re.match(r'^(?:ST)?[0-9]{8,14}$', clean_query, re.IGNORECASE))
+        is_courier_pattern = is_india_post or is_st_courier or (courier_hint and courier_hint.upper() in ('INDIA_POST', 'ST_COURIER'))
+
+        clean_num = ''.join(c for c in clean_query if c.isdigit())
+        is_order_prefix_query = clean_query.upper().startswith(f"{store_prefix.upper()}-") or clean_query.upper().startswith(store_prefix.upper())
+
+        # 1. Search existing orders by tracking_id, order_number, razorpay_order_id, or numeric id
         order = (
             Order.objects.filter(tracking_id__iexact=clean_query).first() or
             Order.objects.filter(order_number__iexact=clean_query).first() or
             Order.objects.filter(razorpay_order_id__iexact=clean_query).first()
         )
-        if not order and clean_num:
+        if not order and clean_num and (is_order_prefix_query or not is_courier_pattern):
             order = Order.objects.filter(id=int(clean_num)).first()
 
-        if not order:
-            return Response({
-                'success': False,
-                'error': "We couldn't find a MOXIE shipment with this tracking number. Please check the number or contact MOXIE support."
-            }, status=status.HTTP_404_NOT_FOUND)
+        # CASE A: Order found by MOXIE order identifier
+        if order:
+            order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
+            track_num = (order.tracking_id or '').strip()
 
-        order_num = order.order_number or f"{store_prefix}-{order.id:04d}"
-        track_num = order.tracking_id or ''
-        courier_key = normalize_courier_code(order.courier_name)
-        courier_display = "ST Courier" if courier_key == 'ST_COURIER' else ("India Post" if courier_key == 'INDIA_POST' else (order.courier_name or ''))
+            # If user queried by order number (or numeric id) and tracking number is not assigned:
+            if not track_num and (clean_query.upper() == order_num.upper() or is_order_prefix_query or clean_query.isdigit()):
+                return Response({
+                    'success': False,
+                    'error_code': 'TRACKING_NOT_ASSIGNED',
+                    'error': 'Tracking information has not been assigned yet.',
+                    'order_id': order_num,
+                    'order_number': order_num,
+                    'order_status': order.order_status or 'Confirmed',
+                    'courier': order.courier_name or 'Awaiting Dispatch',
+                    'has_linked_order': True,
+                }, status=status.HTTP_200_OK)
 
-        norm_status = normalize_status(order.shipping_status or order.order_status)
-        norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
+            courier_key = normalize_courier_code(order.courier_name or courier_hint)
+            courier_display = "ST Courier" if courier_key == 'ST_COURIER' else ("India Post" if courier_key == 'INDIA_POST' else (order.courier_name or 'India Post'))
 
-        history = [{
-            'status': h.status,
-            'status_display': STATUS_DISPLAY_NAMES.get(normalize_status(h.status), h.status),
-            'location': h.location,
-            'message': h.message,
-            'source': h.source or 'ADMIN',
-            'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
-            'raw_date': h.created_at.isoformat(),
-            'timestamp': h.created_at.isoformat(),
-        } for h in order.status_history.all()]
+            # Synchronize real carrier status if tracking number exists
+            carrier_data = None
+            if track_num:
+                CourierTrackingService.sync_carrier_status(order)
+                carrier_data = CourierTrackingService.fetch_carrier_tracking(
+                    track_num,
+                    courier_hint=order.courier_name or courier_key,
+                    order_context=order
+                )
 
-        if not history:
+            if carrier_data:
+                norm_status = carrier_data['shipping_status']
+                norm_status_display = carrier_data['shipping_status_display']
+                carrier_checkpoints = carrier_data.get('status_history', [])
+                est_delivery = carrier_data.get('estimated_delivery') or order.estimated_delivery or ('3-5 Business Days' if norm_status != 'DELIVERED' else '')
+                last_updated = carrier_data.get('last_updated') or (order.tracking_updated_at.strftime('%d %b %Y, %I:%M %p') if order.tracking_updated_at else 'Recently')
+                curr_location = carrier_data.get('current_location') or order.tracking_location or ''
+                carrier_portal = carrier_data.get('tracking_url') or get_external_carrier_tracking_url(order.courier_name or courier_display, track_num)
+            else:
+                norm_status = normalize_status(order.shipping_status or order.order_status)
+                norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
+                carrier_checkpoints = []
+                est_delivery = order.estimated_delivery or ('3-5 Business Days' if norm_status != 'DELIVERED' else '')
+                last_updated = order.tracking_updated_at.strftime('%d %b %Y, %I:%M %p') if order.tracking_updated_at else (order.updated_at.strftime('%d %b %Y, %I:%M %p') if order.updated_at else 'Recently')
+                curr_location = order.tracking_location or ''
+                carrier_portal = get_external_carrier_tracking_url(order.courier_name or courier_display, track_num)
+
+            # Build clean customer-facing timeline (filtering internal admin logs)
+            order_conf_date = order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else ''
             history = [{
-                'status': 'CONFIRMED',
+                'status': 'Confirmed',
                 'status_display': 'Order Confirmed',
                 'location': 'Online Store',
-                'message': 'Order placed & confirmed',
+                'message': 'Order Confirmed & Placed',
+                'notes': 'Order Confirmed & Placed',
                 'source': 'SYSTEM',
-                'date': order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '',
+                'date': order_conf_date,
                 'raw_date': order.created_at.isoformat() if order.created_at else '',
-                'timestamp': order.created_at.isoformat() if order.created_at else '',
+                'timestamp': order_conf_date,
             }]
 
-        name = order.shipping_name or 'Customer'
-        masked_name = f"{name[0]}***{name[-1]}" if len(name) > 2 else f"{name[0]}***"
+            if carrier_checkpoints:
+                history.extend(carrier_checkpoints)
+            else:
+                for h in order.status_history.all():
+                    msg = (h.message or '').strip()
+                    if msg.startswith('Shipment saved') or msg.startswith('Payment verified'):
+                        continue
+                    history.append({
+                        'status': h.status,
+                        'status_display': STATUS_DISPLAY_NAMES.get(normalize_status(h.status), h.status),
+                        'location': h.location or curr_location,
+                        'message': h.message,
+                        'notes': h.message,
+                        'source': h.source or 'CARRIER',
+                        'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+                        'raw_date': h.created_at.isoformat(),
+                        'timestamp': h.created_at.strftime('%d %b %Y, %I:%M %p'),
+                    })
 
-        items = []
-        for it in order.items.all():
-            items.append({
-                'name': it.product_name or (it.product.name if it.product else 'Product'),
-                'color': it.color_name or 'Default',
-                'size': it.size or 'Regular',
-                'quantity': it.quantity,
-                'image': it.product_image or (it.product.images.first().image.url if it.product and it.product.images.exists() else '')
-            })
+            name = order.shipping_name or 'Customer'
+            masked_name = f"{name[0]}***{name[-1]}" if len(name) > 2 else f"{name[0]}***"
 
-        carrier_portal = get_external_carrier_tracking_url(order.courier_name, track_num)
+            items = []
+            for it in order.items.all():
+                img_url = ''
+                if it.product_image:
+                    img_url = it.product_image
+                elif it.product and it.product.images.exists():
+                    prim = it.product.images.filter(is_primary=True).first() or it.product.images.first()
+                    img_url = prim.image.url if prim and prim.image else ''
+                items.append({
+                    'product_name': it.product_name or (it.product.name if it.product else 'Product'),
+                    'name': it.product_name or (it.product.name if it.product else 'Product'),
+                    'color': it.color_name or 'Default',
+                    'size': it.size or 'Regular',
+                    'quantity': it.quantity,
+                    'price': float(it.price),
+                    'image': img_url,
+                })
+
+            display_order_status = 'Delivered' if norm_status == 'DELIVERED' else (order.order_status or norm_status_display)
+
+            return Response({
+                'success': True,
+                'has_linked_order': True,
+                'order_id': order_num,
+                'orderId': order_num,
+                'order_number': order_num,
+                'rawId': order.id,
+                'courier': courier_display,
+                'courier_code': courier_key,
+                'courier_name': courier_display,
+                'courier_display_name': courier_display,
+                'tracking_number': track_num or clean_query,
+                'trackingId': track_num or clean_query,
+                'tracking_id': track_num or clean_query,
+                'shipping_status': norm_status,
+                'shipping_status_display': norm_status_display,
+                'order_status': display_order_status,
+                'order_status_normalized': norm_status,
+                'tracking_source': order.tracking_source or 'CARRIER_API',
+                'current_location': curr_location,
+                'tracking_location': curr_location,
+                'estimated_delivery': est_delivery,
+                'shipped_at': order.shipped_at.isoformat() if order.shipped_at else None,
+                'delivered_at': order.delivered_at.isoformat() if order.delivered_at else None,
+                'tracking_updated_at': order.tracking_updated_at.isoformat() if order.tracking_updated_at else None,
+                'last_updated': last_updated,
+                'status_history': history,
+                'statusHistory': history,
+                'tracking_url': carrier_portal,
+                'carrier_portal_url': carrier_portal,
+                'items': items,
+                'products': items,
+                'shipping_destination': {
+                    'city': order.shipping_city,
+                    'state': order.shipping_state,
+                    'pincode': order.shipping_pincode,
+                },
+                'destination_city': order.shipping_city,
+                'destination_state': order.shipping_state,
+                'masked_customer_name': masked_name,
+                'masked_recipient': masked_name,
+                'payment_method': order.payment_method or 'UPI',
+                'balance_due': float(order.balance_due or 0),
+                'grand_total': float(order.total_amount),
+                'total_amount': float(order.total_amount),
+                'order_date': order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else '',
+                'createdAt': order.created_at.isoformat() if order.created_at else '',
+                'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
+            }, status=status.HTTP_200_OK)
+
+        # CASE B: If not found in DB, check if it's a carrier tracking number format
+        if is_courier_pattern:
+            carrier_data = CourierTrackingService.fetch_carrier_tracking(
+                clean_query,
+                courier_hint=courier_hint
+            )
+
+            if carrier_data:
+                # No linked MOXIE order
+                return Response({
+                    'success': True,
+                    'has_linked_order': False,
+                    'order_id': None,
+                    'orderId': None,
+                    'order_number': None,
+                    'courier': carrier_data['courier_name'],
+                    'courier_code': carrier_data['courier_code'],
+                    'courier_name': carrier_data['courier_name'],
+                    'courier_display_name': carrier_data['courier_display_name'],
+                    'tracking_number': clean_query,
+                    'trackingId': clean_query,
+                    'tracking_id': clean_query,
+                    'shipping_status': carrier_data['shipping_status'],
+                    'shipping_status_display': carrier_data['shipping_status_display'],
+                    'order_status': carrier_data['shipping_status_display'],
+                    'order_status_normalized': carrier_data['order_status_normalized'],
+                    'tracking_source': 'CARRIER_API',
+                    'current_location': carrier_data['current_location'],
+                    'tracking_location': carrier_data['tracking_location'],
+                    'estimated_delivery': carrier_data['estimated_delivery'],
+                    'last_updated': carrier_data['last_updated'],
+                    'status_history': carrier_data['status_history'],
+                    'statusHistory': carrier_data['status_history'],
+                    'tracking_url': carrier_data['tracking_url'],
+                    'carrier_portal_url': carrier_data['carrier_portal_url'],
+                    'items': [],
+                    'products': [],
+                    'shipping_destination': None,
+                    'destination_city': None,
+                    'destination_state': None,
+                    'masked_customer_name': None,
+                    'masked_recipient': None,
+                    'total_amount': None,
+                    'grand_total': None,
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'error_code': 'SHIPMENT_NOT_FOUND',
+                    'error': f"Shipment could not be found for tracking number '{clean_query}'. Please check the tracking number."
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        # CASE C: If query looked like an order number (e.g. MOX-xxxx) but was not found:
+        if is_order_prefix_query:
+            return Response({
+                'success': False,
+                'error_code': 'ORDER_NOT_FOUND',
+                'error': f"Order not found for '{clean_query}'. Please verify your Order ID."
+            }, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
-            'success': True,
-            'order_id': order_num,
-            'orderId': order_num,
-            'rawId': order.id,
-            'courier': courier_display,
-            'courier_code': courier_key,
-            'courier_name': courier_display,
-            'tracking_number': track_num,
-            'trackingId': track_num,
-            'tracking_id': track_num,
-            'shipping_status': norm_status,
-            'shipping_status_display': norm_status_display,
-            'order_status': order.order_status,
-            'tracking_source': order.tracking_source or 'ADMIN',
-            'current_location': order.tracking_location or '',
-            'tracking_location': order.tracking_location or '',
-            'estimated_delivery': order.estimated_delivery or '3-5 Business Days',
-            'shipped_at': order.shipped_at.isoformat() if order.shipped_at else None,
-            'delivered_at': order.delivered_at.isoformat() if order.delivered_at else None,
-            'tracking_updated_at': order.tracking_updated_at.isoformat() if order.tracking_updated_at else None,
-            'status_history': history,
-            'statusHistory': history,
-            'carrier_portal_url': carrier_portal,
-            'items': items,
-            'products': items,
-            'destination_city': order.shipping_city,
-            'destination_state': order.shipping_state,
-            'masked_recipient': masked_name,
-            'payment_method': order.payment_method or 'UPI',
-            'balance_due': float(order.balance_due or 0),
-            'total_amount': float(order.total_amount),
-            'createdAt': order.created_at.isoformat() if order.created_at else '',
-            'date': order.created_at.strftime('%d %b %Y') if order.created_at else '',
-        }, status=status.HTTP_200_OK)
+            'success': False,
+            'error_code': 'SHIPMENT_NOT_FOUND',
+            'error': f"Shipment could not be found for '{clean_query}'. Please verify your Order ID or tracking number."
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 class OrderTrackingPublicView(APIView):
@@ -3639,23 +3811,27 @@ class OrderTrackingPublicView(APIView):
         courier_key = normalize_courier_code(order.courier_name)
         courier_display = "ST Courier" if courier_key == 'ST_COURIER' else ("India Post" if courier_key == 'INDIA_POST' else (order.courier_name or ''))
 
-        norm_status = normalize_status(order.shipping_status or order.order_status)
-        norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
+        # Synchronize carrier status
+        carrier_data = None
+        if track_num:
+            CourierTrackingService.sync_carrier_status(order)
+            carrier_data = CourierTrackingService.fetch_carrier_tracking(
+                track_num,
+                courier_hint=order.courier_name or courier_key,
+                order_context=order
+            )
 
-        history = [{
-            'status': h.status,
-            'status_display': STATUS_DISPLAY_NAMES.get(normalize_status(h.status), h.status),
-            'location': h.location,
-            'message': h.message,
-            'source': h.source or 'ADMIN',
-            'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
-            'raw_date': h.created_at.isoformat(),
-            'timestamp': h.created_at.isoformat(),
-        } for h in order.status_history.all()]
-
-        if not history:
+        if carrier_data:
+            norm_status = carrier_data['shipping_status']
+            norm_status_display = carrier_data['shipping_status_display']
+            history = carrier_data.get('status_history', [])
+            carrier_portal = carrier_data.get('tracking_url') or get_external_carrier_tracking_url(order.courier_name, track_num)
+            est_delivery = carrier_data.get('estimated_delivery') or order.estimated_delivery or '3-5 Business Days'
+        else:
+            norm_status = normalize_status(order.shipping_status or order.order_status)
+            norm_status_display = STATUS_DISPLAY_NAMES.get(norm_status, 'Order Confirmed')
             history = [{
-                'status': 'CONFIRMED',
+                'status': 'Confirmed',
                 'status_display': 'Order Confirmed',
                 'location': 'Online Store',
                 'message': 'Order placed & confirmed',
@@ -3664,8 +3840,10 @@ class OrderTrackingPublicView(APIView):
                 'raw_date': order.created_at.isoformat() if order.created_at else '',
                 'timestamp': order.created_at.isoformat() if order.created_at else '',
             }]
+            carrier_portal = get_external_carrier_tracking_url(order.courier_name, track_num)
+            est_delivery = order.estimated_delivery or '3-5 Business Days'
 
-        carrier_portal = get_external_carrier_tracking_url(order.courier_name, track_num)
+        display_order_status = 'Delivered' if norm_status == 'DELIVERED' else (order.order_status or norm_status_display)
 
         return Response({
             'success': True,
@@ -3673,8 +3851,8 @@ class OrderTrackingPublicView(APIView):
             'rawId': order.id,
             'orderId': order_num,
             'order_number': order_num,
-            'orderStatus': order.order_status,
-            'status': order.order_status,
+            'orderStatus': display_order_status,
+            'status': display_order_status,
             'shippingStatus': norm_status_display,
             'shipping_status': norm_status,
             'shipping_status_display': norm_status_display,
@@ -3685,7 +3863,7 @@ class OrderTrackingPublicView(APIView):
             'tracking_id': track_num,
             'tracking_number': track_num,
             'trackingLocation': order.tracking_location or '',
-            'estimatedDelivery': order.estimated_delivery or '3-5 Business Days',
+            'estimatedDelivery': est_delivery,
             'statusHistory': history,
             'status_history': history,
             'carrier_portal_url': carrier_portal,

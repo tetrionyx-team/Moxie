@@ -629,16 +629,29 @@
   font-size: 13px;
 }
 
+.star-icon.empty {
+  color: #cbd5e1;
+}
+
 .rating-score {
   font-weight: 700;
   color: #334155;
   font-size: 13px;
 }
 
+.rating-score.empty {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 .review-count {
   color: #94a3b8;
   font-size: 11px;
   font-weight: 500;
+}
+
+.review-count.empty {
+  color: #94a3b8;
 }
 
 /* Action Buttons */

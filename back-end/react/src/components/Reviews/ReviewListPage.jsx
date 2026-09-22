@@ -32,10 +32,11 @@ export default function ReviewListPage() {
   // Dynamic Metrics
   const totalReviews = dynamicList.length
   const pendingReviews = dynamicList.filter(i => (i.status || '').toLowerCase() === 'pending').length
-  const approvedReviews = dynamicList.filter(i => (i.status || '').toLowerCase() === 'approved').length
-  const avgRating = dynamicList.length > 0
-    ? (dynamicList.reduce((acc, curr) => acc + (Number(curr.rating) || 5), 0) / dynamicList.length).toFixed(1)
-    : '5.0'
+  const approvedList = dynamicList.filter(i => (i.status || '').toLowerCase() === 'approved')
+  const approvedReviews = approvedList.length
+  const avgRating = approvedList.length > 0
+    ? (approvedList.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0) / approvedList.length).toFixed(1)
+    : '—'
 
   // Filtered List
   const filteredList = useMemo(() => {

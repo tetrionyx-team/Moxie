@@ -14,22 +14,34 @@ export default function TrackOrderPage() {
   const navigate = useNavigate();
 
   const queryOrder =
-    searchParams.get("order") ||
     searchParams.get("tracking") ||
+    searchParams.get("tracking_number") ||
+    searchParams.get("trackingNumber") ||
+    searchParams.get("tracking_id") ||
+    searchParams.get("trackingId") ||
+    searchParams.get("order") ||
     searchParams.get("order_id") ||
+    searchParams.get("orderId") ||
     searchParams.get("awb") ||
+    searchParams.get("id") ||
+    searchParams.get("q") ||
     "";
 
   const [trackingCode, setTrackingCode] = useState(queryOrder);
-  const [courierService, setCourierService] = useState("ALL");
+  const [courierService, setCourierService] = useState(searchParams.get("courier") || "ALL");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Sync if URL query param changes (prefill only without auto-navigation)
+  // Sync and auto-navigate if URL query param is present on direct access
   useEffect(() => {
     if (queryOrder) {
-      setTrackingCode(queryOrder);
+      const clean = queryOrder.trim();
+      if (clean) {
+        const encodedId = encodeURIComponent(clean);
+        const courierParam = courierService !== "ALL" ? `?courier=${courierService}` : "";
+        navigate(`/track-order/live/${encodedId}${courierParam}`, { replace: true });
+      }
     }
-  }, [queryOrder]);
+  }, [queryOrder, courierService, navigate]);
 
   const handleTrackSubmit = (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import {
   LuArrowLeft,
@@ -13,38 +13,75 @@ import {
   LuShare2,
   LuMapPin,
   LuShoppingBag,
+  LuChevronDown,
 } from "react-icons/lu";
 import { BACKEND_URL } from "../../config";
 import "./LiveTrackingPage.css";
 
 const STAGES = [
-  { key: "CONFIRMED", label: "Order Confirmed", icon: LuCircleCheck },
-  { key: "PROCESSING", label: "Processing", icon: LuClock },
-  { key: "PACKED", label: "Packed", icon: LuPackage },
-  { key: "SHIPPED", label: "Shipped", icon: LuTruck },
-  { key: "IN_TRANSIT", label: "In Transit", icon: LuTruck },
-  { key: "OUT_FOR_DELIVERY", label: "Out for Delivery", icon: LuTruck },
-  { key: "DELIVERED", label: "Delivered", icon: LuCircleCheck },
+  { key: "BOOKED", label: "Booked", icon: LuPackage, matchKeys: ["BOOKED", "CONFIRMED", "PLACED", "PROCESSING", "PACKED"] },
+  { key: "DISPATCHED", label: "Dispatched", icon: LuTruck, matchKeys: ["DISPATCHED", "SHIPPED"] },
+  { key: "IN_TRANSIT", label: "In Transit", icon: LuTruck, matchKeys: ["IN_TRANSIT", "INTRANSIT", "TRANSIT"] },
+  { key: "OUT_FOR_DELIVERY", label: "Out for Delivery", icon: LuTruck, matchKeys: ["OUT_FOR_DELIVERY", "OUTFORDELIVERY"] },
+  { key: "DELIVERED", label: "Delivered", icon: LuCircleCheck, matchKeys: ["DELIVERED", "COMPLETED"] },
 ];
 
 export default function LiveTrackingPage() {
-  const { orderId } = useParams();
+  const params = useParams();
   const [searchParams] = useSearchParams();
   const courierParam = searchParams.get("courier");
+
+  const rawParamId = params.orderId || params.id || params.trackingId || params.trackingNumber || "";
+  const queryParamId =
+    searchParams.get("tracking") ||
+    searchParams.get("tracking_number") ||
+    searchParams.get("trackingNumber") ||
+    searchParams.get("tracking_id") ||
+    searchParams.get("trackingId") ||
+    searchParams.get("order") ||
+    searchParams.get("order_id") ||
+    searchParams.get("orderId") ||
+    searchParams.get("id") ||
+    searchParams.get("q") ||
+    "";
+
+  const orderId = (rawParamId || queryParamId || "").trim();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingData, setTrackingData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [errorType, setErrorType] = useState("");
   const [copiedTracking, setCopiedTracking] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const [selectedEventIndex, setSelectedEventIndex] = useState(null);
+  const [showAllCheckpoints, setShowAllCheckpoints] = useState(false);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+  };
+
+  useEffect(() => {
+    if (!toastMsg) return;
+    const timer = setTimeout(() => {
+      setToastMsg("");
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toastMsg]);
 
   const fetchTracking = useCallback(async (isSilent = false) => {
-    if (!orderId) return;
+    if (!orderId) {
+      setErrorMsg("Tracking number or order ID is required.");
+      setErrorType("EMPTY_INPUT");
+      setLoading(false);
+      return;
+    }
     if (!isSilent) setRefreshing(true);
 
     try {
       const baseUrl = (BACKEND_URL || "").replace(/\/api\/?$/, "");
+      const cleanTarget = orderId.trim();
       const res = await fetch(`${baseUrl}/api/tracking/lookup/`, {
         method: "POST",
         headers: {
@@ -52,7 +89,14 @@ export default function LiveTrackingPage() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          tracking_query: orderId,
+          tracking_query: cleanTarget,
+          tracking_number: cleanTarget,
+          trackingNumber: cleanTarget,
+          tracking_id: cleanTarget,
+          trackingId: cleanTarget,
+          order_id: cleanTarget,
+          orderId: cleanTarget,
+          query: cleanTarget,
           courier: courierParam || undefined,
         }),
       });
@@ -61,17 +105,29 @@ export default function LiveTrackingPage() {
       if (res.ok && data.success) {
         setTrackingData(data);
         setErrorMsg("");
+        setErrorType("");
       } else {
         if (!trackingData) {
           setErrorMsg(
             data.error || "Order not found. Please verify your tracking number."
           );
+          setErrorType(
+            data.error_code ||
+              (data.error && data.error.toLowerCase().includes("not been assigned")
+                ? "TRACKING_NOT_ASSIGNED"
+                : "")
+          );
+        } else {
+          showToast("Unable to refresh tracking right now.");
         }
       }
     } catch (err) {
       console.error("Live tracking fetch error:", err);
       if (!trackingData) {
         setErrorMsg("Unable to connect to the tracking server. Please check your connection.");
+        setErrorType("CARRIER_UNAVAILABLE");
+      } else {
+        showToast("Unable to refresh tracking right now.");
       }
     } finally {
       setLoading(false);
@@ -102,111 +158,244 @@ export default function LiveTrackingPage() {
     };
   }, [fetchTracking]);
 
-  const handleCopyTracking = (text) => {
+  const copyToClipboardSafe = (text, successToast = "Tracking number copied") => {
     if (!text) return;
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopiedTracking(true);
-      setTimeout(() => setCopiedTracking(false), 2000);
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          showToast(successToast);
+        })
+        .catch(() => {
+          fallbackCopyText(text, successToast);
+        });
+    } else {
+      fallbackCopyText(text, successToast);
+    }
+  };
+
+  const fallbackCopyText = (text, successToast) => {
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      showToast(successToast);
+    } catch {
+      showToast("Copied to clipboard");
+    }
+  };
+
+  const handleCopyTracking = (awb) => {
+    if (!awb) return;
+    copyToClipboardSafe(awb, "Tracking number copied");
+    setCopiedTracking(true);
+    setTimeout(() => setCopiedTracking(false), 2000);
+  };
+
+  const handleTrackOnCarrier = (e) => {
+    const awb = (trackingData?.tracking_number || orderId || "").trim();
+    const targetUrl =
+      trackingData?.carrier_portal_url ||
+      trackingData?.tracking_url ||
+      "https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx";
+
+    if (awb) {
+      copyToClipboardSafe(
+        awb,
+        "Tracking number copied. Paste it into India Post tracking."
+      );
+    }
+
+    if (!e.metaKey && !e.ctrlKey) {
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      if (e) e.preventDefault();
+    }
   };
 
   const handleShareLink = () => {
     const url = window.location.href;
+    const ordNum = trackingData?.order_number || orderId;
+    const awb = trackingData?.tracking_number || "";
+    const courier = trackingData?.courier || "India Post";
+
+    const shareText = awb
+      ? `Track MOXIE shipment #${awb} (${courier}): ${url}`
+      : `Track MOXIE Order #${ordNum}: ${url}`;
+
     if (navigator.share) {
       navigator
         .share({
-          title: `MOXIE Order Tracking - ${orderId}`,
+          title: "MOXIE Order Tracking",
+          text: shareText,
           url,
         })
-        .catch(() => {});
+        .catch(() => {
+          copyToClipboardSafe(url, "Tracking link copied!");
+          setCopiedShare(true);
+          setTimeout(() => setCopiedShare(false), 2000);
+        });
     } else {
-      navigator.clipboard?.writeText(url).then(() => {
-        setCopiedShare(true);
-        setTimeout(() => setCopiedShare(false), 2000);
-      });
+      copyToClipboardSafe(url, "Tracking link copied!");
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
     }
   };
 
-  const getStageIndex = (status) => {
-    const s = (status || "").toUpperCase().replace(/[\s_-]+/g, "");
-    switch (s) {
-      case "CONFIRMED":
-      case "PLACED":
-      case "PENDING":
-        return 0;
-      case "PROCESSING":
-      case "INPROGRESS":
-        return 1;
-      case "PACKED":
-      case "PACKING":
-        return 2;
-      case "SHIPPED":
-      case "DISPATCHED":
-        return 3;
-      case "INTRANSIT":
-      case "TRANSIT":
-        return 4;
-      case "OUTFORDELIVERY":
-      case "OUTFOR_DELIVERY":
-        return 5;
-      case "DELIVERED":
-      case "COMPLETED":
-        return 6;
-      default:
-        return 0;
+  // Helper to parse date and time from timestamp string
+  const parseEventDateTime = (rawTimestamp) => {
+    if (!rawTimestamp || typeof rawTimestamp !== "string") {
+      return { date: "", time: "", formatted: "" };
     }
+    const clean = rawTimestamp.trim();
+    if (clean.includes(",")) {
+      const parts = clean.split(",");
+      const datePart = parts[0].trim();
+      const timePart = parts.slice(1).join(",").trim();
+      return {
+        date: datePart,
+        time: timePart,
+        formatted: `${datePart} • ${timePart}`,
+      };
+    }
+    return { date: clean, time: "", formatted: clean };
+  };
+
+  // Deduplicate and sanitize checkpoints from carrier
+  const cleanCheckpoints = useMemo(() => {
+    const rawList =
+      trackingData?.status_history ||
+      trackingData?.statusHistory ||
+      [];
+    if (!Array.isArray(rawList) || rawList.length === 0) return [];
+
+    const seen = new Set();
+    const result = [];
+
+    for (const ev of rawList) {
+      if (!ev) continue;
+      const key = `${(ev.status || "").trim()}|${(ev.location || "").trim()}|${(ev.message || ev.notes || "").trim()}|${(ev.timestamp || ev.date || "").trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(ev);
+      }
+    }
+    return result;
+  }, [trackingData]);
+
+  // Set default selected event to LATEST real tracking event
+  useEffect(() => {
+    if (cleanCheckpoints.length > 0) {
+      setSelectedEventIndex(cleanCheckpoints.length - 1);
+    } else {
+      setSelectedEventIndex(null);
+    }
+  }, [cleanCheckpoints]);
+
+  const getStageIndex = (statusStr) => {
+    if (!statusStr) return 0;
+    const s = String(statusStr).toUpperCase().replace(/[\s_-]+/g, "");
+    if (s.includes("DELIVERED") || s.includes("COMPLETED")) return 4;
+    if (s.includes("OUT") || s.includes("DELIVERY")) return 3;
+    if (s.includes("TRANSIT")) return 2;
+    if (s.includes("DISPATCH") || s.includes("SHIPPED")) return 1;
+    return 0;
   };
 
   const currentStageIdx = trackingData
     ? getStageIndex(
-        trackingData.order_status_normalized || trackingData.order_status
+        trackingData.shipping_status ||
+        trackingData.order_status_normalized ||
+        trackingData.order_status
       )
     : 0;
 
-  // Extract actual timestamps from backend status_history without fake fabrication
-  const getStageTimestamp = (stageKey) => {
-    if (!trackingData?.status_history || !Array.isArray(trackingData.status_history)) {
-      return null;
+  // Find checkpoint corresponding to a stage
+  const findCheckpointForStage = (stage) => {
+    if (!cleanCheckpoints || cleanCheckpoints.length === 0) return null;
+    const matchKeys = stage.matchKeys || [stage.key];
+    for (let i = cleanCheckpoints.length - 1; i >= 0; i--) {
+      const cp = cleanCheckpoints[i];
+      const cpStatus = (cp.status || cp.status_display || "").toUpperCase().replace(/[\s_-]+/g, "");
+      for (const mk of matchKeys) {
+        const mkClean = mk.toUpperCase().replace(/[\s_-]+/g, "");
+        if (cpStatus === mkClean || cpStatus.includes(mkClean)) {
+          return { checkpoint: cp, index: i };
+        }
+      }
     }
-
-    const normKey = stageKey.toUpperCase().replace(/[\s_-]+/g, "");
-    const match = trackingData.status_history.find((h) => {
-      const hNorm = (h.status || "").toUpperCase().replace(/[\s_-]+/g, "");
-      return hNorm === normKey || hNorm.includes(normKey);
-    });
-
-    if (match && match.timestamp) {
-      return match.timestamp;
-    }
-
-    if (stageKey === "CONFIRMED" && trackingData.order_date) {
-      return trackingData.order_date;
-    }
-
     return null;
   };
 
-  // Find latest update checkpoint
+  const handleStageClick = (stg) => {
+    const match = findCheckpointForStage(stg);
+    if (match) {
+      setSelectedEventIndex(match.index);
+    } else if (cleanCheckpoints.length > 0) {
+      setSelectedEventIndex(cleanCheckpoints.length - 1);
+    }
+  };
+
   const latestCheckpoint =
-    trackingData?.status_history && trackingData.status_history.length > 0
-      ? trackingData.status_history[trackingData.status_history.length - 1]
+    cleanCheckpoints.length > 0
+      ? cleanCheckpoints[cleanCheckpoints.length - 1]
       : null;
+
+  const selectedEvent =
+    selectedEventIndex !== null && cleanCheckpoints[selectedEventIndex]
+      ? cleanCheckpoints[selectedEventIndex]
+      : latestCheckpoint;
+
+  const selectedDateTime = selectedEvent
+    ? parseEventDateTime(selectedEvent.timestamp || selectedEvent.date || selectedEvent.raw_date)
+    : { date: "", time: "", formatted: "" };
 
   if (loading) {
     return (
       <div className="live-track-loading-screen">
         <div className="live-track-spinner" />
-        <p className="loading-text">Fetching live MOXIE tracking data...</p>
+        <p className="loading-text">Locating your shipment...</p>
       </div>
     );
   }
 
   if (errorMsg && !trackingData) {
+    const isTrackingPending =
+      errorType === "TRACKING_NOT_ASSIGNED" ||
+      errorMsg.toLowerCase().includes("not been assigned") ||
+      errorMsg.toLowerCase().includes("not available yet");
+    const isOrderNotFound = errorType === "ORDER_NOT_FOUND";
+
     return (
       <div className="live-track-error-page">
         <div className="error-card-box">
-          <span className="error-badge">SHIPMENT NOT FOUND</span>
-          <h2 className="error-title">Unable to Locate Order #{orderId}</h2>
+          <span
+            className={`error-badge ${
+              isTrackingPending
+                ? "badge-pending"
+                : isOrderNotFound
+                ? "badge-order-not-found"
+                : ""
+            }`}
+          >
+            {isTrackingPending
+              ? "AWAITING DISPATCH"
+              : isOrderNotFound
+              ? "ORDER NOT FOUND"
+              : "SHIPMENT NOT FOUND"}
+          </span>
+          <h2 className="error-title">
+            {isTrackingPending
+              ? `Tracking Pending for Order #${orderId}`
+              : isOrderNotFound
+              ? `Unable to Locate Order #${orderId}`
+              : `Unable to Locate Shipment #${orderId}`}
+          </h2>
           <p className="error-desc">{errorMsg}</p>
           <div className="error-actions">
             <Link to="/track-order" className="btn-back-search">
@@ -218,14 +407,26 @@ export default function LiveTrackingPage() {
     );
   }
 
+  const hasLinkedOrder = Boolean(
+    trackingData?.has_linked_order !== false &&
+      trackingData?.order_number &&
+      !trackingData.order_number.toUpperCase().startsWith("ET")
+  );
+
   const currentStatusDisplay =
-    trackingData?.order_status || "Order Confirmed";
+    trackingData?.shipping_status_display ||
+    trackingData?.shipping_status ||
+    trackingData?.order_status ||
+    "Order Confirmed";
+
   const courierDisplayName =
     trackingData?.courier_display_name ||
+    trackingData?.courier ||
     (trackingData?.courier_name
       ? trackingData.courier_name.replace(/_/g, " ")
       : null) ||
-    "Awaiting Dispatch";
+    "India Post";
+
   const trackingNumberDisplay =
     trackingData?.tracking_number || "Available after shipment";
   const hasValidTrackingNumber = !!trackingData?.tracking_number;
@@ -242,7 +443,7 @@ export default function LiveTrackingPage() {
             ? `- ${trackingData.shipping_destination.pincode}`
             : ""
         }`
-      : "Delivery Address on File";
+      : trackingData?.current_location || "";
 
   const firstItem =
     trackingData?.items && trackingData.items.length > 0
@@ -259,14 +460,20 @@ export default function LiveTrackingPage() {
               <LuArrowLeft size={16} /> Back to Tracking
             </Link>
 
-            <span className="order-journey-tag">MOXIE ORDER JOURNEY</span>
+            <span className="order-journey-tag">
+              {hasLinkedOrder ? "MOXIE ORDER JOURNEY" : "COURIER SHIPMENT JOURNEY"}
+            </span>
             <h1 className="live-order-heading">
-              Order #{trackingData?.order_number || orderId}
+              {hasLinkedOrder
+                ? `Order #${trackingData.order_number}`
+                : `Shipment #${trackingData?.tracking_number || orderId}`}
             </h1>
             <p className="live-order-sub">
-              {currentStageIdx >= 6
-                ? "Your order has been delivered."
-                : "Your order is on its way."}
+              {currentStageIdx >= 4
+                ? "Your order has been safely delivered."
+                : currentStageIdx >= 1
+                ? "Your shipment is on its way."
+                : "Your order is confirmed."}
             </p>
           </div>
 
@@ -290,7 +497,7 @@ export default function LiveTrackingPage() {
           </div>
         </div>
 
-        {/* 2. 7-Stage Visual Order Journey Timeline */}
+        {/* 2. Interactive Visual Order Journey Timeline with Click Details */}
         <div className="timeline-journey-card">
           <div className="timeline-track-rail">
             <div
@@ -301,21 +508,32 @@ export default function LiveTrackingPage() {
             />
           </div>
 
-          <div className="timeline-stepper-grid">
+          <div className="timeline-stepper-grid" role="tablist" aria-label="Tracking stages">
             {STAGES.map((stg, idx) => {
               const isDone = idx < currentStageIdx;
               const isCurrent = idx === currentStageIdx;
               const StageIcon = stg.icon;
-              const stepTime = getStageTimestamp(stg.key);
+              const stageMatch = findCheckpointForStage(stg);
+              const stageCheckpoint = stageMatch ? stageMatch.checkpoint : null;
+              const isSelected = stageMatch ? selectedEventIndex === stageMatch.index : (isCurrent && selectedEventIndex === cleanCheckpoints.length - 1);
 
               let stepState = "future";
               if (isDone) stepState = "completed";
               if (isCurrent) stepState = "current";
 
+              const dt = stageCheckpoint
+                ? parseEventDateTime(stageCheckpoint.timestamp || stageCheckpoint.date)
+                : null;
+
               return (
-                <div
+                <button
+                  type="button"
                   key={stg.key}
-                  className={`timeline-step-node ${stepState}`}
+                  onClick={() => handleStageClick(stg)}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-label={`${stg.label} stage ${isSelected ? "selected" : ""}`}
+                  className={`timeline-step-node ${stepState} ${isSelected ? "is-selected-step" : ""}`}
                 >
                   <div className="step-circle-wrapper">
                     <div className="step-circle">
@@ -325,14 +543,126 @@ export default function LiveTrackingPage() {
 
                   <div className="step-text-wrapper">
                     <span className="step-name">{stg.label}</span>
-                    {stepTime && (
-                      <span className="step-timestamp">{stepTime}</span>
+                    {dt && dt.date && (
+                      <span className="step-timestamp">{dt.date}</span>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
+
+          {/* Selected Event Details Card directly below timeline */}
+          {selectedEvent && (
+            <div
+              className="selected-checkpoint-detail-card"
+              role="region"
+              aria-label="Selected Event Details"
+            >
+              <div className="checkpoint-detail-header">
+                <div className="checkpoint-status-badge">
+                  <span className="detail-status-pill">
+                    {selectedEvent.status || selectedEvent.status_display}
+                  </span>
+                  {selectedEventIndex === cleanCheckpoints.length - 1 && (
+                    <span className="latest-indicator-tag">LATEST UPDATE</span>
+                  )}
+                </div>
+                {selectedDateTime.formatted && (
+                  <div className="checkpoint-datetime-strip">
+                    <LuClock className="detail-clock-icon" />
+                    <span className="checkpoint-date">{selectedDateTime.date}</span>
+                    {selectedDateTime.time && (
+                      <>
+                        <span className="checkpoint-dot">•</span>
+                        <span className="checkpoint-time">{selectedDateTime.time}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="checkpoint-detail-body">
+                {selectedEvent.location && (
+                  <div className="checkpoint-location-strip">
+                    <LuMapPin className="detail-pin-icon" />
+                    <span className="checkpoint-loc-text">{selectedEvent.location}</span>
+                  </div>
+                )}
+
+                {(selectedEvent.notes || selectedEvent.message) && (
+                  <p className="checkpoint-message-text">
+                    {selectedEvent.notes || selectedEvent.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Full Checkpoint History Accordion (for multi-event inspections) */}
+          {cleanCheckpoints.length > 1 && (
+            <div className="all-checkpoints-accordion">
+              <button
+                type="button"
+                className="btn-toggle-checkpoints"
+                onClick={() => setShowAllCheckpoints(!showAllCheckpoints)}
+                aria-expanded={showAllCheckpoints}
+              >
+                <span>
+                  {showAllCheckpoints
+                    ? "Hide Full Checkpoint History"
+                    : `View Full Checkpoint History (${cleanCheckpoints.length} updates)`}
+                </span>
+                <LuChevronDown
+                  className={`accordion-chevron ${showAllCheckpoints ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {showAllCheckpoints && (
+                <div className="checkpoints-history-list">
+                  {cleanCheckpoints.map((cp, cIdx) => {
+                    const dt = parseEventDateTime(cp.timestamp || cp.date);
+                    const isRowSelected = selectedEventIndex === cIdx;
+                    return (
+                      <div
+                        key={cIdx}
+                        className={`checkpoint-history-item ${isRowSelected ? "active-item" : ""}`}
+                        onClick={() => setSelectedEventIndex(cIdx)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setSelectedEventIndex(cIdx);
+                          }
+                        }}
+                      >
+                        <div className="history-item-left">
+                          <div className="history-status-name">
+                            {cp.status || cp.status_display}
+                            {cIdx === cleanCheckpoints.length - 1 && (
+                              <span className="history-latest-pill">Latest</span>
+                            )}
+                          </div>
+                          {(cp.notes || cp.message) && (
+                            <div className="history-msg">{cp.notes || cp.message}</div>
+                          )}
+                          {cp.location && (
+                            <div className="history-loc">
+                              <LuMapPin size={12} /> {cp.location}
+                            </div>
+                          )}
+                        </div>
+                        <div className="history-item-right">
+                          <span className="history-date">{dt.date}</span>
+                          {dt.time && <span className="history-time">{dt.time}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3. Cards Grid: 2 Columns */}
@@ -347,12 +677,12 @@ export default function LiveTrackingPage() {
               </div>
 
               <div className="detail-key-value-list">
-                <div className="kv-row">
-                  <span className="kv-key">Order Number</span>
-                  <span className="kv-val">
-                    {trackingData?.order_number || orderId}
-                  </span>
-                </div>
+                {hasLinkedOrder && (
+                  <div className="kv-row">
+                    <span className="kv-key">Order Number</span>
+                    <span className="kv-val">{trackingData.order_number}</span>
+                  </div>
+                )}
 
                 <div className="kv-row">
                   <span className="kv-key">Courier Partner</span>
@@ -416,6 +746,7 @@ export default function LiveTrackingPage() {
                     href={trackingData.tracking_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={handleTrackOnCarrier}
                     className="btn-carrier-portal"
                   >
                     <span>Track on {courierDisplayName}</span>
@@ -434,15 +765,15 @@ export default function LiveTrackingPage() {
               </div>
             </div>
 
-            {/* Order Items Card */}
-            <div className="track-detail-card">
-              <div className="card-heading-row">
-                <LuShoppingBag className="card-heading-icon" />
-                <h3 className="card-main-title">Order Items</h3>
-              </div>
+            {/* Order Items Card (Only when linked order items exist) */}
+            {hasLinkedOrder && firstItem && (
+              <div className="track-detail-card">
+                <div className="card-heading-row">
+                  <LuShoppingBag className="card-heading-icon" />
+                  <h3 className="card-main-title">Order Items</h3>
+                </div>
 
-              <div className="order-items-preview-list">
-                {firstItem ? (
+                <div className="order-items-preview-list">
                   <div className="live-item-row">
                     <div className="live-item-img-wrap">
                       {firstItem.image ? (
@@ -472,24 +803,25 @@ export default function LiveTrackingPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <p className="no-items-text">Items attached to this order.</p>
-                )}
-              </div>
+                </div>
 
-              <div className="order-items-total-strip">
-                <span className="total-lead">Order Total</span>
-                <span className="total-val">
-                  ₹
-                  {Number(
-                    trackingData?.grand_total ||
-                      trackingData?.total_amount ||
-                      firstItem?.price ||
-                      650
-                  ).toLocaleString("en-IN")}
-                </span>
+                {trackingData?.grand_total !== undefined &&
+                  trackingData?.grand_total !== null && (
+                    <div className="order-items-total-strip">
+                      <span className="total-lead">Order Total</span>
+                      <span className="total-val">
+                        ₹
+                        {Number(
+                          trackingData.grand_total ||
+                            trackingData.total_amount ||
+                            firstItem.price ||
+                            0
+                        ).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* RIGHT COLUMN: Latest Update & Delivery Address */}
@@ -503,17 +835,17 @@ export default function LiveTrackingPage() {
 
               <div className="latest-update-body">
                 <div className="update-status-title">
-                  {latestCheckpoint?.status || currentStatusDisplay}
+                  {latestCheckpoint?.status || latestCheckpoint?.status_display || currentStatusDisplay}
                 </div>
 
                 <p className="update-status-message">
                   {latestCheckpoint?.notes ||
                     latestCheckpoint?.message ||
-                    (currentStageIdx >= 4 && currentStageIdx < 6
-                      ? "Your shipment is currently moving toward the destination hub."
-                      : currentStageIdx >= 6
+                    (currentStageIdx >= 4
                       ? "Your order has been safely delivered."
-                      : "Your order is being processed at our fulfillment facility.")}
+                      : currentStageIdx >= 2
+                      ? "Your shipment is currently in transit."
+                      : "Your order has been booked.")}
                 </p>
 
                 {latestCheckpoint?.location && (
@@ -525,31 +857,38 @@ export default function LiveTrackingPage() {
                   </div>
                 )}
 
-                <div className="update-time-row">
-                  <span className="time-label">Updated</span>
-                  <span className="time-val">
-                    {latestCheckpoint?.timestamp ||
-                      trackingData?.last_updated ||
-                      "Recently"}
-                  </span>
-                </div>
+                {(latestCheckpoint?.timestamp || trackingData?.last_updated) && (
+                  <div className="update-time-row">
+                    <span className="time-label">Date & Time</span>
+                    <span className="time-val">
+                      {latestCheckpoint?.timestamp ||
+                        trackingData?.last_updated}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Delivery Address Card */}
-            <div className="track-detail-card">
-              <div className="card-heading-row">
-                <LuMapPin className="card-heading-icon" />
-                <h3 className="card-main-title">Delivery Address</h3>
-              </div>
+            {(hasLinkedOrder || destinationCity) && (
+              <div className="track-detail-card">
+                <div className="card-heading-row">
+                  <LuMapPin className="card-heading-icon" />
+                  <h3 className="card-main-title">Delivery Address</h3>
+                </div>
 
-              <div className="address-card-body">
-                <span className="addr-recipient-name">
-                  {trackingData?.masked_customer_name || "Customer"}
-                </span>
-                <p className="addr-destination-text">{destinationCity}</p>
+                <div className="address-card-body">
+                  {trackingData?.masked_customer_name && (
+                    <span className="addr-recipient-name">
+                      {trackingData.masked_customer_name}
+                    </span>
+                  )}
+                  {destinationCity && (
+                    <p className="addr-destination-text">{destinationCity}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -566,6 +905,14 @@ export default function LiveTrackingPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Toast Feedback */}
+      {toastMsg && (
+        <div className="live-track-toast" role="alert">
+          <LuCheck size={16} className="toast-icon" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
     </main>
   );
 }

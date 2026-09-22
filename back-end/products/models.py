@@ -58,6 +58,19 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def average_rating(self):
+        approved = self.reviews.filter(is_active=True, status='Approved')
+        if not approved.exists():
+            return None
+        from django.db.models import Avg
+        avg = approved.aggregate(Avg('rating'))['rating__avg']
+        return round(float(avg), 1) if avg is not None else None
+
+    @property
+    def review_count(self):
+        return self.reviews.filter(is_active=True, status='Approved').count()
+
     def __str__(self):
         return self.name
 

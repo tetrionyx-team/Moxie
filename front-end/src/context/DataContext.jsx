@@ -194,6 +194,7 @@ export const DataProvider = ({ children }) => {
           rating: p.rating !== undefined && p.rating !== null ? Number(p.rating) : null,
           average_rating: p.average_rating !== undefined && p.average_rating !== null ? Number(p.average_rating) : null,
           reviewCount: Number(p.review_count || 0),
+          review_count: Number(p.review_count || 0),
           image: finalImage,
           images: finalImages,
           stock: p.stock > 0,

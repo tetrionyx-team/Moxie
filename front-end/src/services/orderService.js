@@ -27,12 +27,30 @@ export const saveMasterOrders = (orders) => {
   }
 };
 
+export const clearMasterOrders = () => {
+  try {
+    localStorage.removeItem(ALL_ORDERS_KEY);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith("moxie_orders_") || k === "moxie_orders" || k.startsWith("reviewed_order_"))) {
+        localStorage.removeItem(k);
+      }
+    }
+    window.dispatchEvent(new CustomEvent("moxie_orders_updated", { detail: { orders: [] } }));
+  } catch (e) {
+    console.error("Error clearing master orders:", e);
+  }
+};
+
 export const orderService = {
   // Fetch orders for customer
   fetchOrders: async (email) => {
-    // 1. Check API if available
+    // 1. Check API if available (Single Source of Truth)
     try {
-      const res = await apiFetch("/customer/orders/");
+      const endpoint = email
+        ? `/customer/orders/?email=${encodeURIComponent(email)}`
+        : "/customer/orders/";
+      const res = await apiFetch(endpoint);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -59,6 +77,23 @@ export const orderService = {
               localStorage.setItem(`moxie_orders_${email}`, JSON.stringify(formattedOrders));
             } catch {}
           }
+
+          // If backend returns empty orders, ensure local storage master list is also purged of stale mock orders
+          if (formattedOrders.length === 0) {
+            try {
+              if (email) {
+                const master = getMasterOrders();
+                const normEmail = email.trim().toLowerCase();
+                const cleanedMaster = master.filter(
+                  (o) => o.email && o.email.trim().toLowerCase() !== normEmail
+                );
+                localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(cleanedMaster));
+              } else {
+                localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify([]));
+              }
+            } catch {}
+          }
+
           return formattedOrders;
         }
       }
@@ -66,7 +101,7 @@ export const orderService = {
       // Backend unavailable or offline, fallback to local storage
     }
 
-    // 2. Read from local master dataset if offline
+    // 2. Read from local master dataset only if offline
     const master = getMasterOrders();
     let localOrders = [];
     if (email) {
@@ -99,12 +134,17 @@ export const orderService = {
       if (res.ok) {
         const data = await res.json();
         const apiList = data.orders || data.results || data.orders_list || [];
-        if (apiList.length > 0) {
-          return {
-            orders: apiList,
-            stats: data.stats,
-          };
-        }
+        return {
+          orders: apiList,
+          stats: data.stats || {
+            total_orders: 0,
+            pending_orders: 0,
+            shipped_orders: 0,
+            delivered_orders: 0,
+            cancelled_orders: 0,
+            total_revenue: 0,
+          },
+        };
       }
     } catch {
       // Backend unavailable

@@ -204,6 +204,8 @@ function App() {
         <Route path="/order-tracking" element={<TrackOrderPage />} />
         <Route path="/track-order/live/:orderId" element={<LiveTrackingPage />} />
         <Route path="/track/live/:orderId" element={<LiveTrackingPage />} />
+        <Route path="/track-order/:orderId" element={<LiveTrackingPage />} />
+        <Route path="/track/:orderId" element={<LiveTrackingPage />} />
 
         <Route path="/profile" element={<ProfilePage />} />
 

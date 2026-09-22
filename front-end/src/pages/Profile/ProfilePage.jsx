@@ -19,6 +19,7 @@ import Addresses from "../../components/Profile/Addresses";
 import AccountSecurity from "../../components/Profile/AccountSecurity";
 import Wishlist from "../Wishlist/Wishlist";
 import LogoutConfirmModal from "../../components/account/LogoutConfirmModal";
+import AccountMobileNav from "../../components/Profile/AccountMobileNav";
 
 import "../../components/Profile/Profile.css";
 
@@ -278,27 +279,16 @@ export default function ProfilePage({ defaultTab = "profile" }) {
       <main className="account-main-layout">
         {/* Mobile Tab Select Navigation */}
         <div className="profile-mobile-nav">
-          <select
-            className="profile-mobile-select"
-            value={
-              activeTab === "order-details" || activeTab === "track-order"
-                ? "orders"
-                : activeTab
-            }
-            onChange={(e) => {
-              if (e.target.value === "wishlist") {
+          <AccountMobileNav
+            activeTab={activeTab}
+            onSelectTab={(tab) => {
+              if (tab === "wishlist") {
                 navigate("/wishlist");
               } else {
-                setActiveTab(e.target.value);
+                setActiveTab(tab);
               }
             }}
-          >
-            <option value="profile">My Profile</option>
-            <option value="orders">My Orders</option>
-            <option value="wishlist">My Wishlist</option>
-            <option value="addresses">My Address</option>
-            <option value="security">Account & Security</option>
-          </select>
+          />
         </div>
 
         {/* 2-Column Grid Layout */}
@@ -307,6 +297,7 @@ export default function ProfilePage({ defaultTab = "profile" }) {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             profile={profile}
+            user={user}
             onLogout={handleLogoutClick}
           />
 

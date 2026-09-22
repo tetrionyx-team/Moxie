@@ -55,6 +55,8 @@
                 stock: parseInt("{{ item.stock|default:0 }}"),
                 isActive: {% if item.is_active %}true{% else %}false{% endif %},
                 imageUrl: "{% if item.images.all.0 %}{{ item.images.all.0.image.url }}{% endif %}",
+                averageRating: {% if item.average_rating %}{{ item.average_rating }}{% else %}null{% endif %},
+                reviewCount: parseInt("{{ item.review_count|default:0 }}"),
                 variants: [
                     {% for v in item.variants.all %}
                     {

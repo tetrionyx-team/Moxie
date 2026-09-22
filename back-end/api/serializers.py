@@ -254,18 +254,13 @@ class ProductSerializer(serializers.ModelSerializer):
         return items
 
     def get_rating(self, obj):
-        approved = obj.reviews.filter(is_active=True, status='Approved')
-        if not approved.exists():
-            return None
-        from django.db.models import Avg
-        avg = approved.aggregate(Avg('rating'))['rating__avg']
-        return round(float(avg), 1) if avg is not None else None
+        return obj.average_rating
 
     def get_average_rating(self, obj):
-        return self.get_rating(obj)
+        return obj.average_rating
 
     def get_review_count(self, obj):
-        return obj.reviews.filter(is_active=True, status='Approved').count()
+        return obj.review_count
 
     def get_original_price(self, obj):
         if obj.original_price is not None and float(obj.original_price) > float(obj.price):
@@ -606,6 +601,9 @@ class FeaturedProductVariantSerializer(serializers.ModelSerializer):
 class FeaturedProductProductSummarySerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     variants = FeaturedProductVariantSerializer(many=True, read_only=True)
+    rating = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -620,8 +618,20 @@ class FeaturedProductProductSummarySerializer(serializers.ModelSerializer):
             'stock',
             'is_active',
             'image',
+            'rating',
+            'average_rating',
+            'review_count',
             'variants',
         ]
+
+    def get_rating(self, obj):
+        return obj.average_rating
+
+    def get_average_rating(self, obj):
+        return obj.average_rating
+
+    def get_review_count(self, obj):
+        return obj.review_count
 
     def get_image(self, obj):
         req = self.context.get('request')

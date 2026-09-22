@@ -1,0 +1,140 @@
+/* ====================================================
+   MOXIE CUSTOM ACCOUNT MOBILE DROPDOWN NAVIGATION
+   Replaces native <select> on mobile devices
+   ==================================================== */
+
+.account-mobile-nav-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 20px;
+  z-index: 9999;
+  box-sizing: border-box;
+}
+
+/* 1. Closed State Trigger Button */
+.account-mobile-nav-trigger {
+  width: 100%;
+  height: 46px;
+  background: #ffffff;
+  border: 1px solid #eae4d9;
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #071426;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(7, 20, 38, 0.03);
+  box-sizing: border-box;
+}
+
+.account-mobile-nav-trigger:hover,
+.account-mobile-nav-trigger:focus-visible {
+  border-color: #c5a059;
+}
+
+.account-mobile-nav-trigger.open {
+  border-color: #c5a059;
+  box-shadow: 0 4px 16px rgba(197, 160, 89, 0.15);
+}
+
+.trigger-label {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: #071426;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trigger-chevron {
+  color: #8c827a;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.trigger-chevron.chevron-rotated {
+  transform: rotate(180deg);
+  color: #071426;
+}
+
+/* 2. Custom Dropdown Panel (Below Trigger) */
+.account-mobile-nav-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  border: 1px solid #eae4d9;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(7, 20, 38, 0.12);
+  z-index: 10000;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: mobileNavFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes mobileNavFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3. Dropdown Item Design */
+.nav-panel-item {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f8f5f0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #4b5563;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.nav-panel-item:last-child {
+  border-bottom: none;
+}
+
+.nav-panel-item:hover,
+.nav-panel-item:focus-visible {
+  background: #faf7f2;
+  color: #071426;
+}
+
+/* Active Item State */
+.nav-panel-item.selected {
+  background: #fbf7ef;
+  color: #071426;
+  font-weight: 750;
+  border-left: 3.5px solid #c5a059;
+  padding-left: 12.5px;
+}
+
+.item-check-icon {
+  color: #c5a059;
+  flex-shrink: 0;
+}

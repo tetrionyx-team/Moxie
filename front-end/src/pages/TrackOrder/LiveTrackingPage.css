@@ -1,17 +1,18 @@
-/* ====================================================
-   MOXIE LIVE TRACKING RESULT PAGE STYLES
-   ==================================================== */
+/* ===================================================
+   MOXIE LIVE ORDER TRACKING PAGE STYLING
+   =================================================== */
 
 .moxie-live-tracking-page {
-  background-color: #fbf7ef;
-  min-height: 90vh;
-  padding: 40px 24px 80px;
-  font-family: inherit;
+  background: #fdfbf7;
+  min-height: 100vh;
+  padding: 36px 24px calc(90px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   color: #071426;
+  box-sizing: border-box;
 }
 
 .live-track-container {
-  max-width: 1040px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 
@@ -19,112 +20,122 @@
 .live-track-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 32px;
+  align-items: flex-end;
+  margin-bottom: 28px;
   gap: 20px;
-  flex-wrap: wrap;
 }
 
 .header-left-col {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .back-to-track-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
-  font-weight: 600;
   color: #667085;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   transition: color 0.2s ease;
 }
 
 .back-to-track-btn:hover {
-  color: #071426;
+  color: #c99b45;
 }
 
 .order-journey-tag {
   font-size: 11.5px;
   font-weight: 800;
+  letter-spacing: 0.14em;
   color: #c99b45;
-  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .live-order-heading {
+  font-family: var(--font-heading, "Playfair Display", Georgia, serif);
   font-size: 32px;
-  font-weight: 850;
+  font-weight: 700;
   color: #071426;
   margin: 0;
-  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .live-order-sub {
   font-size: 14.5px;
   color: #667085;
-  margin: 4px 0 0;
+  margin: 0;
 }
 
 .header-right-col {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 12px;
 }
 
 .status-pill-badge {
-  background: #071426;
-  color: #c99b45;
-  border: 1px solid #c99b45;
-  padding: 8px 18px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(7, 20, 38, 0.15);
+  background: #071426;
+  color: #fbf7ef;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid #c99b45;
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.12);
+}
+
+.status-pill-badge .badge-icon {
+  color: #c99b45;
 }
 
 .btn-refresh-tracking {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #071426;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: #ffffff;
+  color: #071426;
+  border: 1px solid #eae4d9;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-refresh-tracking:hover {
-  background: #f8fafc;
-  border-color: #071426;
+.btn-refresh-tracking:hover:not(:disabled) {
+  background: #fbf7ef;
+  border-color: #c99b45;
+  color: #c99b45;
+}
+
+.btn-refresh-tracking:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .refresh-icon.spin-icon {
-  animation: spin 1s linear infinite;
+  animation: spinCw 1s linear infinite;
 }
 
-@keyframes spin {
+@keyframes spinCw {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* 2. 7-Stage Visual Order Journey Timeline */
+/* 2. Visual Order Journey Timeline Card */
 .timeline-journey-card {
   background: #ffffff;
   border-radius: 22px;
-  padding: 36px 32px;
+  padding: 36px 32px 28px;
   margin-bottom: 30px;
   box-shadow: 0 6px 24px rgba(7, 20, 38, 0.05);
   border: 1px solid #eae4d9;
@@ -134,8 +145,8 @@
 .timeline-track-rail {
   position: absolute;
   top: 54px;
-  left: 56px;
-  right: 56px;
+  left: 65px;
+  right: 65px;
   height: 4px;
   background: #eae4d9;
   border-radius: 2px;
@@ -153,19 +164,30 @@
   position: relative;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   z-index: 2;
 }
 
 .timeline-step-node {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  width: 95px;
+  width: 105px;
+  outline: none;
+  transition: transform 0.2s ease;
+}
+
+.timeline-step-node:hover .step-circle {
+  transform: scale(1.08);
 }
 
 .step-circle-wrapper {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .step-circle {
@@ -178,7 +200,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Completed Stage */
@@ -193,7 +215,18 @@
   background: #071426;
   border-color: #c99b45;
   color: #c99b45;
-  box-shadow: 0 0 0 5px rgba(201, 155, 69, 0.25);
+  box-shadow: 0 0 0 4px rgba(201, 155, 69, 0.25);
+}
+
+/* Clicked / Selected Step Highlight */
+.timeline-step-node.is-selected-step .step-circle {
+  box-shadow: 0 0 0 5px rgba(201, 155, 69, 0.35);
+  border-color: #c99b45;
+}
+
+.timeline-step-node.is-selected-step .step-name {
+  color: #c99b45;
+  font-weight: 850;
 }
 
 .step-text-wrapper {
@@ -225,6 +258,217 @@
   line-height: 1.2;
 }
 
+/* Selected Checkpoint Detail Card */
+.selected-checkpoint-detail-card {
+  background: #fbf7ef;
+  border: 1px solid #eae4d9;
+  border-left: 4px solid #c99b45;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-top: 24px;
+  animation: checkpointFadeIn 0.25s ease-out;
+}
+
+@keyframes checkpointFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.checkpoint-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.checkpoint-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-status-pill {
+  font-size: 13.5px;
+  font-weight: 850;
+  color: #071426;
+  letter-spacing: -0.01em;
+}
+
+.latest-indicator-tag {
+  background: #c99b45;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.checkpoint-datetime-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #667085;
+  font-weight: 600;
+}
+
+.detail-clock-icon {
+  font-size: 13px;
+  color: #c99b45;
+}
+
+.checkpoint-dot {
+  color: #cbd5e1;
+}
+
+.checkpoint-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkpoint-location-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #071426;
+}
+
+.detail-pin-icon {
+  color: #c99b45;
+  font-size: 14px;
+}
+
+.checkpoint-message-text {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Checkpoint History Accordion */
+.all-checkpoints-accordion {
+  margin-top: 14px;
+}
+
+.btn-toggle-checkpoints {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #c99b45;
+  cursor: pointer;
+}
+
+.btn-toggle-checkpoints:hover {
+  color: #a77c29;
+  text-decoration: underline;
+}
+
+.accordion-chevron {
+  transition: transform 0.2s ease;
+}
+
+.accordion-chevron.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.checkpoints-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  border-top: 1px dashed #eae4d9;
+  padding-top: 12px;
+}
+
+.checkpoint-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #f1ece4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkpoint-history-item:hover,
+.checkpoint-history-item.active-item {
+  border-color: #c99b45;
+  background: #fbf7ef;
+}
+
+.history-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-status-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #071426;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-latest-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: #eaf8ee;
+  color: #16a34a;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.history-msg {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.history-loc {
+  font-size: 11.5px;
+  color: #8c827a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.history-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.history-date {
+  font-weight: 600;
+  color: #64748b;
+}
+
 /* 3. Cards Grid Layout */
 .live-track-grid-layout {
   display: grid;
@@ -253,35 +497,34 @@
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid #f1ece4;
-  padding-bottom: 14px;
+  padding-bottom: 16px;
   margin-bottom: 18px;
 }
 
 .card-heading-icon {
-  font-size: 18px;
+  font-size: 20px;
   color: #c99b45;
 }
 
 .card-main-title {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 750;
   color: #071426;
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
-/* Key Value Pairs */
 .detail-key-value-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .kv-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13.5px;
+  font-size: 14px;
+  gap: 12px;
 }
 
 .kv-key {
@@ -291,16 +534,17 @@
 
 .kv-val {
   color: #071426;
-  font-weight: 750;
+  font-weight: 700;
+  text-align: right;
 }
 
-.courier-brand {
+.kv-val.courier-brand {
   color: #071426;
   font-weight: 800;
 }
 
-.est-delivery-val {
-  color: #c99b45;
+.kv-val.est-delivery-val {
+  color: #166534;
   font-weight: 800;
 }
 
@@ -312,91 +556,102 @@
 
 .awb-text-code {
   font-family: monospace;
+  font-size: 13.5px;
   font-weight: 800;
   color: #071426;
-  font-size: 14px;
+  letter-spacing: 0.05em;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
 }
 
 .btn-copy-code {
   background: #fbf7ef;
-  border: 1px solid #c99b45;
+  border: 1px solid #eae4d9;
   color: #071426;
-  padding: 3px 8px;
   border-radius: 6px;
+  padding: 4px 8px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: all 0.2s ease;
 }
 
 .btn-copy-code:hover {
-  background: #f5efe6;
+  background: #071426;
+  color: #ffffff;
+  border-color: #071426;
 }
 
-.copy-action,
-.copied-text {
+.btn-copy-code .copied-text {
+  color: #16a34a;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-.copied-text {
-  color: #166534;
-}
-
-/* Card Actions */
 .card-bottom-actions {
   display: flex;
-  align-items: center;
   gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 22px;
+  padding-top: 18px;
   border-top: 1px solid #f1ece4;
 }
 
 .btn-carrier-portal {
-  background: #c99b45;
-  color: #071426;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 750;
-  text-decoration: none;
+  flex: 1;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  background: #071426;
+  color: #ffffff;
+  border: 1px solid #071426;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
   transition: all 0.2s ease;
 }
 
 .btn-carrier-portal:hover {
-  background: #b58937;
+  background: #c99b45;
+  border-color: #c99b45;
   color: #ffffff;
 }
 
 .btn-share-tracking {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #071426;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  background: #ffffff;
+  color: #071426;
+  border: 1px solid #eae4d9;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-share-tracking:hover {
-  background: #f8fafc;
-  border-color: #071426;
+  background: #fbf7ef;
+  border-color: #c99b45;
+  color: #c99b45;
 }
 
-/* Order Items Preview */
+/* Order Items */
 .order-items-preview-list {
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .live-item-row {
@@ -408,13 +663,13 @@
 .live-item-img-wrap {
   width: 60px;
   height: 60px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #f8fafc;
   border: 1px solid #eae4d9;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -431,42 +686,39 @@
 }
 
 .live-item-name {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 750;
   color: #071426;
   margin: 0;
 }
 
 .live-item-sub {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #667085;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 
 .order-items-total-strip {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #f1ece4;
+  margin-top: 16px;
   padding-top: 14px;
+  border-top: 1px dashed #eae4d9;
 }
 
 .total-lead {
-  font-size: 12px;
-  text-transform: uppercase;
+  font-size: 13px;
   font-weight: 700;
   color: #667085;
 }
 
 .total-val {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 850;
   color: #071426;
 }
 
-/* Latest Update Card Body */
+/* Latest Update Body */
 .latest-update-body {
   display: flex;
   flex-direction: column;
@@ -474,42 +726,42 @@
 }
 
 .update-status-title {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 850;
   color: #071426;
 }
 
 .update-status-message {
   font-size: 13.5px;
-  color: #667085;
-  line-height: 1.45;
+  color: #475569;
+  line-height: 1.55;
   margin: 0;
 }
 
 .update-location-row,
 .update-time-row {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
   font-size: 13px;
+  padding-top: 8px;
+  border-top: 1px solid #f8f6f2;
 }
 
 .loc-label,
 .time-label {
-  color: #94a3b8;
+  color: #8c827a;
   font-weight: 600;
 }
 
-.loc-val {
-  color: #071426;
-  font-weight: 700;
-}
-
+.loc-val,
 .time-val {
   color: #071426;
-  font-weight: 600;
+  font-weight: 700;
+  text-align: right;
 }
 
-/* Delivery Address Card Body */
+/* Delivery Address */
 .address-card-body {
   display: flex;
   flex-direction: column;
@@ -524,41 +776,40 @@
 
 .addr-destination-text {
   font-size: 13.5px;
-  color: #667085;
-  line-height: 1.45;
+  color: #475569;
+  line-height: 1.5;
   margin: 0;
 }
 
 /* 4. Luxury Bottom Banner */
 .live-track-bottom-banner {
-  background: #ffffff;
+  background: #fbf7ef;
   border: 1px solid #eae4d9;
   border-radius: 18px;
-  padding: 24px 32px;
+  padding: 24px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
 }
 
 .moxie-script-slogan {
-  font-family: serif;
+  font-family: var(--font-heading, "Playfair Display", Georgia, serif);
+  font-size: 22px;
+  font-weight: 700;
   font-style: italic;
-  font-size: 24px;
   color: #c99b45;
-  letter-spacing: 0.02em;
 }
 
 .thank-you-text {
-  font-size: 13.5px;
+  font-size: 13px;
   color: #667085;
   margin: 0;
 }
 
 /* Loading & Error States */
 .live-track-loading-screen {
-  min-height: 60vh;
+  min-height: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -572,47 +823,59 @@
   border: 3px solid #eae4d9;
   border-top-color: #c99b45;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spinCw 0.8s linear infinite;
 }
 
 .loading-text {
-  font-size: 15px;
+  font-size: 14.5px;
   color: #667085;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .live-track-error-page {
-  min-height: 60vh;
+  min-height: 70vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 20px;
 }
 
 .error-card-box {
+  max-width: 520px;
+  width: 100%;
   background: #ffffff;
-  border-radius: 22px;
-  border: 1px solid #eae4d9;
-  padding: 40px;
-  max-width: 500px;
+  border-radius: 20px;
+  padding: 36px 30px;
   text-align: center;
+  border: 1px solid #eae4d9;
   box-shadow: 0 10px 30px rgba(7, 20, 38, 0.06);
 }
 
 .error-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #fee2e2;
   color: #dc2626;
-  letter-spacing: 0.1em;
-  background: #fef2f2;
-  padding: 4px 12px;
-  border-radius: 12px;
-  display: inline-block;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.error-badge.badge-pending {
+  background: #fbf7ef;
+  color: #c99b45;
+  border: 1px solid #eae4d9;
+}
+
+.error-badge.badge-order-not-found {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .error-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: #071426;
   margin: 0 0 10px;
@@ -621,8 +884,8 @@
 .error-desc {
   font-size: 14px;
   color: #667085;
-  margin: 0 0 24px;
   line-height: 1.5;
+  margin: 0 0 24px;
 }
 
 .btn-back-search {
@@ -635,6 +898,12 @@
   font-weight: 700;
   text-decoration: none;
   display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.btn-back-search:hover {
+  background: #11253e;
+  color: #ffffff;
 }
 
 /* Responsive */
@@ -664,6 +933,11 @@
     justify-content: flex-start;
     gap: 16px;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .timeline-stepper-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .timeline-track-rail {
@@ -672,7 +946,7 @@
 
   .timeline-step-node {
     flex-shrink: 0;
-    width: 80px;
+    width: 85px;
   }
 
   .live-track-header {
@@ -712,5 +986,57 @@
 
   .moxie-script-slogan {
     font-size: 20px;
+  }
+
+  .selected-checkpoint-detail-card {
+    padding: 14px 16px;
+    margin-top: 16px;
+  }
+
+  .detail-status-pill {
+    font-size: 12.5px;
+  }
+
+  .checkpoint-message-text {
+    font-size: 12px;
+  }
+}
+
+/* Floating Toast Notification */
+.live-track-toast {
+  position: fixed;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: #071426;
+  color: #fbf7ef;
+  border: 1px solid #c99b45;
+  box-shadow: 0 10px 30px rgba(7, 20, 38, 0.35);
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 99999;
+  animation: toastFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.live-track-toast .toast-icon {
+  color: #c99b45;
+  flex-shrink: 0;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }

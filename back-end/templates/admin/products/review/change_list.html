@@ -28,7 +28,7 @@
         totalReviewsCount: parseInt("{{ total_reviews_count|default:0 }}"),
         pendingReviewsCount: parseInt("{{ pending_reviews_count|default:0 }}"),
         approvedReviewsCount: parseInt("{{ approved_reviews_count|default:0 }}"),
-        avgRatingValue: parseFloat("{{ avg_rating_value|default:4.6 }}"),
+        avgRatingValue: parseFloat("{{ avg_rating_value|default:0.0 }}"),
         productsList: [
             {% for p in products_list %}
     { id: "{{ p.id }}", name: "{{ p.name|escapejs }}" },

@@ -326,6 +326,22 @@ class ReviewAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):
         'text',
     )
 
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        reviews = Review.objects.all()
+        approved_reviews = reviews.filter(status='Approved', is_active=True)
+        extra_context['total_reviews_count'] = reviews.count()
+        extra_context['pending_reviews_count'] = reviews.filter(status='Pending').count()
+        extra_context['approved_reviews_count'] = approved_reviews.count()
+        if approved_reviews.exists():
+            from django.db.models import Avg
+            avg = approved_reviews.aggregate(Avg('rating'))['rating__avg']
+            extra_context['avg_rating_value'] = round(float(avg), 1) if avg is not None else 0.0
+        else:
+            extra_context['avg_rating_value'] = 0.0
+        extra_context['products_list'] = list(Product.objects.filter(is_active=True).values('id', 'name'))
+        return super().changelist_view(request, extra_context=extra_context)
+
 
 @admin.register(FeaturedProduct)
 class FeaturedProductAdmin(StaffPermissionAdminMixin, admin.ModelAdmin):

@@ -18,16 +18,101 @@ import { CartContext } from "../../context/CartContext";
 import { WishlistContext } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
 import { getSaleState, getSaleStateLabel } from "../../utils/inventory";
-import ProductCard, { isWatchCategory } from "../../components/Product/ProductCard";
+import ProductCard from "../../components/Product/ProductCard";
 import { getProductReviews } from "../../api/reviewApi";
 import { API_BASE_URL } from "../../api/apiConfig";
 import "./ProductDetails.css";
-
 import { resolveMediaUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
 const getImageUrl = (image) => resolveMediaUrl(image);
-
 const getVideoUrl = (video) => resolveMediaUrl(video);
+
+/**
+ * Determines whether a product is eligible to display the Size selector.
+ * Allowed: Clothes, Clothing, Shoes, Slipper, Slippers, Slider, Sliders, Apparel/Wearables.
+ * Disallowed: Watches, Air Buds, Caps, Accessories, Electronics, Bags, etc.
+ */
+export const isSizeEligibleCategory = (product) => {
+  if (!product) return false;
+
+  const getClean = (val) => {
+    if (!val) return "";
+    if (typeof val === "object") {
+      return String(val.slug || val.name || "").toLowerCase().trim();
+    }
+    return String(val).toLowerCase().trim();
+  };
+
+  const cat = getClean(product.category);
+  const catSlug = getClean(product.category_slug);
+  const catName = getClean(product.category_name);
+  const subCat = getClean(product.subcategory);
+  const subCatSlug = getClean(product.subcategory_slug);
+  const subCatName = getClean(product.subcategory_name);
+  const prodName = getClean(product.name);
+
+  const targets = [cat, catSlug, catName, subCat, subCatSlug, subCatName].filter(Boolean);
+
+  // Strict exclusions
+  const disallowed = [
+    "watch",
+    "air bud",
+    "airbud",
+    "air pod",
+    "airpod",
+    "earbud",
+    "headphone",
+    "audio",
+    "cap",
+    "hat",
+    "accessory",
+    "accessories",
+    "electronic",
+    "gadget",
+    "bag",
+    "wallet",
+    "belt",
+    "sunglass",
+    "perfume",
+    "fragrance",
+  ];
+
+  for (const t of targets) {
+    if (disallowed.some((d) => t.includes(d))) {
+      return false;
+    }
+  }
+
+  if (targets.length === 0 && disallowed.some((d) => prodName.includes(d))) {
+    return false;
+  }
+
+  // Wearables / Footwear allowed categories
+  const allowed = [
+    "cloth",      // clothes, clothing
+    "shoe",       // shoe, shoes
+    "slipper",    // slipper, slippers
+    "slider",     // slider, sliders
+    "slide",      // slide, slides
+    "footwear",
+    "apparel",
+    "shirt",
+    "t-shirt",
+    "tshirt",
+    "pant",
+    "trouser",
+    "jean",
+    "jacket",
+    "hoodie",
+    "coat",
+    "dress",
+    "suit",
+    "wear",
+  ];
+
+  const allChecks = [...targets, prodName];
+  return allChecks.some((t) => allowed.some((k) => t.includes(k)));
+};
 
 export default function ProductDetails() {
   const { productId, category: paramCategory } = useParams();
@@ -40,11 +125,12 @@ export default function ProductDetails() {
 
   const reviewsSectionRef = useRef(null);
   const mainVideoRef = useRef(null);
+  const thumbnailRefs = useRef([]);
 
   const [apiProduct, setApiProduct] = useState(null);
   const [fetchingProduct, setFetchingProduct] = useState(false);
 
-  // Directly fetch product from backend API on mount or route param change
+  // Fetch product from backend API on mount or route param change
   useEffect(() => {
     const rawId = productId || paramCategory;
     if (!rawId) return;
@@ -116,13 +202,13 @@ export default function ProductDetails() {
     setIsZoomOpen(false);
   }, [productId, paramCategory]);
 
-  // Fetch product-specific reviews whenever product changes
+  // Fetch real reviews from backend for the product
   useEffect(() => {
     if (!product?.id) return;
     setLoadingReviews(true);
     getProductReviews(product.id)
       .then((data) => {
-        setReviews(data || []);
+        setReviews(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         setReviews([]);
@@ -168,7 +254,6 @@ export default function ProductDetails() {
   useEffect(() => {
     if (!product) return;
 
-    // Save product to recently viewed list in localStorage (up to 8 items)
     try {
       const viewed = JSON.parse(localStorage.getItem("recentlyViewed")) || [];
       const updated = [product.id, ...viewed.filter((id) => id !== product.id)].slice(0, 8);
@@ -178,7 +263,6 @@ export default function ProductDetails() {
     setQuantity(1);
     setActiveImageIndex(0);
 
-    // Initialize color from real backend colors
     if (backendColors.length > 0) {
       setSelectedColor(backendColors[0].name);
     } else {
@@ -186,9 +270,12 @@ export default function ProductDetails() {
     }
   }, [product, backendColors]);
 
-  // Derive available sizes dynamically based on selected color / variants (strictly excluded for watches)
+  // Check if size is allowed for current product category
+  const isSizeAllowed = useMemo(() => isSizeEligibleCategory(product), [product]);
+
+  // Derive available sizes dynamically
   const availableSizes = useMemo(() => {
-    if (!product || isWatchCategory(product)) return [];
+    if (!product || !isSizeAllowed) return [];
 
     const normColor = (c) => String(c || "").trim().toLowerCase();
 
@@ -217,18 +304,18 @@ export default function ProductDetails() {
     }
 
     return [];
-  }, [product, selectedColor]);
+  }, [product, selectedColor, isSizeAllowed]);
 
   // Sync selected size when availableSizes changes
   useEffect(() => {
-    if (availableSizes.length > 0) {
+    if (isSizeAllowed && availableSizes.length > 0) {
       if (!selectedSize || !availableSizes.includes(selectedSize)) {
         setSelectedSize(availableSizes[0]);
       }
     } else {
       setSelectedSize(null);
     }
-  }, [availableSizes, selectedSize]);
+  }, [availableSizes, selectedSize, isSizeAllowed]);
 
   // Resolve exact backend variant from selectedColor + selectedSize combination
   const selectedVariant = useMemo(() => {
@@ -266,7 +353,7 @@ export default function ProductDetails() {
     return product.variants[0] || null;
   }, [product, selectedColor, selectedSize]);
 
-  // Resolve gallery media dynamically based on active selected variant (with exact backend mapping)
+  // Build ONE comprehensive deduplicated gallery list from all real backend image sources
   const allMedia = useMemo(() => {
     if (!product) return [];
     const mediaList = [];
@@ -274,7 +361,7 @@ export default function ProductDetails() {
 
     const addImage = (imgSrc) => {
       if (!imgSrc) return;
-      const rawUrl = typeof imgSrc === "object" && imgSrc ? (imgSrc.image || imgSrc.url) : imgSrc;
+      const rawUrl = typeof imgSrc === "object" && imgSrc ? (imgSrc.image || imgSrc.url || imgSrc.image_url) : imgSrc;
       const url = getImageUrl(rawUrl);
       if (!url || typeof url !== "string" || addedUrls.has(url)) return;
       addedUrls.add(url);
@@ -298,8 +385,9 @@ export default function ProductDetails() {
       });
     };
 
-    // 1. If active variant has images or video, display active variant's media
+    // 1. If active variant has media, prioritize selected variant media
     let hasVariantMedia = false;
+    let hasVariantVideo = false;
     if (selectedVariant) {
       if (Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0) {
         const sortedImages = [...selectedVariant.images].sort((a, b) => {
@@ -329,26 +417,50 @@ export default function ProductDetails() {
       if (selectedVariant.video) {
         addVideo(selectedVariant.video);
         hasVariantMedia = true;
+        hasVariantVideo = true;
+      }
+      if (selectedVariant.variant_video) {
+        addVideo(selectedVariant.variant_video);
+        hasVariantMedia = true;
+        hasVariantVideo = true;
       }
     }
 
-    // 2. If no variant media for active variant, fall back to product gallery / primary image / product video
+    // 2. Product images (if no variant media or as fallback)
     if (!hasVariantMedia || mediaList.length === 0) {
       if (Array.isArray(product.images) && product.images.length > 0) {
-        product.images.forEach(addImage);
+        const sortedProdImages = [...product.images].sort((a, b) => {
+          const aPri = typeof a === "object" && a?.is_primary ? 1 : 0;
+          const bPri = typeof b === "object" && b?.is_primary ? 1 : 0;
+          return bPri - aPri;
+        });
+        sortedProdImages.forEach(addImage);
       }
-      if (product.image) {
-        addImage(product.image);
+      if (product.image) addImage(product.image);
+      if (product.primary_image) addImage(product.primary_image);
+      if (product.main_image) addImage(product.main_image);
+      if (Array.isArray(product.additional_images)) {
+        product.additional_images.forEach(addImage);
       }
-      if (product.primary_image) {
-        addImage(product.primary_image);
-      }
-      if (product.video) {
-        addVideo(product.video);
+      if (Array.isArray(product.media)) {
+        product.media.forEach((m) => {
+          if (m.type !== "VIDEO" && !m.video) addImage(m.url || m.image);
+        });
       }
     }
 
-    // 3. Fallback if completely empty
+    // 3. Product video (if variant did not provide its own video)
+    if (!hasVariantVideo) {
+      if (Array.isArray(product.media)) {
+        product.media.forEach((m) => {
+          if (m.type === "VIDEO" || m.video) addVideo(m.url || m.video);
+        });
+      }
+      if (product.video) addVideo(product.video);
+      if (product.product_video) addVideo(product.product_video);
+    }
+
+    // 4. Fallback placeholder
     if (mediaList.length === 0) {
       mediaList.push({
         type: "image",
@@ -362,13 +474,13 @@ export default function ProductDetails() {
 
   const allImages = useMemo(() => allMedia.map((m) => m.url), [allMedia]);
 
-  // Primary static image specifically for Cart, Wishlist, Checkout, Orders (strictly image, never video)
+  // Primary static image for cart/wishlist
   const primaryStaticImage = useMemo(() => {
     const firstImg = allMedia.find((m) => m.type === "image");
     return firstImg ? firstImg.url : NEUTRAL_PLACEHOLDER;
   }, [allMedia]);
 
-  // Reset active image index whenever product ID or selected variant changes
+  // Reset active image index when product ID or selected variant changes
   useEffect(() => {
     if (mainVideoRef.current) {
       mainVideoRef.current.pause();
@@ -376,7 +488,29 @@ export default function ProductDetails() {
     setActiveImageIndex(0);
   }, [product?.id, selectedVariant?.id]);
 
-  // When user selects a thumbnail or color, pause video and update index
+  // Preload all gallery images to eliminate hover preview delay & flicker
+  useEffect(() => {
+    allMedia.forEach((item) => {
+      if (item?.type === "image" && item?.url) {
+        const img = new Image();
+        img.src = item.url;
+      }
+    });
+  }, [allMedia]);
+
+  // Auto-scroll selected thumbnail into view smoothly
+  useEffect(() => {
+    const el = thumbnailRefs.current[activeImageIndex];
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "nearest",
+        block: "nearest",
+      });
+    }
+  }, [activeImageIndex]);
+
+  // Media selection handlers
   const handleMediaSelect = (index) => {
     if (mainVideoRef.current) {
       mainVideoRef.current.pause();
@@ -392,10 +526,7 @@ export default function ProductDetails() {
     setActiveImageIndex(0);
   };
 
-  // Pricing resolution (variant price override if available, else product price)
-  // Final Rule:
-  // price = Original Price (e.g. ₹1000)
-  // discount_price = Discount / Selling Price (e.g. ₹600)
+  // Pricing resolution in Indian Rupees (INR - ₹)
   const rawPPrice = selectedVariant?.price
     ? Number(selectedVariant.price)
     : Number(product?.price || 0);
@@ -439,6 +570,11 @@ export default function ProductDetails() {
   const availableMaxStock = selectedVariant && selectedVariant.stock !== undefined
     ? Number(selectedVariant.stock)
     : product?.rawStock !== undefined
+    ? Number(product.rawStock)
+    : product?.stock !== undefined
+    ? Number(product.stock)
+    : 99;
+
   const wished = isInWishlist ? isInWishlist(product?.id) : false;
 
   const handleWishlistToggle = (e) => {
@@ -452,45 +588,54 @@ export default function ProductDetails() {
     }
   };
 
-  // Rating & Review stats derived from real product-specific reviews
+  // Dynamic Rating & Reviews stats (zero fake reviews)
   const { averageRating, totalReviewsCount, ratingBreakdown } = useMemo(() => {
-    if (!reviews || reviews.length === 0) {
+    if (Array.isArray(reviews) && reviews.length > 0) {
+      const total = reviews.length;
+      let sum = 0;
+      const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+      reviews.forEach((r) => {
+        const num = Math.min(5, Math.max(1, Math.round(Number(r.rating || 5))));
+        counts[num] = (counts[num] || 0) + 1;
+        sum += Number(r.rating || 5);
+      });
+
+      const avg = parseFloat((sum / total).toFixed(1));
+
+      const breakdown = {
+        5: Math.round((counts[5] / total) * 100),
+        4: Math.round((counts[4] / total) * 100),
+        3: Math.round((counts[3] / total) * 100),
+        2: Math.round((counts[2] / total) * 100),
+        1: Math.round((counts[1] / total) * 100),
+      };
+
       return {
-        averageRating: null,
-        totalReviewsCount: 0,
-        ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+        averageRating: avg,
+        totalReviewsCount: total,
+        ratingBreakdown: breakdown,
       };
     }
 
-    const total = reviews.length;
-    let sum = 0;
-    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-
-    reviews.forEach((r) => {
-      const num = Math.min(5, Math.max(1, Math.round(Number(r.rating || 5))));
-      counts[num] = (counts[num] || 0) + 1;
-      sum += Number(r.rating || 5);
-    });
-
-    const avg = parseFloat((sum / total).toFixed(1));
-
-    const breakdown = {
-      5: Math.round((counts[5] / total) * 100),
-      4: Math.round((counts[4] / total) * 100),
-      3: Math.round((counts[3] / total) * 100),
-      2: Math.round((counts[2] / total) * 100),
-      1: Math.round((counts[1] / total) * 100),
-    };
+    const prodRating = product?.average_rating || product?.rating;
+    const prodCount = product?.review_count;
+    if (prodCount && Number(prodCount) > 0 && prodRating && Number(prodRating) > 0) {
+      return {
+        averageRating: parseFloat(Number(prodRating).toFixed(1)),
+        totalReviewsCount: Number(prodCount),
+        ratingBreakdown: { 5: 100, 4: 0, 3: 0, 2: 0, 1: 0 },
+      };
+    }
 
     return {
-      averageRating: avg,
-      totalReviewsCount: total,
-      ratingBreakdown: breakdown,
+      averageRating: null,
+      totalReviewsCount: 0,
+      ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
     };
-  }, [reviews]);
+  }, [reviews, product]);
 
-  // Related products filtered strictly from backend:
-  // Priority: 1. same subcategory, 2. same category, 3. exclude current product, 4. active only, limit 4
+  // Related products
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     const others = products.filter((p) => p.id !== product.id && p.is_active !== false);
@@ -577,7 +722,7 @@ export default function ProductDetails() {
       return;
     }
 
-    if (availableSizes.length > 0 && !selectedSize) {
+    if (isSizeAllowed && availableSizes.length > 0 && !selectedSize) {
       if (toast) toast("Please select a size option");
       return;
     }
@@ -591,11 +736,11 @@ export default function ProductDetails() {
         image: primaryStaticImage,
         variant_id: selectedVariant?.id || null,
         selectedColor,
-        selectedSize,
+        selectedSize: isSizeAllowed ? selectedSize : null,
         selectedVariant,
       };
       addToCart(cartItem, quantity);
-      const variantInfo = [selectedColor, selectedSize ? `Size ${selectedSize}` : ""]
+      const variantInfo = [selectedColor, isSizeAllowed && selectedSize ? `Size ${selectedSize}` : ""]
         .filter(Boolean)
         .join(" / ");
       if (toast) {
@@ -615,7 +760,7 @@ export default function ProductDetails() {
       return;
     }
 
-    if (availableSizes.length > 0 && !selectedSize) {
+    if (isSizeAllowed && availableSizes.length > 0 && !selectedSize) {
       if (toast) toast("Please select a size option");
       return;
     }
@@ -628,7 +773,7 @@ export default function ProductDetails() {
       image: primaryStaticImage,
       variant_id: selectedVariant?.id || null,
       selectedColor,
-      selectedSize,
+      selectedSize: isSizeAllowed ? selectedSize : null,
       selectedVariant,
       quantity,
     };
@@ -646,6 +791,13 @@ export default function ProductDetails() {
   const activeMediaItem = allMedia[activeImageIndex] || allMedia[0];
   const isVideoActive = activeMediaItem?.type === "video";
 
+  // Formatted category label
+  const categoryLabel = product.category_name || (
+    typeof product.category === "object"
+      ? product.category?.name
+      : String(product.category || "PRODUCTS")
+  );
+
   return (
     <div className="product-detail-page-wrapper">
       <div className="product-detail-container">
@@ -658,7 +810,7 @@ export default function ProductDetails() {
             <>
               <FiChevronRight className="breadcrumb-chevron" />
               <Link to={`/products?category=${encodeURIComponent(String(product.category_slug || (typeof product.category === 'object' ? product.category?.slug || product.category?.name : product.category) || "").toLowerCase())}`}>
-                {typeof product.category === 'object' ? product.category?.name : (product.category_name || String(product.category))}
+                {categoryLabel}
               </Link>
             </>
           )}
@@ -680,45 +832,9 @@ export default function ProductDetails() {
         <div className="pdp-main-grid">
           {/* LEFT SIDE: Image Gallery */}
           <div className="pdp-gallery-column">
-            {/* Vertical Thumbnails (Desktop) */}
-            {allMedia.length > 0 && (
-              <div className="pdp-vertical-thumbnails">
-                {allMedia.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`pdp-thumbnail-btn ${activeImageIndex === idx ? "active" : ""} ${item.type === "video" ? "pdp-thumb-video-btn" : ""}`}
-                    onClick={() => handleMediaSelect(idx)}
-                    onMouseEnter={() => handleMediaSelect(idx)}
-                    aria-label={item.type === "video" ? `View product video ${idx + 1}` : `View product image ${idx + 1}`}
-                  >
-                    {item.type === "video" ? (
-                      <div className="pdp-thumb-video-preview-wrap">
-                        <video src={item.url} preload="metadata" muted className="pdp-thumb-video-preview" />
-                        <div className="pdp-thumb-play-overlay">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                          </svg>
-                        </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={item.url}
-                        alt={`Thumbnail ${idx + 1}`}
-                        className="pdp-thumb-img"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = NEUTRAL_PLACEHOLDER;
-                        }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Main Media Container */}
+            {/* Main Media Box */}
             <div className={`pdp-main-image-box ${isVideoActive ? "has-video" : ""}`}>
+              {/* Badges */}
               {hasDiscount && (
                 <span className="pdp-badge-discount">{currentDiscount}% OFF</span>
               )}
@@ -726,6 +842,18 @@ export default function ProductDetails() {
                 <span className="pdp-badge-new">NEW</span>
               )}
 
+              {/* Wishlist Button on Top-Right of Main Image */}
+              <button
+                type="button"
+                className={`pdp-gallery-wishlist-btn ${wished ? "active" : ""}`}
+                onClick={handleWishlistToggle}
+                aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+                title={wished ? "Remove from wishlist" : "Save to wishlist"}
+              >
+                {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
+              </button>
+
+              {/* Main Media Content */}
               {isVideoActive ? (
                 <div className="pdp-main-video-wrapper">
                   <video
@@ -733,6 +861,8 @@ export default function ProductDetails() {
                     key={activeMediaItem.url}
                     src={activeMediaItem.url}
                     controls
+                    autoPlay={false}
+                    loop={false}
                     playsInline
                     preload="metadata"
                     className="pdp-main-video-player"
@@ -763,48 +893,61 @@ export default function ProductDetails() {
                 </>
               )}
 
-              {/* Bottom Pagination / Navigation Capsule */}
+              {/* Navigation Arrows INSIDE Main Image */}
               {allMedia.length > 1 && (
-                <div className="pdp-gallery-pager-capsule">
+                <>
                   <button
                     type="button"
-                    className="pdp-gallery-nav-btn"
-                    onClick={() => handleMediaSelect((activeImageIndex - 1 + allMedia.length) % allMedia.length)}
+                    className="pdp-gallery-arrow pdp-gallery-arrow-prev"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMediaSelect((activeImageIndex - 1 + allMedia.length) % allMedia.length);
+                    }}
                     aria-label="Previous image"
                   >
                     <FiChevronLeft />
                   </button>
-                  <span className="pdp-gallery-counter">
-                    {activeImageIndex + 1} / {allMedia.length}
-                  </span>
+
                   <button
                     type="button"
-                    className="pdp-gallery-nav-btn"
-                    onClick={() => handleMediaSelect((activeImageIndex + 1) % allMedia.length)}
+                    className="pdp-gallery-arrow pdp-gallery-arrow-next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMediaSelect((activeImageIndex + 1) % allMedia.length);
+                    }}
                     aria-label="Next image"
                   >
                     <FiChevronRight />
                   </button>
+                </>
+              )}
+
+              {/* Dynamic Image Counter Pill */}
+              {allMedia.length > 0 && (
+                <div className="pdp-gallery-counter-pill">
+                  {activeImageIndex + 1} / {allMedia.length}
                 </div>
               )}
             </div>
 
-            {/* Mobile Horizontal Thumbnails */}
+            {/* Horizontal Thumbnails Row BELOW Main Image */}
             {allMedia.length > 0 && (
-              <div className="pdp-mobile-horizontal-thumbnails">
+              <div className="pdp-thumbnails-strip" role="region" aria-label="Product thumbnails">
                 {allMedia.map((item, idx) => (
                   <button
                     key={idx}
+                    ref={(el) => (thumbnailRefs.current[idx] = el)}
                     type="button"
-                    className={`pdp-mobile-thumb-btn ${activeImageIndex === idx ? "active" : ""} ${item.type === "video" ? "pdp-thumb-video-btn" : ""}`}
+                    className={`pdp-thumbnail-btn ${activeImageIndex === idx ? "active" : ""} ${item.type === "video" ? "pdp-thumb-video-btn" : ""}`}
                     onClick={() => handleMediaSelect(idx)}
-                    aria-label={item.type === "video" ? `View video ${idx + 1}` : `View image ${idx + 1}`}
+                    onMouseEnter={() => handleMediaSelect(idx)}
+                    aria-label={item.type === "video" ? `View product video ${idx + 1}` : `View product image ${idx + 1}`}
                   >
                     {item.type === "video" ? (
                       <div className="pdp-thumb-video-preview-wrap">
-                        <video src={item.url} preload="metadata" muted className="pdp-mobile-thumb-img" />
+                        <video src={item.url} preload="metadata" muted className="pdp-thumb-video-preview" />
                         <div className="pdp-thumb-play-overlay">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <polygon points="5 3 19 12 5 21 5 3"></polygon>
                           </svg>
                         </div>
@@ -812,8 +955,8 @@ export default function ProductDetails() {
                     ) : (
                       <img
                         src={item.url}
-                        alt={`Mobile thumb ${idx + 1}`}
-                        className="pdp-mobile-thumb-img"
+                        alt={`${product?.name || "Product"} - View ${idx + 1}`}
+                        className="pdp-thumb-img"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
                           e.currentTarget.src = NEUTRAL_PLACEHOLDER;
@@ -826,30 +969,35 @@ export default function ProductDetails() {
             )}
           </div>
 
-          {/* RIGHT SIDE: Product Info & Purchase Form */}
+          {/* RIGHT SIDE: Product Info */}
           <div className="pdp-info-column">
-            {/* Category / Brand Eyebrow */}
+            {/* Category Label */}
             <div className="pdp-category-eyebrow">
-              {product.category_name || (typeof product.category === "object" ? product.category?.name?.toUpperCase() : String(product.category || "WATCH").toUpperCase())}
+              {categoryLabel}
             </div>
 
             {/* Product Title */}
             <h1 className="pdp-product-title">{product.name}</h1>
 
-            {/* Rating & Review Count Row */}
+            {/* Dynamic Rating / Zero Review State */}
             <div className="pdp-rating-summary-row">
-              {averageRating ? (
-                <div className="pdp-rating-stars-badge">
-                  <div className="pdp-stars-group">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FaStar
-                        key={star}
-                        className={star <= Math.round(averageRating) ? "star-filled" : "star-empty"}
-                      />
-                    ))}
+              {totalReviewsCount > 0 && averageRating ? (
+                <>
+                  <div className="pdp-rating-stars-badge">
+                    <div className="pdp-stars-group">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar
+                          key={star}
+                          className={star <= Math.round(averageRating) ? "star-filled" : "star-empty"}
+                        />
+                      ))}
+                    </div>
+                    <span className="pdp-rating-score-val">{averageRating}</span>
                   </div>
-                  <span className="pdp-rating-score-val">{averageRating}</span>
-                </div>
+                  <a href="#reviews-section" onClick={scrollToReviews} className="pdp-review-count-link">
+                    ({totalReviewsCount} {totalReviewsCount === 1 ? "review" : "reviews"})
+                  </a>
+                </>
               ) : (
                 <div className="pdp-no-rating-stars-row">
                   <div className="pdp-stars-group empty">
@@ -860,45 +1008,39 @@ export default function ProductDetails() {
                   <span className="pdp-no-rating-label">No reviews yet</span>
                 </div>
               )}
-
-              {totalReviewsCount > 0 ? (
-                <a href="#reviews-section" onClick={scrollToReviews} className="pdp-review-count-link">
-                  ({totalReviewsCount} {totalReviewsCount === 1 ? "review" : "reviews"})
-                </a>
-              ) : null}
             </div>
 
-            {/* Pricing Section */}
+            {/* Price Row (Indian Rupees - ₹ Only) */}
             <div className="pdp-pricing-box">
-              <strong className="pdp-current-price">
+              <span className="pdp-current-price">
                 ₹{Number(currentPrice || 0).toLocaleString("en-IN")}
-              </strong>
+              </span>
 
               {hasDiscount && (
                 <>
                   <del className="pdp-original-price">
                     ₹{Number(currentOldPrice).toLocaleString("en-IN")}
                   </del>
-                  <span className="pdp-savings-pill">
-                    SAVE ₹{(currentOldPrice - currentPrice).toLocaleString("en-IN")}
+                  <span className="pdp-savings-badge">
+                    {currentDiscount}% OFF
                   </span>
                 </>
               )}
             </div>
 
-            {/* Short Description */}
+            {/* Product Description */}
             {product.description && (
               <p className="pdp-short-description">{product.description}</p>
             )}
 
             <div className="pdp-divider" />
 
-            {/* Color Options (ONLY when backend has colors) + Stock Pill */}
+            {/* Color Selector (Dynamically rendered ONLY if product has colors) */}
             {backendColors.length > 0 && (
               <div className="pdp-option-group">
                 <div className="pdp-option-header">
-                  <span className="pdp-option-title">COLOR :</span>
-                  <strong className="pdp-option-selected-name">
+                  <span className="pdp-option-label">Color:</span>
+                  <strong className="pdp-option-selected-val">
                     {selectedColor ? selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1) : ""}
                   </strong>
                 </div>
@@ -907,7 +1049,7 @@ export default function ProductDetails() {
                   <div className="pdp-color-swatches-row">
                     {backendColors.map((colorObj) => {
                       const isSelected = selectedColor?.trim().toLowerCase() === colorObj.name.trim().toLowerCase();
-                      const colorCode = colorObj.code || (colorObj.name.toLowerCase() === "black" ? "#000000" : "#ffffff");
+                      const colorCode = colorObj.code || (colorObj.name.toLowerCase() === "black" ? "#000000" : colorObj.name.toLowerCase() === "white" ? "#ffffff" : "#cccccc");
 
                       return (
                         <button
@@ -928,23 +1070,23 @@ export default function ProductDetails() {
                     })}
                   </div>
 
-                  {/* Inline In-Stock Pill */}
+                  {/* Inline Stock Status */}
                   <div className="pdp-stock-status-inline">
                     <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
-                      <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
+                      <span className="stock-dot" /> {isAvailable ? "In stock" : stateLabel}
                     </span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Size Options (ONLY when backend has sizes) */}
-            {availableSizes.length > 0 && (
+            {/* Size Selector (STRICTLY rendered ONLY for eligible clothing/shoes/slippers categories) */}
+            {isSizeAllowed && availableSizes.length > 0 && (
               <div className="pdp-option-group">
                 <div className="pdp-option-header">
-                  <span className="pdp-option-title">SIZE :</span>
+                  <span className="pdp-option-label">Size:</span>
                   {selectedSize && (
-                    <strong className="pdp-option-selected-name">{selectedSize}</strong>
+                    <strong className="pdp-option-selected-val">{selectedSize}</strong>
                   )}
                 </div>
 
@@ -967,19 +1109,19 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* If no colors exist, display Standalone Stock status */}
+            {/* Standalone Stock indicator if product has no colors */}
             {backendColors.length === 0 && (
               <div className="pdp-standalone-stock-row">
                 <span className={`pdp-stock-indicator ${isAvailable ? "in-stock" : "out-of-stock"}`}>
-                  <span className="stock-dot" /> {isAvailable ? "In stock — ready to dispatch" : stateLabel}
+                  <span className="stock-dot" /> {isAvailable ? "In stock" : stateLabel}
                 </span>
               </div>
             )}
 
             {/* Quantity Selector */}
             {isAvailable && (
-              <div className="pdp-quantity-inline-row">
-                <span className="pdp-qty-label">Quantity :</span>
+              <div className="pdp-quantity-row">
+                <span className="pdp-qty-label">Quantity:</span>
                 <div className="pdp-qty-control-box">
                   <button
                     type="button"
@@ -1004,8 +1146,8 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* CTA Action Buttons (2-Column Grid) */}
-            <div className="pdp-action-buttons-grid">
+            {/* CTA Action Buttons Row: [ ADD TO CART ] [ BUY NOW ] [ ♥ ] */}
+            <div className="pdp-action-buttons-row">
               <button
                 type="button"
                 className={`pdp-add-to-cart-btn ${inCart && isAvailable ? "in-cart" : ""}`}
@@ -1017,7 +1159,7 @@ export default function ProductDetails() {
                   {!isAvailable
                     ? stateLabel
                     : inCart
-                    ? "Added to Cart (+)"
+                    ? "Added to Cart"
                     : "ADD TO CART"}
                 </span>
               </button>
@@ -1043,38 +1185,39 @@ export default function ProductDetails() {
               </button>
             </div>
 
-            {/* Trust / Service Card (3 equal columns) */}
+            {/* Trust / Service Strip */}
             <div className="pdp-trust-service-card">
               <div className="pdp-trust-col">
                 <FiShield className="pdp-trust-icon" />
+                <div className="pdp-trust-text-wrap">
+                  <strong>100% Original</strong>
+                  <span>Authentic products</span>
+                </div>
+              </div>
+              <div className="pdp-trust-col">
+                <FiTruck className="pdp-trust-icon" />
+                <div className="pdp-trust-text-wrap">
+                  <strong>Easy Returns</strong>
+                  <span>7-day return policy</span>
+                </div>
+              </div>
+              <div className="pdp-trust-col">
+                <FiCheck className="pdp-trust-icon" />
                 <div className="pdp-trust-text-wrap">
                   <strong>Secure Payment</strong>
                   <span>100% secure checkout</span>
                 </div>
               </div>
               <div className="pdp-trust-col">
-                <FiTruck className="pdp-trust-icon" />
-                <div className="pdp-trust-text-wrap">
-                  <strong>Order Tracking</strong>
-                  <span>Track your order easily</span>
-                </div>
-              </div>
-              <div className="pdp-trust-col">
                 <FiHeadphones className="pdp-trust-icon" />
                 <div className="pdp-trust-text-wrap">
                   <strong>Customer Support</strong>
-                  <span>Here to help, always</span>
+                  <span>Dedicated assistance</span>
                 </div>
               </div>
             </div>
-
-            {/* Informational Payment Methods */}
-            <div className="pdp-payment-options-note">
-              Payment options available: <strong>UPI · Cards · Net Banking · COD</strong>
-            </div>
           </div>
         </div>
-
 
         {/* LOWER SECTION: Details, Shipping & Customer Reviews Tabs */}
         <section className="pdp-lower-section" ref={reviewsSectionRef} id="reviews-section">
@@ -1183,7 +1326,7 @@ export default function ProductDetails() {
             </div>
           )}
 
-          {/* Tab 3: Product-Specific Reviews */}
+          {/* Tab 3: Dynamic Customer Reviews */}
           {activeTab === "reviews" && (
             <div className="pdp-tab-content pdp-reviews-tab-content">
               {loadingReviews ? (

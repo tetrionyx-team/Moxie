@@ -641,11 +641,29 @@ export default function ProductListPage() {
                       </td>
 
                       <td>
-                        <div className="product-rating-box">
-                          <span className="star-icon">★</span>
-                          <span className="rating-score">4.{String(row.product.id).substring(0, 1) || '5'}</span>
-                          <span className="review-count">(12{row.product.id})</span>
-                        </div>
+                        {(() => {
+                          const avg = row.product.averageRating !== undefined && row.product.averageRating !== null
+                            ? row.product.averageRating
+                            : (row.product.average_rating !== undefined && row.product.average_rating !== null ? row.product.average_rating : null);
+                          const count = Number(row.product.reviewCount !== undefined ? row.product.reviewCount : (row.product.review_count || 0));
+
+                          if (count > 0 && avg !== null && Number(avg) > 0) {
+                            return (
+                              <div className="product-rating-box" title={`Rating: ${Number(avg).toFixed(1)} (${count} review${count === 1 ? '' : 's'})`}>
+                                <span className="star-icon">★</span>
+                                <span className="rating-score">{Number(avg).toFixed(1)}</span>
+                                <span className="review-count">({count})</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="product-rating-box empty-state" title="No customer reviews yet">
+                              <span className="star-icon empty">☆</span>
+                              <span className="rating-score empty">—</span>
+                              <span className="review-count empty">(0)</span>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       <td style={{ textAlign: 'right', paddingRight: '20px' }}>

@@ -27,6 +27,7 @@ describe("MyOrders Component", () => {
       price: 4999,
       total: 5049,
       status: "Shipped",
+      tracking_number: "ET764727767IN",
     },
     {
       id: "ORD10246",
