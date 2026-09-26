@@ -13,6 +13,7 @@ import {
   LuChevronDown,
   LuPackage,
 } from "react-icons/lu";
+import { FiX, FiCheckCircle } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
 import WriteReviewModal from "../Review/WriteReviewModal";
 import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
@@ -27,13 +28,14 @@ export default function MyOrders({
 }) {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [reviewModalOrder, setReviewModalOrder] = useState(null);
+  const [reviewModalItem, setReviewModalItem] = useState(null);
+  const [viewReviewTarget, setViewReviewTarget] = useState(null);
   const [reviewedOrders, setReviewedOrders] = useState(() => {
     const keys = {};
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith("reviewed_order_")) {
+        if (k && (k.startsWith("reviewed_order_") || k.startsWith("reviewed_order_item_"))) {
           keys[k] = true;
         }
       }
@@ -743,36 +745,72 @@ export default function MyOrders({
                       )
                     )}
 
-                    {/* Write Review (for delivered items) */}
+                    {/* Delivery-Based 24h Dynamic Review Actions */}
                     {statusLower === "delivered" &&
                       (() => {
-                        const prodId = order.productId || order.product_id || order.id;
-                        const isReviewed =
-                          reviewedOrders[`reviewed_order_${order.id}_prod_${prodId}`];
+                        const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : [order];
+                        const primaryItem = items[0];
+                        const itemId = primaryItem?.id;
+                        const prodId = primaryItem?.productId || primaryItem?.product_id || order.productId || order.product_id;
 
-                        return (
-                          <button
-                            type="button"
-                            className="btn-order-action btn-action-review"
-                            onClick={() => {
-                              if (!isReviewed) setReviewModalOrder(order);
-                            }}
-                            disabled={isReviewed}
-                            title={
-                              isReviewed
-                                ? "You have already reviewed this purchase"
-                                : "Write a review for this delivered item"
-                            }
-                          >
-                            <FaStar
-                              className="btn-action-icon star-gold"
-                              aria-hidden="true"
-                            />
-                            <span>
-                              {isReviewed ? "Reviewed ✓" : "Write Review"}
-                            </span>
-                          </button>
+                        const isLocallyReviewed = Boolean(
+                          (itemId && reviewedOrders[`reviewed_order_item_${itemId}`]) ||
+                          (order.id && prodId && reviewedOrders[`reviewed_order_${order.id}_prod_${prodId}`])
                         );
+
+                        // Determine item-level review eligibility from backend
+                        let reviewStatus = primaryItem?.review_status || order.review_status || "NOT_DELIVERED";
+                        if (isLocallyReviewed) {
+                          reviewStatus = "SUBMITTED";
+                        }
+
+                        // State B: Delivered + within 24h + no review
+                        if (reviewStatus === "OPEN" || (primaryItem?.can_review && !isLocallyReviewed)) {
+                          return (
+                            <button
+                              type="button"
+                              className="btn-order-action btn-action-review"
+                              onClick={() => setReviewModalItem({ order, item: primaryItem })}
+                              title="Write a verified review within 24 hours of delivery"
+                            >
+                              <FaStar className="btn-action-icon star-gold" aria-hidden="true" />
+                              <span>Write a Review</span>
+                            </button>
+                          );
+                        }
+
+                        // State C: Review already submitted
+                        if (reviewStatus === "SUBMITTED") {
+                          const reviewData = primaryItem?.review || order.review || null;
+                          return (
+                            <button
+                              type="button"
+                              className="btn-order-action btn-action-reviewed"
+                              onClick={() => {
+                                setViewReviewTarget({
+                                  item: primaryItem,
+                                  review: reviewData,
+                                  order,
+                                });
+                              }}
+                              title={reviewData ? "Click to view your submitted review" : "You have already reviewed this purchase"}
+                            >
+                              <LuCheck className="btn-action-icon check-green" aria-hidden="true" />
+                              <span>✓ Reviewed</span>
+                            </button>
+                          );
+                        }
+
+                        // State D: Delivered + more than 24h + no review
+                        if (reviewStatus === "EXPIRED") {
+                          return (
+                            <span className="review-period-closed-tag" title="Review window closed (available for 24h after delivery)">
+                              Review period closed
+                            </span>
+                          );
+                        }
+
+                        return null;
                       })()}
 
                     {/* Return / Exchange (for delivered items) */}
@@ -828,22 +866,111 @@ export default function MyOrders({
       </div>
 
       {/* 5. WRITE REVIEW MODAL */}
-      {reviewModalOrder && (
+      {reviewModalItem && (
         <WriteReviewModal
-          order={reviewModalOrder}
+          orderItem={reviewModalItem.item}
+          order={reviewModalItem.order}
           user={user}
-          onClose={() => setReviewModalOrder(null)}
+          onClose={() => setReviewModalItem(null)}
           onSuccess={() => {
-            const prodId =
-              reviewModalOrder.productId ||
-              reviewModalOrder.product_id ||
-              reviewModalOrder.id;
-            setReviewedOrders((prev) => ({
-              ...prev,
-              [`reviewed_order_${reviewModalOrder.id}_prod_${prodId}`]: true,
-            }));
+            const item = reviewModalItem.item;
+            const ord = reviewModalItem.order;
+            const itemId = item?.id;
+            const prodId = item?.productId || item?.product_id || ord?.productId || ord?.product_id;
+
+            setReviewedOrders((prev) => {
+              const updated = { ...prev };
+              if (itemId) updated[`reviewed_order_item_${itemId}`] = true;
+              if (ord?.id && prodId) updated[`reviewed_order_${ord.id}_prod_${prodId}`] = true;
+              return updated;
+            });
           }}
         />
+      )}
+
+      {/* 6. VIEW SUBMITTED REVIEW MODAL */}
+      {viewReviewTarget && (
+        <div className="review-modal-overlay" onClick={() => setViewReviewTarget(null)}>
+          <div className="review-view-card" onClick={(e) => e.stopPropagation()}>
+            <div className="review-view-head">
+              <div className="review-view-header-left">
+                <span className="review-verified-tag">
+                  <FiCheckCircle className="tag-icon" /> Verified Purchase
+                </span>
+                <h3 className="review-view-title">
+                  {viewReviewTarget.item?.name || viewReviewTarget.order?.name || "Your Product Review"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="review-close-btn"
+                onClick={() => setViewReviewTarget(null)}
+                aria-label="Close review details"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="review-view-body">
+              <div className="review-view-stars-row">
+                <div className="stars-icons-wrap">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                      key={star}
+                      className={
+                        star <= Math.round(Number(viewReviewTarget.review?.rating || 5))
+                          ? "star-gold"
+                          : "star-gray"
+                      }
+                    />
+                  ))}
+                </div>
+                <span className="review-view-score">
+                  {Number(viewReviewTarget.review?.rating || 5).toFixed(1)} / 5
+                </span>
+                {viewReviewTarget.review?.created_at && (
+                  <span className="review-view-date">• {viewReviewTarget.review.created_at}</span>
+                )}
+              </div>
+
+              <p className="review-view-comment">
+                "{viewReviewTarget.review?.text || "Thank you for your feedback!"}"
+              </p>
+
+              {(() => {
+                const revImages = Array.isArray(viewReviewTarget.review?.images) && viewReviewTarget.review.images.length > 0
+                  ? viewReviewTarget.review.images
+                  : (viewReviewTarget.review?.image ? [viewReviewTarget.review.image] : []);
+
+                if (revImages.length === 0) return null;
+
+                return (
+                  <div className="review-view-photos-gallery">
+                    {revImages.map((imgUrl, i) => (
+                      <a key={i} href={imgUrl} target="_blank" rel="noreferrer" className="review-view-photo-wrap">
+                        <img
+                          src={imgUrl}
+                          alt={`Review attachment ${i + 1}`}
+                          className="review-view-photo-thumb"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              <div className="review-view-footer">
+                <button
+                  type="button"
+                  className="review-view-close-btn"
+                  onClick={() => setViewReviewTarget(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

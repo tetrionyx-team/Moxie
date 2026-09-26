@@ -37,7 +37,7 @@ describe("ProfileDetails component (Simplified Profile Page with Photo Upload)",
     expect(screen.getAllByText("January 15, 2024").length).toBeGreaterThanOrEqual(1);
 
     // Check avatar initials
-    expect(screen.getByText("HR")).toBeInTheDocument();
+    expect(screen.getByText("H")).toBeInTheDocument();
   });
 
   it("does NOT render removed dashboard statistics or extra badges", () => {
@@ -132,5 +132,24 @@ describe("ProfileDetails component (Simplified Profile Page with Photo Upload)",
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(screen.getByRole("heading", { name: "Personal Information" })).toBeInTheDocument();
     expect(mockOnUpdate).not.toHaveBeenCalled();
+  });
+
+  it("renders uploaded image when real photo exists, and falls back to initial on broken image error", () => {
+    const profileWithPhoto = {
+      ...mockProfile,
+      avatar: "https://res.cloudinary.com/moxie/image/upload/v123/profile.jpg",
+    };
+
+    const { rerender } = render(<ProfileDetails profile={profileWithPhoto} onUpdate={mockOnUpdate} />);
+
+    const img = screen.getByAltText("Harish Raja");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://res.cloudinary.com/moxie/image/upload/v123/profile.jpg");
+
+    // Trigger image load error (broken image)
+    fireEvent.error(img);
+
+    // Should gracefully fallback to initial avatar
+    expect(screen.getByText("H")).toBeInTheDocument();
   });
 });

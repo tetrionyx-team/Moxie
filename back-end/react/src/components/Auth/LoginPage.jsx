@@ -19,8 +19,17 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [isShaking, setIsShaking] = useState(false)
+  const [isConverging, setIsConverging] = useState(false)
+  const [isCenterOrbVisible, setIsCenterOrbVisible] = useState(false)
+  const [isErrorOrb, setIsErrorOrb] = useState(false)
+  const [isRippleAnimating, setIsRippleAnimating] = useState(false)
+  const [isErrorRipple, setIsErrorRipple] = useState(false)
+  const [isSpinning, setIsSpinning] = useState(false)
+  const [isErrorShaking, setIsErrorShaking] = useState(false)
+  const [isSuccessExiting, setIsSuccessExiting] = useState(false)
 
   const otpInputsRef = useRef([])
+  const otpWrapperRef = useRef(null)
 
   const csrfToken = (window.DJANGO_CONTEXT && window.DJANGO_CONTEXT.csrfToken) ||
     document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
@@ -143,35 +152,190 @@ export default function LoginPage() {
         body: JSON.stringify({ otp: fullCode }),
       })
 
-      const data = await res.json()
+      const resData = await res.json()
+
       if (!res.ok) {
-        if (data.attempts_remaining !== undefined) {
-          setAttemptsRemaining(data.attempts_remaining)
+        // WRONG OTP ANIMATION:
+        // 1. Fade out secondary text & expand container
+        setIsConverging(true)
+
+        // 2. Animate OTP boxes toward center in orbit formation with red warning styling
+        if (otpWrapperRef.current) {
+          const wrapperRect = otpWrapperRef.current.getBoundingClientRect()
+          const targetX = wrapperRect.left + wrapperRect.width / 2
+          const targetY = wrapperRect.top + wrapperRect.height / 2
+          const orbitRadius = 68
+
+          const n = otpInputsRef.current.length
+          const configs = (n === 4) ? [
+            { angle: -135, tilt: -14 },
+            { angle: -45,  tilt: 16 },
+            { angle: 135,  tilt: -12 },
+            { angle: 45,   tilt: 18 }
+          ] : [
+            { angle: -140, tilt: -14 },
+            { angle: -80,  tilt: 12 },
+            { angle: -20,  tilt: -10 },
+            { angle: 40,   tilt: 16 },
+            { angle: 100,  tilt: -12 },
+            { angle: 160,  tilt: 18 }
+          ]
+
+          otpInputsRef.current.forEach((box, i) => {
+            if (!box) return
+            const cfg = configs[i] || { angle: (i * (360 / n) - 90), tilt: (i % 2 === 0 ? -14 : 16) }
+            const angleRad = cfg.angle * (Math.PI / 180)
+            const circlePosX = targetX + orbitRadius * Math.cos(angleRad)
+            const circlePosY = targetY + orbitRadius * Math.sin(angleRad)
+
+            const boxRect = box.getBoundingClientRect()
+            const boxCenterX = boxRect.left + boxRect.width / 2
+            const boxCenterY = boxRect.top + boxRect.height / 2
+
+            const deltaX = circlePosX - boxCenterX
+            const deltaY = circlePosY - boxCenterY
+
+            box.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease, color 0.4s ease'
+            box.style.borderColor = '#f43f5e'
+            box.style.backgroundColor = '#fff1f2'
+            box.style.boxShadow = '0 8px 24px rgba(244, 63, 94, 0.35)'
+            box.style.borderRadius = '12px'
+            box.style.color = '#e11d48'
+            box.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.82) rotate(${cfg.tilt}deg)`
+          })
         }
-        if (data.is_locked) {
-          setIsLocked(true)
-        }
-        throw new Error(data.error || 'Security verification failed.')
+
+        // 3. 350ms: Soft Rose Center Orb Blooms In + Soft Ripple Rings + Gentle Wobble
+        setTimeout(() => {
+          setIsErrorOrb(true)
+          setIsCenterOrbVisible(true)
+          setIsErrorRipple(true)
+          setIsRippleAnimating(true)
+          setIsErrorShaking(true)
+        }, 350)
+
+        // 4. 1050ms: Fluidly float boxes back to horizontal positions with gentle elastic settlement
+        setTimeout(() => {
+          setIsCenterOrbVisible(false)
+          setIsErrorOrb(false)
+          setIsRippleAnimating(false)
+          setIsErrorRipple(false)
+          setIsErrorShaking(false)
+
+          otpInputsRef.current.forEach((box) => {
+            if (!box) return
+            box.style.transition = 'transform 0.65s cubic-bezier(0.25, 1, 0.5, 1), border-radius 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, color 0.4s ease'
+            box.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)'
+            box.style.borderRadius = '12px'
+            box.style.borderColor = '#f43f5e'
+            box.style.backgroundColor = '#fff1f2'
+            box.style.boxShadow = '0 0 0 2px rgba(244, 63, 94, 0.18)'
+            box.style.color = '#0f172a'
+          })
+
+          setOtpDigits(['', '', '', '', '', ''])
+          setErrorMessage(resData?.error || "That security code didn't match. Check the code and try again.")
+          triggerShake()
+        }, 1050)
+
+        // 5. 1400ms: Smoothly restore UI elements, re-enable button & focus first box
+        setTimeout(() => {
+          setIsConverging(false)
+          setIsLoading(false)
+
+          if (resData?.attempts_remaining !== undefined) {
+            setAttemptsRemaining(resData.attempts_remaining)
+          }
+          if (resData?.is_locked) {
+            setIsLocked(true)
+          } else {
+            if (otpInputsRef.current[0]) otpInputsRef.current[0].focus()
+          }
+        }, 1400)
+
+        return
       }
 
-      // Successful OTP Verification
-      setStep('success')
+      // CORRECT OTP:
       try {
         sessionStorage.setItem('adminVisitActive', 'true')
       } catch (e) {}
 
-      setTimeout(() => {
-        window.location.href = data.first_allowed_url || nextUrl || '/admin/dashboard/'
-      }, 900)
-    } catch (err) {
-      setErrorMessage(err.message || "That security code didn't match. Check the code and try again.")
-      triggerShake()
-      // Clear boxes and focus first box on failure
-      setOtpDigits(['', '', '', '', '', ''])
-      if (otpInputsRef.current[0]) {
-        otpInputsRef.current[0].focus()
+      const destUrl = resData?.first_allowed_url || nextUrl || '/admin/dashboard/'
+
+      // 0ms:
+      // 1. Fade out secondary text & button
+      setIsConverging(true)
+
+      // 0–400ms: Move OTP boxes toward exact center with slight rotation, scale 0.82 (numbers kept visible)
+      if (otpWrapperRef.current) {
+        const wrapperRect = otpWrapperRef.current.getBoundingClientRect()
+        const targetX = wrapperRect.left + wrapperRect.width / 2
+        const targetY = wrapperRect.top + wrapperRect.height / 2
+        const orbitRadius = 68 // px radius around 46px glowing center orb
+
+        const n = otpInputsRef.current.length
+        const configs = (n === 4) ? [
+          { angle: -135, tilt: -14 }, // TOP-LEFT
+          { angle: -45,  tilt: 16 },  // TOP-RIGHT
+          { angle: 135,  tilt: -12 }, // BOTTOM-LEFT
+          { angle: 45,   tilt: 18 }   // BOTTOM-RIGHT
+        ] : [
+          { angle: -140, tilt: -14 },
+          { angle: -80,  tilt: 12 },
+          { angle: -20,  tilt: -10 },
+          { angle: 40,   tilt: 16 },
+          { angle: 100,  tilt: -12 },
+          { angle: 160,  tilt: 18 }
+        ]
+
+        otpInputsRef.current.forEach((box, i) => {
+          if (!box) return
+          const cfg = configs[i] || { angle: (i * (360 / n) - 90), tilt: (i % 2 === 0 ? -14 : 16) }
+          const angleRad = cfg.angle * (Math.PI / 180)
+          const circlePosX = targetX + orbitRadius * Math.cos(angleRad)
+          const circlePosY = targetY + orbitRadius * Math.sin(angleRad)
+
+          const boxRect = box.getBoundingClientRect()
+          const boxCenterX = boxRect.left + boxRect.width / 2
+          const boxCenterY = boxRect.top + boxRect.height / 2
+
+          const deltaX = circlePosX - boxCenterX
+          const deltaY = circlePosY - boxCenterY
+
+          box.style.transition = 'transform 0.55s cubic-bezier(0.34, 1.25, 0.64, 1), border-color 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease'
+          box.style.borderColor = '#fdb101'
+          box.style.backgroundColor = '#ffffff'
+          box.style.boxShadow = '0 8px 24px rgba(253, 177, 1, 0.4), 0 2px 8px rgba(0, 0, 0, 0.08)'
+          box.style.borderRadius = '12px'
+          box.style.color = '#0f172a'
+          box.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.82) rotate(${cfg.tilt}deg)`
+        })
       }
-    } finally {
+
+      // 400–900ms: Reveal LARGE glowing circular center orb & start smooth circular orbit
+      setTimeout(() => {
+        setIsCenterOrbVisible(true)
+        setIsSpinning(true)
+      }, 400)
+
+      // 900–1400ms: Large circular ripple rings expand outward across 250px–350px
+      setTimeout(() => {
+        setIsRippleAnimating(true)
+      }, 850)
+
+      // 1700ms+: Smooth transition to existing Dashboard
+      setTimeout(() => {
+        setIsSuccessExiting(true)
+        setTimeout(() => {
+          window.location.href = destUrl
+        }, 320)
+      }, 1750)
+    } catch (err) {
+      setErrorMessage(err.message || 'Verification connection failed.')
+      triggerShake()
+      setOtpDigits(['', '', '', '', '', ''])
+      if (otpInputsRef.current[0]) otpInputsRef.current[0].focus()
       setIsLoading(false)
     }
   }, [otpDigits, csrfToken, nextUrl])
@@ -282,7 +446,7 @@ export default function LoginPage() {
     <div className="login-container">
       <h1 className="header-title">Welcome to <span>Moxie</span> Admin Dashboard</h1>
 
-      <div className={`login-card ${isShaking ? 'shake-card' : ''}`}>
+      <div className={`login-card ${isShaking ? 'shake-card' : ''} ${isSuccessExiting ? 'card-success-exit' : ''}`}>
         {step === 'credentials' && (
           <>
             <h2 className="card-heading">Welcome Back! 👋</h2>
@@ -353,9 +517,9 @@ export default function LoginPage() {
         )}
 
         {step === 'otp' && (
-          <div className="otp-verification-container">
-            <h2 className="card-heading">VERIFY YOUR IDENTITY</h2>
-            <p className="card-sub">
+          <div className="otp-verification-container" style={{ position: 'relative' }}>
+            <h2 className={`card-heading ${isConverging ? 'otp-fade-out' : ''}`}>VERIFY YOUR IDENTITY</h2>
+            <p className={`card-sub ${isConverging ? 'otp-fade-out' : ''}`}>
               We sent a 6-digit security code to<br />
               <strong className="otp-masked-email">{maskedEmail}</strong>
             </p>
@@ -373,29 +537,41 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={(e) => { e.preventDefault(); handleOtpSubmit(); }}>
-              {/* 6 OTP Input Boxes */}
-              <div className="otp-boxes-wrapper" onPaste={handleOtpPaste}>
-                {otpDigits.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => (otpInputsRef.current[idx] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={1}
-                    className={`otp-digit-box ${digit ? 'filled' : ''} ${errorMessage ? 'error' : ''}`}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    disabled={isLoading || isLocked || remainingSeconds <= 0}
-                    aria-label={`Digit ${idx + 1} of verification code`}
-                    autoComplete="off"
-                  />
-                ))}
+              {/* OTP Input Boxes inside Orbit Container */}
+              <div ref={otpWrapperRef} className={`otp-boxes-wrapper ${isConverging ? 'is-animating-success' : ''}`} onPaste={handleOtpPaste}>
+                {/* Expanding Circular Ripple Rings (250px - 350px) */}
+                <div className="otp-ripple-layer" aria-hidden="true">
+                  <div className={`otp-ripple-ring ring-1 ${isRippleAnimating ? 'is-animating' : ''} ${isErrorRipple ? 'error-ring' : ''}`} />
+                  <div className={`otp-ripple-ring ring-2 ${isRippleAnimating ? 'is-animating' : ''} ${isErrorRipple ? 'error-ring' : ''}`} />
+                  <div className={`otp-ripple-ring ring-3 ${isRippleAnimating ? 'is-animating' : ''} ${isErrorRipple ? 'error-ring' : ''}`} />
+                </div>
+
+                {/* Large Glowing Center Circular Orb */}
+                <div className={`otp-large-center-orb ${isCenterOrbVisible ? 'visible' : ''} ${isErrorOrb ? 'error-orb' : ''}`} aria-hidden="true" />
+
+                <div className={`otp-orbit-container ${isSpinning ? 'is-spinning' : ''} ${isErrorShaking ? 'is-error-shaking' : ''}`}>
+                  {otpDigits.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => (otpInputsRef.current[idx] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      className={`otp-digit-box ${digit ? 'filled' : ''} ${errorMessage ? 'error' : ''}`}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                      disabled={isLoading || isLocked || remainingSeconds <= 0 || isConverging}
+                      aria-label={`Digit ${idx + 1} of verification code`}
+                      autoComplete="off"
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Countdown & Attempts Info */}
-              <div className="otp-meta-info">
+              <div className={`otp-meta-info ${isConverging ? 'otp-fade-out' : ''}`}>
                 <div className="otp-expiry-timer">
                   Code expires in <strong>{formatTimer(remainingSeconds)}</strong>
                 </div>
@@ -406,15 +582,15 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="submit-btn"
-                disabled={isLoading || isLocked || remainingSeconds <= 0 || otpDigits.join('').length !== 6}
+                className={`submit-btn ${isConverging ? 'otp-fade-out' : ''}`}
+                disabled={isLoading || isLocked || remainingSeconds <= 0 || otpDigits.join('').length !== 6 || isConverging}
                 style={{ marginTop: '16px' }}
               >
                 {isLoading ? 'Verifying Code...' : 'VERIFY & SIGN IN \u2192'}
               </button>
 
               {/* Resend Cooldown & Link */}
-              <div className="otp-resend-row">
+              <div className={`otp-resend-row ${isConverging ? 'otp-fade-out' : ''}`}>
                 {cooldownSeconds > 0 ? (
                   <span className="resend-cooldown-text">
                     Resend code in <strong>00:{String(cooldownSeconds).padStart(2, '0')}</strong>
@@ -424,7 +600,7 @@ export default function LoginPage() {
                     type="button"
                     className="resend-otp-btn"
                     onClick={handleResendOtp}
-                    disabled={isLoading || isLocked}
+                    disabled={isLoading || isLocked || isConverging}
                   >
                     Resend OTP
                   </button>
@@ -432,36 +608,17 @@ export default function LoginPage() {
               </div>
 
               {/* Back to Sign In */}
-              <div className="otp-back-row">
+              <div className={`otp-back-row ${isConverging ? 'otp-fade-out' : ''}`}>
                 <button
                   type="button"
                   className="back-to-signin-btn"
                   onClick={handleBackToSignIn}
+                  disabled={isConverging}
                 >
                   &larr; Back to Sign In
                 </button>
               </div>
             </form>
-          </div>
-        )}
-
-        {step === 'success' && (
-          <div className="otp-success-container">
-            <div className="otp-boxes-wrapper">
-              {otpDigits.map((digit, idx) => (
-                <div key={idx} className="otp-digit-box success">
-                  {digit || '\u2713'}
-                </div>
-              ))}
-            </div>
-
-            <div className="otp-success-badge">
-              <span className="success-icon">&#10003;</span>
-              <h3>Identity Verified</h3>
-            </div>
-            <p className="card-sub" style={{ marginTop: '8px' }}>
-              Redirecting to Admin Dashboard...
-            </p>
           </div>
         )}
       </div>

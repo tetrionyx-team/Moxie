@@ -11,8 +11,9 @@ import {
   FiX,
   FiHeadphones,
   FiZap,
+  FiShare2,
 } from "react-icons/fi";
-import { FaHeart, FaRegHeart, FaStar, FaRegStar } from "react-icons/fa";
+import { FaHeart, FaRegHeart, FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 import { useData } from "../../context/DataContext";
 import { CartContext } from "../../context/CartContext";
 import { WishlistContext } from "../../context/WishlistContext";
@@ -189,6 +190,7 @@ export default function ProductDetails() {
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [selectedReviewImage, setSelectedReviewImage] = useState(null);
 
   // Reset transient product selections when navigating between products
   useEffect(() => {
@@ -780,6 +782,53 @@ export default function ProductDetails() {
     navigate("/checkout", { state: { checkoutItem: purchaseItem } });
   };
 
+  const handleShareProduct = async () => {
+    const productUrl = window.location.href;
+    const shareData = {
+      title: `MOXIE — ${product.name}`,
+      text: `Check out ${product.name} on MOXIE.`,
+      url: productUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err && (err.name === "AbortError" || err.message?.includes("Abort"))) {
+          return;
+        }
+        tryCopyClipboard(productUrl);
+      }
+    } else {
+      tryCopyClipboard(productUrl);
+    }
+  };
+
+  const tryCopyClipboard = async (url) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      if (toast) {
+        toast("Product link copied");
+      }
+    } catch {
+      if (toast) {
+        toast("Failed to copy link");
+      }
+    }
+  };
+
   const scrollToReviews = (e) => {
     e.preventDefault();
     setActiveTab("reviews");
@@ -842,16 +891,28 @@ export default function ProductDetails() {
                 <span className="pdp-badge-new">NEW</span>
               )}
 
-              {/* Wishlist Button on Top-Right of Main Image */}
-              <button
-                type="button"
-                className={`pdp-gallery-wishlist-btn ${wished ? "active" : ""}`}
-                onClick={handleWishlistToggle}
-                aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
-                title={wished ? "Remove from wishlist" : "Save to wishlist"}
-              >
-                {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
-              </button>
+              {/* Floating Wishlist & Share Controls on Top-Right of Main Image */}
+              <div className="pdp-gallery-floating-actions">
+                <button
+                  type="button"
+                  className={`pdp-gallery-wishlist-btn ${wished ? "active" : ""}`}
+                  onClick={handleWishlistToggle}
+                  aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+                  title={wished ? "Remove from wishlist" : "Save to wishlist"}
+                >
+                  {wished ? <FaHeart className="heart-active" /> : <FaRegHeart />}
+                </button>
+
+                <button
+                  type="button"
+                  className="pdp-gallery-share-btn"
+                  onClick={handleShareProduct}
+                  aria-label="Share this product"
+                  title="Share this product"
+                >
+                  <FiShare2 />
+                </button>
+              </div>
 
               {/* Main Media Content */}
               {isVideoActive ? (
@@ -985,14 +1046,17 @@ export default function ProductDetails() {
                 <>
                   <div className="pdp-rating-stars-badge">
                     <div className="pdp-stars-group">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FaStar
-                          key={star}
-                          className={star <= Math.round(averageRating) ? "star-filled" : "star-empty"}
-                        />
-                      ))}
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        if (averageRating >= star) {
+                          return <FaStar key={star} className="star-filled" />;
+                        } else if (averageRating >= star - 0.5) {
+                          return <FaStarHalfAlt key={star} className="star-filled" />;
+                        } else {
+                          return <FaRegStar key={star} className="star-empty-outline" />;
+                        }
+                      })}
                     </div>
-                    <span className="pdp-rating-score-val">{averageRating}</span>
+                    <span className="pdp-rating-score-val">{Number(averageRating).toFixed(1)}</span>
                   </div>
                   <a href="#reviews-section" onClick={scrollToReviews} className="pdp-review-count-link">
                     ({totalReviewsCount} {totalReviewsCount === 1 ? "review" : "reviews"})
@@ -1339,14 +1403,17 @@ export default function ProductDetails() {
                   {/* Left: Overall Score Summary & Breakdown */}
                   <div className="pdp-reviews-summary-panel">
                     <div className="pdp-score-big-wrap">
-                      <span className="pdp-score-big">{averageRating}</span>
+                      <span className="pdp-score-big">{Number(averageRating).toFixed(1)}</span>
                       <div className="pdp-score-stars-row">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <FaStar
-                            key={star}
-                            className={star <= Math.round(averageRating) ? "star-filled" : "star-empty"}
-                          />
-                        ))}
+                        {[1, 2, 3, 4, 5].map((star) => {
+                          if (averageRating >= star) {
+                            return <FaStar key={star} className="star-filled" />;
+                          } else if (averageRating >= star - 0.5) {
+                            return <FaStarHalfAlt key={star} className="star-filled" />;
+                          } else {
+                            return <FaRegStar key={star} className="star-empty-outline" />;
+                          }
+                        })}
                       </div>
                       <span className="pdp-total-verified-count">
                         Based on {totalReviewsCount} verified {totalReviewsCount === 1 ? "purchase" : "purchases"}
@@ -1415,6 +1482,30 @@ export default function ProductDetails() {
                         </div>
 
                         <p className="pdp-review-text">{rev.text}</p>
+
+                        {(() => {
+                          const revImages = Array.isArray(rev.images) && rev.images.length > 0
+                            ? rev.images
+                            : (rev.image ? [rev.image] : []);
+
+                          if (revImages.length === 0) return null;
+
+                          return (
+                            <div className="pdp-review-photo-gallery">
+                              {revImages.map((imgUrl, imgIdx) => (
+                                <div key={imgIdx} className="pdp-review-photo-wrap">
+                                  <img
+                                    src={imgUrl}
+                                    alt={`${rev.name || "Customer"}'s review upload ${imgIdx + 1}`}
+                                    className="pdp-review-uploaded-img"
+                                    onClick={() => setSelectedReviewImage({ images: revImages, activeIndex: imgIdx })}
+                                    loading="lazy"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </article>
                     ))}
                   </div>
@@ -1478,6 +1569,73 @@ export default function ProductDetails() {
             ) : (
               <img src={activeMediaItem?.url || allImages[0]} alt={product.name} className="pdp-lightbox-img" />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Customer Review Photo Lightbox Modal */}
+      {selectedReviewImage && (
+        <div
+          className="pdp-review-lightbox-overlay"
+          onClick={() => setSelectedReviewImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Customer review photo preview"
+        >
+          <div className="pdp-review-lightbox-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="pdp-review-lightbox-close-btn"
+              onClick={() => setSelectedReviewImage(null)}
+              aria-label="Close photo preview"
+            >
+              <FiX />
+            </button>
+            <img
+              src={
+                typeof selectedReviewImage === "object" && Array.isArray(selectedReviewImage.images)
+                  ? selectedReviewImage.images[selectedReviewImage.activeIndex]
+                  : selectedReviewImage
+              }
+              alt="Customer review attachment"
+              className="pdp-review-lightbox-img"
+            />
+            {typeof selectedReviewImage === "object" &&
+              Array.isArray(selectedReviewImage.images) &&
+              selectedReviewImage.images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="pdp-lightbox-nav-btn prev"
+                    onClick={() =>
+                      setSelectedReviewImage((prev) => ({
+                        ...prev,
+                        activeIndex:
+                          (prev.activeIndex - 1 + prev.images.length) % prev.images.length,
+                      }))
+                    }
+                    aria-label="Previous photo"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="pdp-lightbox-nav-btn next"
+                    onClick={() =>
+                      setSelectedReviewImage((prev) => ({
+                        ...prev,
+                        activeIndex: (prev.activeIndex + 1) % prev.images.length,
+                      }))
+                    }
+                    aria-label="Next photo"
+                  >
+                    ›
+                  </button>
+                  <div className="pdp-lightbox-counter">
+                    {selectedReviewImage.activeIndex + 1} / {selectedReviewImage.images.length}
+                  </div>
+                </>
+              )}
           </div>
         </div>
       )}

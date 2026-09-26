@@ -34,25 +34,53 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState(null)
   const [viewingUser, setViewingUser] = useState(null)
   const [deletingUser, setDeletingUser] = useState(null)
+  const [resettingUser, setResettingUser] = useState(null)
 
-  // Form State
-  const [formData, setFormData] = useState({
+  // Add Form State
+  const [addFormData, setAddFormData] = useState({
     name: '',
     username: '',
     email: '',
-    role: '',
+    role: 'Staff Admin',
     password: '',
     confirm_password: '',
     is_active: true,
     permissions: ['Dashboard', 'Products', 'Categories', 'Orders', 'Customers', 'Reviews', 'Messages']
   })
+  const [addPasswordErrors, setAddPasswordErrors] = useState({ password: '', confirm_password: '' })
+  const [showAddPassword, setShowAddPassword] = useState(false)
+  const [showAddConfirmPassword, setShowAddConfirmPassword] = useState(false)
 
+  // Edit Form State
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    role: '',
+    is_active: true,
+    permissions: [],
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  const [editPasswordErrors, setEditPasswordErrors] = useState({ current_password: '', new_password: '', confirm_password: '' })
+  const [showEditCurrentPw, setShowEditCurrentPw] = useState(false)
+  const [showEditNewPw, setShowEditNewPw] = useState(false)
+  const [showEditConfirmPw, setShowEditConfirmPw] = useState(false)
+
+  // Super Admin Reset Password State
+  const [resetFormData, setResetFormData] = useState({
+    new_password: '',
+    confirm_password: '',
+    admin_password: ''
+  })
+  const [resetPasswordErrors, setResetPasswordErrors] = useState({ new_password: '', confirm_password: '', admin_password: '' })
+  const [showResetNewPw, setShowResetNewPw] = useState(false)
+  const [showResetConfirmPw, setShowResetConfirmPw] = useState(false)
+  const [showResetAdminPw, setShowResetAdminPw] = useState(false)
+
+  // Global Alert State
   const [errorMsg, setErrorMsg] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
-  const [passwordErrors, setPasswordErrors] = useState({ password: '', confirm_password: '' })
-  const [pwSubmitted, setPwSubmitted] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const allAvailablePermissions = [
     'Dashboard', 'Products', 'Categories', 'Orders',
@@ -61,7 +89,7 @@ export default function AdminUsersPage() {
   ]
 
   // Password validation rules
-  const validatePassword = (password, confirm) => {
+  const validatePasswordRules = (password, confirm) => {
     const errs = { password: '', confirm_password: '' }
     if (!password) {
       errs.password = 'Password is required.'
@@ -86,7 +114,9 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin-users/')
       if (res.ok) {
         const data = await res.json()
-        if (data.admin_users) {
+        if (data.results) {
+          setUsers(data.results)
+        } else if (data.admin_users) {
           setUsers(data.admin_users)
         }
       }
@@ -149,16 +179,16 @@ export default function AdminUsersPage() {
   const startIdx = (currentPage - 1) * itemsPerPage
   const currentItems = filteredUsers.slice(startIdx, startIdx + itemsPerPage)
 
-  const handleInputChange = (e) => {
+  const handleAddInputChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
+    setAddFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
   }
 
-  const handlePermissionToggle = (perm) => {
-    setFormData(prev => {
+  const handleAddPermissionToggle = (perm) => {
+    setAddFormData(prev => {
       const current = prev.permissions || []
       if (current.includes(perm)) {
         return { ...prev, permissions: current.filter(p => p !== perm) }
@@ -166,6 +196,33 @@ export default function AdminUsersPage() {
         return { ...prev, permissions: [...current, perm] }
       }
     })
+  }
+
+  const handleEditInputChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }))
+  }
+
+  const handleEditPermissionToggle = (perm) => {
+    setEditFormData(prev => {
+      const current = prev.permissions || []
+      if (current.includes(perm)) {
+        return { ...prev, permissions: current.filter(p => p !== perm) }
+      } else {
+        return { ...prev, permissions: [...current, perm] }
+      }
+    })
+  }
+
+  const handleResetInputChange = (e) => {
+    const { name, value } = e.target
+    setResetFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   const triggerNotificationRefresh = () => {
@@ -183,9 +240,8 @@ export default function AdminUsersPage() {
   // Add User
   const handleAddSubmit = async (e) => {
     e.preventDefault()
-    setPwSubmitted(true)
-    const errs = validatePassword(formData.password, formData.confirm_password)
-    setPasswordErrors(errs)
+    const errs = validatePasswordRules(addFormData.password, addFormData.confirm_password)
+    setAddPasswordErrors(errs)
     if (errs.password || errs.confirm_password) return
 
     try {
@@ -196,11 +252,11 @@ export default function AdminUsersPage() {
           'Content-Type': 'application/json',
           'X-CSRFToken': csrfToken,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(addFormData),
       })
       const data = await res.json()
       if (res.ok) {
-        setSuccessMsg(`Admin user ${formData.name || formData.username} created successfully.`)
+        setSuccessMsg(`Admin user ${addFormData.name || addFormData.username} created successfully.`)
         setIsAddModalOpen(false)
         refreshUsers()
         triggerNotificationRefresh()
@@ -215,41 +271,73 @@ export default function AdminUsersPage() {
   // Open Edit Modal
   const openEditModal = (u) => {
     setEditingUser(u)
-    setFormData({
+    setEditFormData({
       name: u.name || '',
-      username: u.username || '',
       email: u.email || '',
       role: u.role || 'Staff Admin',
-      password: '',
-      confirm_password: '',
       is_active: u.isActive !== false && u.is_active !== false,
-      permissions: u.permissions || ['Dashboard', 'Products', 'Categories', 'Orders', 'Customers', 'Reviews', 'Messages']
+      permissions: u.permissions || ['Dashboard', 'Products', 'Categories', 'Orders', 'Customers', 'Reviews', 'Messages'],
+      current_password: '',
+      new_password: '',
+      confirm_password: ''
     })
-    setPasswordErrors({ password: '', confirm_password: '' })
-    setPwSubmitted(false)
+    setEditPasswordErrors({ current_password: '', new_password: '', confirm_password: '' })
+    setShowEditCurrentPw(false)
+    setShowEditNewPw(false)
+    setShowEditConfirmPw(false)
   }
 
   // Save Edit
   const handleEditSubmit = async (e) => {
     e.preventDefault()
-    if (formData.password) {
-      const errs = validatePassword(formData.password, formData.confirm_password)
-      setPasswordErrors(errs)
-      if (errs.password || errs.confirm_password) return
+    const isSelf = editingUser && String(editingUser.id) === String(currentUserId)
+
+    // Password validations if self-change was entered
+    if (isSelf && editFormData.new_password) {
+      const errs = { current_password: '', new_password: '', confirm_password: '' }
+      if (!editFormData.current_password) {
+        errs.current_password = 'Current password is required.'
+      }
+      if (editFormData.new_password.length < 6) {
+        errs.new_password = 'Password must be at least 6 characters.'
+      }
+      if (!editFormData.confirm_password) {
+        errs.confirm_password = 'Confirm password is required.'
+      } else if (editFormData.new_password !== editFormData.confirm_password) {
+        errs.confirm_password = 'New passwords do not match.'
+      }
+
+      setEditPasswordErrors(errs)
+      if (errs.current_password || errs.new_password || errs.confirm_password) return
     }
+
     try {
       const csrfToken = ctx.csrfToken || ''
+      const payload = {
+        name: editFormData.name,
+        email: editFormData.email,
+        role: editFormData.role,
+        is_active: editFormData.is_active,
+        permissions: editFormData.permissions,
+      }
+
+      if (isSelf && editFormData.new_password) {
+        payload.current_password = editFormData.current_password
+        payload.new_password = editFormData.new_password
+        payload.confirm_password = editFormData.confirm_password
+      }
+
       const res = await fetch(`/api/admin-users/${editingUser.id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': csrfToken,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (res.ok) {
-        setSuccessMsg(`Admin user updated successfully.`)
+        setSuccessMsg(data.message || (isSelf && editFormData.new_password ? 'Password changed successfully.' : 'Admin user updated successfully.'))
         setEditingUser(null)
         refreshUsers()
         triggerNotificationRefresh()
@@ -258,6 +346,73 @@ export default function AdminUsersPage() {
       }
     } catch {
       setErrorMsg('Network error updating admin user.')
+    }
+  }
+
+  // Open Reset Password Modal
+  const openResetPasswordModal = (u) => {
+    setResettingUser(u)
+    setResetFormData({
+      new_password: '',
+      confirm_password: '',
+      admin_password: ''
+    })
+    setResetPasswordErrors({ new_password: '', confirm_password: '', admin_password: '' })
+    setShowResetNewPw(false)
+    setShowResetConfirmPw(false)
+    setShowResetAdminPw(false)
+  }
+
+  // Submit Super Admin Password Reset
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault()
+    if (!resettingUser) return
+
+    const errs = { new_password: '', confirm_password: '', admin_password: '' }
+    if (!resetFormData.new_password) {
+      errs.new_password = 'New password is required.'
+    } else if (resetFormData.new_password.length < 6) {
+      errs.new_password = 'Password must be at least 6 characters.'
+    }
+
+    if (!resetFormData.confirm_password) {
+      errs.confirm_password = 'Confirm password is required.'
+    } else if (resetFormData.new_password !== resetFormData.confirm_password) {
+      errs.confirm_password = 'New passwords do not match.'
+    }
+
+    if (!resetFormData.admin_password) {
+      errs.admin_password = 'Your Super Admin password is required.'
+    }
+
+    setResetPasswordErrors(errs)
+    if (errs.new_password || errs.confirm_password || errs.admin_password) return
+
+    try {
+      const csrfToken = ctx.csrfToken || ''
+      const res = await fetch(`/api/admin-users/${resettingUser.id}/reset-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+          new_password: resetFormData.new_password,
+          confirm_password: resetFormData.confirm_password,
+          admin_password: resetFormData.admin_password,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSuccessMsg(data.message || 'Password reset successfully.')
+        setResettingUser(null)
+        refreshUsers()
+        triggerNotificationRefresh()
+      } else {
+        setErrorMsg(data.error || 'Failed to reset password.')
+      }
+    } catch {
+      setErrorMsg('Network error resetting password.')
     }
   }
 
@@ -332,12 +487,13 @@ export default function AdminUsersPage() {
           type="button"
           className="btn-add-admin"
           onClick={() => {
-            setFormData({
-              name: '', username: '', email: '', role: '', password: '', confirm_password: '', is_active: true,
+            setAddFormData({
+              name: '', username: '', email: '', role: 'Staff Admin', password: '', confirm_password: '', is_active: true,
               permissions: ['Dashboard', 'Products', 'Categories', 'Orders', 'Customers', 'Reviews', 'Messages']
             })
-            setPasswordErrors({ password: '', confirm_password: '' })
-            setPwSubmitted(false)
+            setAddPasswordErrors({ password: '', confirm_password: '' })
+            setShowAddPassword(false)
+            setShowAddConfirmPassword(false)
             setIsAddModalOpen(true)
           }}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
@@ -462,7 +618,7 @@ export default function AdminUsersPage() {
               {currentItems.length > 0 ? (
                 currentItems.map((u, idx) => {
                   const isActive = u.isActive !== false && u.is_active !== false
-                  const isCurrent = u.id === currentUserId
+                  const isCurrent = String(u.id) === String(currentUserId)
 
                   return (
                     <tr key={u.id}>
@@ -517,6 +673,20 @@ export default function AdminUsersPage() {
                           >
                             <AppIcon icon={EditIcon} size={15} />
                           </button>
+
+                          {/* Reset Password Button for Other Users */}
+                          {!isCurrent && (
+                            <button
+                              type="button"
+                              className="action-btn"
+                              onClick={() => openResetPasswordModal(u)}
+                              title="Reset User Password"
+                              aria-label="Reset User Password"
+                              style={{ color: '#6366f1' }}
+                            >
+                              <AppIcon icon={LockIcon} size={15} />
+                            </button>
+                          )}
 
                           {/* Toggle Active Button */}
                           <button
@@ -607,22 +777,22 @@ export default function AdminUsersPage() {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label>Full Name</label>
-                    <input type="text" name="name" placeholder="e.g. Arun Raj" value={formData.name} onChange={handleInputChange} required />
+                    <input type="text" name="name" placeholder="e.g. Arun Raj" value={addFormData.name} onChange={handleAddInputChange} required />
                   </div>
                   <div className="form-group">
                     <label>Username</label>
-                    <input type="text" name="username" placeholder="e.g. arunraj" value={formData.username} onChange={handleInputChange} autoComplete="off" required />
+                    <input type="text" name="username" placeholder="e.g. arunraj" value={addFormData.username} onChange={handleAddInputChange} autoComplete="off" required />
                   </div>
                 </div>
 
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label>Email Address</label>
-                    <input type="email" name="email" placeholder="arun@moxie.com" value={formData.email} onChange={handleInputChange} required />
+                    <input type="email" name="email" placeholder="arun@moxie.com" value={addFormData.email} onChange={handleAddInputChange} required />
                   </div>
                   <div className="form-group">
                     <label>Role Assignment</label>
-                    <input type="text" name="role" placeholder="e.g. Manager, Staff..." value={formData.role} onChange={handleInputChange} required />
+                    <input type="text" name="role" placeholder="e.g. Staff Admin, Manager..." value={addFormData.role} onChange={handleAddInputChange} required />
                   </div>
                 </div>
 
@@ -631,46 +801,32 @@ export default function AdminUsersPage() {
                     <label>Password</label>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <input
-                        type={showPassword ? 'text' : 'password'}
+                        type={showAddPassword ? 'text' : 'password'}
                         name="password"
                         placeholder="••••••••"
-                        value={formData.password || ''}
-                        onChange={handleInputChange}
+                        value={addFormData.password || ''}
+                        onChange={handleAddInputChange}
                         autoComplete="new-password"
                         required
                         style={{
                           width: '100%',
                           paddingRight: '38px',
                           boxSizing: 'border-box',
-                          ...(passwordErrors.password ? { borderColor: '#ef4444' } : {})
+                          ...(addPasswordErrors.password ? { borderColor: '#ef4444' } : {})
                         }}
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#64748b',
-                          zIndex: 2
-                        }}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowAddPassword(!showAddPassword)}
+                        className="pw-toggle-btn"
+                        aria-label={showAddPassword ? "Hide password" : "Show password"}
                       >
-                        <AppIcon icon={showPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
+                        <AppIcon icon={showAddPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
                       </button>
                     </div>
-                    {passwordErrors.password && (
+                    {addPasswordErrors.password && (
                       <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
-                        ⚠ {passwordErrors.password}
+                        ⚠ {addPasswordErrors.password}
                       </p>
                     )}
                   </div>
@@ -678,46 +834,32 @@ export default function AdminUsersPage() {
                     <label>Confirm Password</label>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <input
-                        type={showConfirmPassword ? 'text' : 'password'}
+                        type={showAddConfirmPassword ? 'text' : 'password'}
                         name="confirm_password"
                         placeholder="••••••••"
-                        value={formData.confirm_password || ''}
-                        onChange={handleInputChange}
+                        value={addFormData.confirm_password || ''}
+                        onChange={handleAddInputChange}
                         autoComplete="new-password"
                         required
                         style={{
                           width: '100%',
                           paddingRight: '38px',
                           boxSizing: 'border-box',
-                          ...(passwordErrors.confirm_password ? { borderColor: '#ef4444' } : {})
+                          ...(addPasswordErrors.confirm_password ? { borderColor: '#ef4444' } : {})
                         }}
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#64748b',
-                          zIndex: 2
-                        }}
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
+                        className="pw-toggle-btn"
+                        aria-label={showAddConfirmPassword ? "Hide password" : "Show password"}
                       >
-                        <AppIcon icon={showConfirmPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
+                        <AppIcon icon={showAddConfirmPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
                       </button>
                     </div>
-                    {passwordErrors.confirm_password && (
+                    {addPasswordErrors.confirm_password && (
                       <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
-                        ⚠ {passwordErrors.confirm_password}
+                        ⚠ {addPasswordErrors.confirm_password}
                       </p>
                     )}
                   </div>
@@ -730,8 +872,8 @@ export default function AdminUsersPage() {
                       <label key={perm} className="checkbox-item">
                         <input
                           type="checkbox"
-                          checked={formData.permissions.includes(perm)}
-                          onChange={() => handlePermissionToggle(perm)}
+                          checked={addFormData.permissions.includes(perm)}
+                          onChange={() => handleAddPermissionToggle(perm)}
                         />
                         {perm}
                       </label>
@@ -757,30 +899,50 @@ export default function AdminUsersPage() {
               <h2>✏️ Edit Admin User ({editingUser.username})</h2>
               <button className="modal-close-btn" onClick={() => setEditingUser(null)}>×</button>
             </div>
-            <form onSubmit={handleEditSubmit}>
+            <form onSubmit={handleEditSubmit} autoComplete="off">
               <div className="modal-body-container">
+                {/* 1. Normal Admin Edit Fields */}
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label>Full Name</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleEditInputChange}
+                      required
+                    />
                   </div>
                   <div className="form-group">
                     <label>Email Address</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} required />
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email}
+                      onChange={handleEditInputChange}
+                      required
+                    />
                   </div>
                 </div>
 
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label>Role</label>
-                    <input type="text" name="role" placeholder="e.g. Manager, Content Manager..." value={formData.role} onChange={handleInputChange} required />
+                    <input
+                      type="text"
+                      name="role"
+                      placeholder="e.g. Staff Admin, Catalog Manager..."
+                      value={editFormData.role}
+                      onChange={handleEditInputChange}
+                      required
+                    />
                   </div>
                   <div className="form-group">
                     <label>Account Status</label>
                     <CustomSelect
                       name="is_active"
-                      value={formData.is_active ? 'true' : 'false'}
-                      onChange={e => setFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
+                      value={editFormData.is_active ? 'true' : 'false'}
+                      onChange={e => setEditFormData(prev => ({ ...prev, is_active: e.target.value === 'true' }))}
                       options={[
                         { value: 'true', label: 'Active' },
                         { value: 'false', label: 'Inactive' }
@@ -791,121 +953,309 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label>Old Password <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>(Leave blank to keep current)</span></label>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="old_password"
-                        placeholder="••••••••"
-                        value={formData.old_password || ''}
-                        onChange={handleInputChange}
-                        autoComplete="current-password"
-                        style={{
-                          width: '100%',
-                          paddingRight: '38px',
-                          boxSizing: 'border-box',
-                          ...(passwordErrors.old_password ? { borderColor: '#ef4444' } : {})
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#64748b',
-                          zIndex: 2
-                        }}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        <AppIcon icon={showPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
-                      </button>
-                    </div>
-                    {passwordErrors.old_password && (
-                      <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
-                        ⚠ {passwordErrors.old_password}
-                      </p>
-                    )}
-                  </div>
-                  <div className="form-group">
-                    <label>New Password</label>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        name="password"
-                        placeholder="••••••••"
-                        value={formData.password || ''}
-                        onChange={handleInputChange}
-                        autoComplete="new-password"
-                        style={{
-                          width: '100%',
-                          paddingRight: '38px',
-                          boxSizing: 'border-box',
-                          ...(passwordErrors.password ? { borderColor: '#ef4444' } : {})
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#64748b',
-                          zIndex: 2
-                        }}
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                      >
-                        <AppIcon icon={showConfirmPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
-                      </button>
-                    </div>
-                    {passwordErrors.password && (
-                      <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
-                        ⚠ {passwordErrors.password}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: '16px' }}>
+                <div className="form-group">
                   <label>Permissions Granted</label>
                   <div className="permissions-checklist-grid">
                     {allAvailablePermissions.map(perm => (
                       <label key={perm} className="checkbox-item">
                         <input
                           type="checkbox"
-                          checked={formData.permissions.includes(perm)}
-                          onChange={() => handlePermissionToggle(perm)}
+                          checked={editFormData.permissions.includes(perm)}
+                          onChange={() => handleEditPermissionToggle(perm)}
                         />
                         {perm}
                       </label>
                     ))}
                   </div>
                 </div>
+
+                {/* 2. Separate Change Password Section */}
+                <div className="change-password-section" style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '750', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.02em' }}>
+                      <AppIcon icon={LockIcon} size={16} />
+                      <span>CHANGE PASSWORD</span>
+                    </h3>
+                    {String(editingUser.id) === String(currentUserId) && (
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>Leave blank to keep current password</span>
+                    )}
+                  </div>
+
+                  {String(editingUser.id) === String(currentUserId) ? (
+                    // Self password change flow
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div className="form-group">
+                        <label>Current Password</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <input
+                            type={showEditCurrentPw ? 'text' : 'password'}
+                            name="current_password"
+                            placeholder="Enter your current password"
+                            value={editFormData.current_password}
+                            onChange={handleEditInputChange}
+                            autoComplete="current-password"
+                            style={{
+                              width: '100%',
+                              paddingRight: '38px',
+                              boxSizing: 'border-box',
+                              ...(editPasswordErrors.current_password ? { borderColor: '#ef4444' } : {})
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowEditCurrentPw(!showEditCurrentPw)}
+                            className="pw-toggle-btn"
+                            aria-label={showEditCurrentPw ? "Hide current password" : "Show current password"}
+                          >
+                            <AppIcon icon={showEditCurrentPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                          </button>
+                        </div>
+                        {editPasswordErrors.current_password && (
+                          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                            ⚠ {editPasswordErrors.current_password}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="form-grid-2">
+                        <div className="form-group">
+                          <label>New Password</label>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                              type={showEditNewPw ? 'text' : 'password'}
+                              name="new_password"
+                              placeholder="Enter new password"
+                              value={editFormData.new_password}
+                              onChange={handleEditInputChange}
+                              autoComplete="new-password"
+                              style={{
+                                width: '100%',
+                                paddingRight: '38px',
+                                boxSizing: 'border-box',
+                                ...(editPasswordErrors.new_password ? { borderColor: '#ef4444' } : {})
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowEditNewPw(!showEditNewPw)}
+                              className="pw-toggle-btn"
+                              aria-label={showEditNewPw ? "Hide new password" : "Show new password"}
+                            >
+                              <AppIcon icon={showEditNewPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                            </button>
+                          </div>
+                          {editPasswordErrors.new_password && (
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                              ⚠ {editPasswordErrors.new_password}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="form-group">
+                          <label>Confirm New Password</label>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                              type={showEditConfirmPw ? 'text' : 'password'}
+                              name="confirm_password"
+                              placeholder="Confirm new password"
+                              value={editFormData.confirm_password}
+                              onChange={handleEditInputChange}
+                              autoComplete="new-password"
+                              style={{
+                                width: '100%',
+                                paddingRight: '38px',
+                                boxSizing: 'border-box',
+                                ...(editPasswordErrors.confirm_password ? { borderColor: '#ef4444' } : {})
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowEditConfirmPw(!showEditConfirmPw)}
+                              className="pw-toggle-btn"
+                              aria-label={showEditConfirmPw ? "Hide confirm password" : "Show confirm password"}
+                            >
+                              <AppIcon icon={showEditConfirmPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                            </button>
+                          </div>
+                          {editPasswordErrors.confirm_password && (
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                              ⚠ {editPasswordErrors.confirm_password}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Super Admin editing another admin
+                    <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#334155', fontWeight: '600' }}>
+                          Administrator Password
+                        </p>
+                        <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                          Target user's password cannot be viewed. Use the secure Super Admin reset tool to assign a new password.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = editingUser
+                          setEditingUser(null)
+                          openResetPasswordModal(target)
+                        }}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: '#4338ca',
+                          borderRadius: '8px',
+                          padding: '8px 14px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <AppIcon icon={LockIcon} size={15} />
+                        <span>Reset Password</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="modal-footer-bar">
                 <button type="button" className="btn-cancel" onClick={() => setEditingUser(null)}>Cancel</button>
                 <button type="submit" className="btn-submit-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RESET PASSWORD MODAL FOR SUPER ADMIN */}
+      {resettingUser && (
+        <div className="admin-modal-backdrop" onClick={() => setResettingUser(null)}>
+          <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header-bar">
+              <h2>🔑 Reset Password ({resettingUser.username})</h2>
+              <button className="modal-close-btn" onClick={() => setResettingUser(null)}>×</button>
+            </div>
+            <form onSubmit={handleResetPasswordSubmit} autoComplete="off">
+              <div className="modal-body-container">
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '12.5px', color: '#1e40af', lineHeight: '1.45' }}>
+                  🔒 <strong>Super Admin Authorization:</strong> You are resetting the login password for <strong>{resettingUser.name || resettingUser.username}</strong> ({resettingUser.email}).
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label>New Password</label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type={showResetNewPw ? 'text' : 'password'}
+                      name="new_password"
+                      placeholder="Enter new password"
+                      value={resetFormData.new_password}
+                      onChange={handleResetInputChange}
+                      autoComplete="new-password"
+                      required
+                      style={{
+                        width: '100%',
+                        paddingRight: '38px',
+                        boxSizing: 'border-box',
+                        ...(resetPasswordErrors.new_password ? { borderColor: '#ef4444' } : {})
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetNewPw(!showResetNewPw)}
+                      className="pw-toggle-btn"
+                      aria-label={showResetNewPw ? "Hide new password" : "Show new password"}
+                    >
+                      <AppIcon icon={showResetNewPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                    </button>
+                  </div>
+                  {resetPasswordErrors.new_password && (
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                      ⚠ {resetPasswordErrors.new_password}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label>Confirm New Password</label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type={showResetConfirmPw ? 'text' : 'password'}
+                      name="confirm_password"
+                      placeholder="Confirm new password"
+                      value={resetFormData.confirm_password}
+                      onChange={handleResetInputChange}
+                      autoComplete="new-password"
+                      required
+                      style={{
+                        width: '100%',
+                        paddingRight: '38px',
+                        boxSizing: 'border-box',
+                        ...(resetPasswordErrors.confirm_password ? { borderColor: '#ef4444' } : {})
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetConfirmPw(!showResetConfirmPw)}
+                      className="pw-toggle-btn"
+                      aria-label={showResetConfirmPw ? "Hide confirm password" : "Show confirm password"}
+                    >
+                      <AppIcon icon={showResetConfirmPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                    </button>
+                  </div>
+                  {resetPasswordErrors.confirm_password && (
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                      ⚠ {resetPasswordErrors.confirm_password}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Your Super Admin Password <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>(Identity Verification)</span></label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type={showResetAdminPw ? 'text' : 'password'}
+                      name="admin_password"
+                      placeholder="Enter your current Super Admin password"
+                      value={resetFormData.admin_password}
+                      onChange={handleResetInputChange}
+                      autoComplete="current-password"
+                      required
+                      style={{
+                        width: '100%',
+                        paddingRight: '38px',
+                        boxSizing: 'border-box',
+                        ...(resetPasswordErrors.admin_password ? { borderColor: '#ef4444' } : {})
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetAdminPw(!showResetAdminPw)}
+                      className="pw-toggle-btn"
+                      aria-label={showResetAdminPw ? "Hide admin password" : "Show admin password"}
+                    >
+                      <AppIcon icon={showResetAdminPw ? ViewOffSlashIcon : ViewIcon} size={18} />
+                    </button>
+                  </div>
+                  {resetPasswordErrors.admin_password && (
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                      ⚠ {resetPasswordErrors.admin_password}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="modal-footer-bar">
+                <button type="button" className="btn-cancel" onClick={() => setResettingUser(null)}>Cancel</button>
+                <button type="submit" className="btn-submit-primary" style={{ background: '#4338ca' }}>Reset Password</button>
               </div>
             </form>
           </div>

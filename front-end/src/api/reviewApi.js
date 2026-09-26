@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./apiConfig";
+import { apiFetch } from "./apiConfig";
 
 /**
  * Fetch approved reviews for a specific product from Django backend
@@ -6,7 +6,7 @@ import { API_BASE_URL } from "./apiConfig";
 export async function getProductReviews(productId) {
   if (!productId) return [];
   try {
-    const response = await fetch(`${API_BASE_URL}/reviews/?product_id=${productId}`);
+    const response = await apiFetch(`/reviews/?product_id=${productId}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch reviews: ${response.status}`);
     }
@@ -22,18 +22,23 @@ export async function getProductReviews(productId) {
  * Submit a customer review for an eligible delivered product
  */
 export async function submitProductReview(reviewData) {
-  const response = await fetch(`${API_BASE_URL}/reviews/`, {
+  const isFormData = typeof FormData !== "undefined" && reviewData instanceof FormData;
+  const options = {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(reviewData),
-  });
+    body: isFormData ? reviewData : JSON.stringify(reviewData),
+  };
+  if (!isFormData) {
+    options.headers = { "Content-Type": "application/json" };
+  }
+
+  const response = await apiFetch("/reviews/", options);
 
   const resData = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const errMsg = resData.error || resData.detail || (typeof resData === "object" ? Object.values(resData).flat().join(" ") : "Failed to submit review");
+    const errMsg =
+      resData.error ||
+      resData.detail ||
+      (typeof resData === "object" ? Object.values(resData).flat().join(" ") : "Failed to submit review");
     throw new Error(errMsg);
   }
 

@@ -504,14 +504,16 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--moxie-acc-gold);
-  color: #ffffff;
-  font-size: 42px;
+  background: #FAF8F5;
+  color: #0B192C;
+  font-size: 48px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   letter-spacing: 0.5px;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 .profile-avatar-camera-btn {
@@ -740,13 +742,16 @@
 .avatar-preview-initials {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--moxie-acc-gold);
-  color: #ffffff;
+  background: #FAF8F5;
+  color: #0B192C;
   font-weight: 800;
   font-size: 28px;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 .profile-edit-avatar-actions {

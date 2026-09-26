@@ -37,7 +37,7 @@ describe("AccountDropdown component", () => {
     expect(screen.getByText("Harish Raja")).toBeInTheDocument();
 
     // 2. Check Initials
-    expect(screen.getByText("HR")).toBeInTheDocument();
+    expect(screen.getByText("H")).toBeInTheDocument();
 
     // 3. Confirm Email is NOT in the document
     expect(screen.queryByText("harish@example.com")).not.toBeInTheDocument();

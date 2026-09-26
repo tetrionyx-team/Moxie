@@ -2,6 +2,17 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./NavBottom.css";
 
+const NAV_ITEMS = [
+  { name: "Home", path: "/", slug: "home" },
+  { name: "Watches", path: "/products/watches", slug: "watches" },
+  { name: "Shoes", path: "/products/shoes", slug: "shoes" },
+  { name: "Air Buds", path: "/products/air-buds", slug: "air-buds" },
+  { name: "Sliders", path: "/products/sliders", slug: "sliders" },
+  { name: "Caps", path: "/products/caps", slug: "caps" },
+  { name: "Accessories", path: "/products/accessories", slug: "accessories" },
+  { name: "Deals", path: "/products/deals", slug: "deals" },
+];
+
 function NavBottom() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -25,18 +36,26 @@ function NavBottom() {
   };
 
   return (
-    <div className="bottom-items">
+    <nav className="bottom-items" aria-label="Product Categories Navigation">
       <ul className="bottom-menu">
-        <li className={isCategoryActive("home", "/") ? "active" : ""}><Link to="/">Home</Link></li>
-        <li className={isCategoryActive("watches", "/products/watches") ? "active" : ""}><Link to="/products/watches">Watches</Link></li>
-        <li className={isCategoryActive("shoes", "/products/shoes") ? "active" : ""}><Link to="/products/shoes">Shoes</Link></li>
-        <li className={isCategoryActive("air-buds", "/products/air-buds") ? "active" : ""}><Link to="/products/air-buds">Air Buds</Link></li>
-        <li className={isCategoryActive("sliders", "/products/sliders") ? "active" : ""}><Link to="/products/sliders">Sliders</Link></li>
-        <li className={isCategoryActive("caps", "/products/caps") ? "active" : ""}><Link to="/products/caps">Caps</Link></li>
-        <li className={isCategoryActive("accessories", "/products/accessories") ? "active" : ""}><Link to="/products/accessories">Accessories</Link></li>
-        <li className={isCategoryActive("deals", "/products/deals") ? "active" : ""}><Link to="/products/deals">Deals</Link></li>
+        {NAV_ITEMS.map((item) => {
+          const isActive = isCategoryActive(item.slug, item.path);
+          return (
+            <li
+              key={item.slug}
+              className={`bottom-menu-item ${isActive ? "active" : ""}`}
+            >
+              <Link
+                to={item.path}
+                className={`bottom-menu-link ${isActive ? "active" : ""}`}
+              >
+                {item.name}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
-    </div>
+    </nav>
   );
 }
 

@@ -56,7 +56,8 @@
   transform: translateY(-1px);
 }
 
-.nav-item span {
+.nav-item > span,
+.nav-label {
   font-size: 11.5px;
   font-weight: 700;
   color: #111827;
@@ -64,7 +65,12 @@
   transition: color 0.18s ease;
 }
 
-.nav-item:hover span {
+.nav-item:hover > span,
+.nav-item:focus > span,
+.nav-item:active > span,
+.nav-item:hover .nav-label,
+.nav-item:focus .nav-label,
+.nav-item:active .nav-label {
   color: #c9a35c;
 }
 
@@ -137,6 +143,7 @@
 /* Wishlist Badge Styles */
 .wishlist-icon-wrapper {
   position: relative;
+  overflow: visible;
 }
 
 .wishlist-badge {
@@ -144,7 +151,7 @@
   top: -4px;
   right: -6px;
   background-color: #ff4b5c;
-  color: #ffffff;
+  color: #ffffff !important;
   font-size: 9.5px;
   font-weight: 700;
   min-width: 16px;
@@ -156,32 +163,74 @@
   padding: 0 3px;
   border: 1.5px solid #ffffff;
   box-shadow: 0 2px 8px rgba(255, 75, 92, 0.45);
+  z-index: 5;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none;
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.nav-item:hover .wishlist-badge,
+.nav-item:active .wishlist-badge,
+.nav-item:focus .wishlist-badge,
+.nav-item:focus-within .wishlist-badge {
+  color: #ffffff !important;
+  background-color: #ff4b5c !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Cart Badge Styles */
 .cart-icon-wrapper {
   position: relative;
+  overflow: visible;
 }
 
-.cart-badge {
+.cart-badge,
+.cart-count-badge {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  background-color: #c9a35c;
-  color: #ffffff;
-  font-size: 9.5px;
+  top: -6px;
+  right: -8px;
+  background-color: var(--moxie-gold, #c9a35c);
+  color: #071426 !important;
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
   font-weight: 800;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 3px;
+  padding: 0 4px;
   border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(201, 163, 92, 0.35);
+  box-shadow: 0 2px 8px rgba(201, 163, 92, 0.4);
+  line-height: 1;
+  box-sizing: border-box;
+  z-index: 5;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none;
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Hover/Active/Focus Protection - Badge must always remain visible and readable */
+.nav-item:hover .cart-badge,
+.nav-item:active .cart-badge,
+.nav-item:focus .cart-badge,
+.nav-item:focus-within .cart-badge,
+.nav-item:hover .cart-count-badge,
+.nav-item:active .cart-count-badge,
+.nav-item:focus .cart-count-badge,
+.nav-item:focus-within .cart-count-badge,
+.cart-badge:hover,
+.cart-count-badge:hover {
+  color: #071426 !important;
+  background-color: var(--moxie-gold, #c9a35c) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  transform: none;
 }
 
 @keyframes popIn {
@@ -253,7 +302,8 @@
     gap: 18px;
   }
 
-  .nav-item span {
+  .nav-item > span,
+  .nav-label {
     display: none;
   }
 

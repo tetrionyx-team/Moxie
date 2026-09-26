@@ -12,6 +12,10 @@ back-end/db.sqlite3*
 *.backup
 *.bak
 
+# Django media files (ignore uploaded media, keep directory structure via .gitkeep)
+back-end/media/*
+!back-end/media/**/.gitkeep
+
 # Python virtual environments
 back-end/venv/
 .venv/

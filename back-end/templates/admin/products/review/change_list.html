@@ -22,42 +22,68 @@
 <!-- Root container for React Review List -->
 <div id="react-reviewlist-root"></div>
 
+<script id="reviews-data" type="application/json">
+[
+    {% for item in cl.result_list %}
+    {
+        "id": "{{ item.id }}",
+        "customerName": "{{ item.name|escapejs }}",
+        "customerEmail": "{{ item.email|default:'customer@example.com'|escapejs }}",
+        "productName": "{% if item.product %}{{ item.product.name|escapejs }}{% else %}General Product{% endif %}",
+        "productId": "{% if item.product %}{{ item.product.id }}{% else %}0{% endif %}",
+        "rating": {{ item.rating|default:5 }},
+        "comment": "{{ item.text|escapejs }}",
+        "status": "{{ item.status|default:'Approved' }}",
+        "isVerified": {% if item.is_verified %}true{% else %}false{% endif %},
+        "dateStr": "{{ item.created_at|date:'d M Y' }}",
+        "imageUrl": "{% if item.image %}{{ item.image.url }}{% endif %}",
+        "images": [{% for img in item.images.all %}"{{ img.image.url }}"{% if not forloop.last %}, {% endif %}{% endfor %}]
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script id="products-data" type="application/json">
+[
+    {% for p in products_list %}
+    { "id": "{{ p.id }}", "name": "{{ p.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script id="messages-data" type="application/json">
+[
+    {% for message in messages %}
+    { "level": "{{ message.tags }}", "text": "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
 <!-- JS Context Serialization -->
 <script>
     window.DJANGO_CONTEXT = {
-        totalReviewsCount: parseInt("{{ total_reviews_count|default:0 }}"),
-        pendingReviewsCount: parseInt("{{ pending_reviews_count|default:0 }}"),
-        approvedReviewsCount: parseInt("{{ approved_reviews_count|default:0 }}"),
-        avgRatingValue: parseFloat("{{ avg_rating_value|default:0.0 }}"),
-        productsList: [
-            {% for p in products_list %}
-    { id: "{{ p.id }}", name: "{{ p.name|escapejs }}" },
-    {% endfor %}
-        ],
-    csrfToken: '{{ csrf_token }}',
-        resultCount: parseInt("{{ cl.result_count|default:0 }}"),
-            resultList: [
-                {% for item in cl.result_list %}
-    {
-        id: "{{ item.id }}",
-            customerName: "{{ item.name|escapejs }}",
-                customerEmail: "{{ item.email|default:'customer@example.com'|escapejs }}",
-                    productName: "{% if item.product %}{{ item.product.name|escapejs }}{% else %}General Product{% endif %}",
-                        productId: "{% if item.product %}{{ item.product.id }}{% else %}0{% endif %}",
-                            rating: parseFloat("{{ item.rating|default:5 }}"),
-                                comment: "{{ item.text|escapejs }}",
-                                    status: "{{ item.status|default:'Approved' }}",
-                                        isVerified: {% if item.is_verified %} true{% else %} false{% endif %},
-        dateStr: "{{ item.created_at|date:'d M Y' }}"
-    },
-    {% endfor %}
-        ],
-    djangoMessages: [
-        {% for message in messages %}
-    { level: "{{ message.tags }}", text: "{{ message|escapejs }}" },
-    {% endfor %}
-        ]
+        totalReviewsCount: parseInt("{{ total_reviews_count|default:0 }}", 10) || 0,
+        pendingReviewsCount: parseInt("{{ pending_reviews_count|default:0 }}", 10) || 0,
+        approvedReviewsCount: parseInt("{{ approved_reviews_count|default:0 }}", 10) || 0,
+        avgRatingValue: parseFloat("{{ avg_rating_value|default:0.0 }}") || 0.0,
+        csrfToken: '{{ csrf_token }}',
+        resultCount: parseInt("{{ cl.result_count|default:0 }}", 10) || 0,
+        productsList: [],
+        resultList: [],
+        djangoMessages: []
     };
+
+    try {
+        window.DJANGO_CONTEXT.productsList = JSON.parse(document.getElementById('products-data').textContent || '[]');
+    } catch (e) { window.DJANGO_CONTEXT.productsList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.resultList = JSON.parse(document.getElementById('reviews-data').textContent || '[]');
+    } catch (e) { window.DJANGO_CONTEXT.resultList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.djangoMessages = JSON.parse(document.getElementById('messages-data').textContent || '[]');
+    } catch (e) { window.DJANGO_CONTEXT.djangoMessages = []; }
 </script>
 
 <!-- Toast Notification -->

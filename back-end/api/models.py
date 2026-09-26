@@ -227,7 +227,6 @@ class AdminProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='admin_profile')
     role = models.CharField(max_length=100, default='Staff')
     permissions = models.JSONField(default=list, blank=True)
-    raw_password = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=50, null=True, blank=True)
     profile_image = models.ImageField(upload_to='admin/profiles/', null=True, blank=True)
 
@@ -428,4 +427,35 @@ class AdminLoginOTP(models.Model):
 
     def __str__(self):
         return f"LoginOTP for {self.email} ({'Used' if self.used else 'Pending'})"
+
+
+class CustomerPasswordResetOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='customer_reset_otps')
+    email = models.EmailField()
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.IntegerField(default=0)
+    used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Customer OTP for {self.email}"
+
+
+class CustomerPasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='customer_reset_tokens')
+    token = models.CharField(max_length=128, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Customer ResetToken for {self.user.username}"
+
 

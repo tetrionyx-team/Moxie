@@ -515,6 +515,34 @@ export default function ReviewListPage() {
               </div>
             </div>
 
+            {/* Customer Review Photos */}
+            {(() => {
+              const allImages = Array.isArray(viewTarget.images) && viewTarget.images.length > 0
+                ? viewTarget.images
+                : (viewTarget.imageUrl ? [viewTarget.imageUrl] : []);
+
+              if (allImages.length === 0) return null;
+
+              return (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                    REVIEW PHOTOS ({allImages.length})
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                    {allImages.map((imgUrl, i) => (
+                      <a key={i} href={imgUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', flexShrink: 0 }}>
+                        <img
+                          src={imgUrl}
+                          alt={`Customer Review Photo ${i + 1}`}
+                          style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'block' }}
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Footer Actions */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
               {viewTarget.status === 'Approved' ? (

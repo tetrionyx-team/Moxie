@@ -238,14 +238,23 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
     try:
         response = resend.Emails.send(params)
     except Exception as exc:
-        logger.error("Resend API request exception: %s: %s", type(exc).__name__, str(exc))
+        logger.error(
+            "OTP email send failed | recipient=%s | provider=resend | status=EXCEPTION | reason=%s",
+            mask_email(to_email),
+            str(exc)
+        )
         raise RuntimeError(f"Resend delivery failed: {str(exc)}") from exc
 
     if isinstance(response, dict) and response.get("error"):
         err = response.get("error")
         err_msg = err.get("message") if isinstance(err, dict) else str(err)
         err_code = err.get("statusCode") if isinstance(err, dict) else "400"
-        logger.error("Resend API error (%s): %s", err_code, err_msg)
+        logger.error(
+            "OTP email send failed | recipient=%s | provider=resend | status=%s | reason=%s",
+            mask_email(to_email),
+            err_code,
+            err_msg
+        )
         raise RuntimeError(f"Resend API error ({err_code}): {err_msg}")
 
     return True
@@ -444,7 +453,9 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
             raise ValueError(f"Unknown or unsupported EMAIL_PROVIDER: '{provider}'")
     except Exception as e:
         logger.error(
-            "Admin OTP email delivery failed: %s: %s",
+            "OTP email send failed | recipient=%s | provider=%s | status=FAILED | reason=%s: %s",
+            mask_email(to_email),
+            provider,
             type(e).__name__,
             str(e)
         )

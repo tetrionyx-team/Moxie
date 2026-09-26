@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import re
 import secrets
 import uuid
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout, update_session_auth_hash
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
@@ -36,7 +38,7 @@ from rest_framework.views import APIView
 
 from banners.models import Banner
 from categories.models import Category, Subcategory
-from products.models import Product, ProductImage, ProductVariant, Review, VariantImage, FeaturedProduct
+from products.models import Product, ProductImage, ProductVariant, Review, ReviewImage, VariantImage, FeaturedProduct
 
 from .models import (
     Address,
@@ -44,6 +46,8 @@ from .models import (
     AdminPasswordResetOTP,
     AdminPasswordResetToken,
     AdminProfile,
+    CustomerPasswordResetOTP,
+    CustomerPasswordResetToken,
     CustomerProfile,
     Notification,
     NotificationLog,
@@ -99,7 +103,22 @@ class HealthCheckView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+        db_status = "ok"
+        try:
+            from django.db import connection
+            connection.ensure_connection()
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                row = cursor.fetchone()
+                if not row or row[0] != 1:
+                    db_status = "error"
+        except Exception:
+            db_status = "unavailable"
+
+        if db_status != "ok":
+            return Response({'status': 'error', 'database': db_status}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response({'status': 'ok', 'database': 'ok'}, status=status.HTTP_200_OK)
 
 
 # ==============================================================================
@@ -341,9 +360,33 @@ class CustomerForgotPasswordView(APIView):
         if not user:
             return Response({'error': 'Account not found with this email.'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Invalidate previous unused customer reset tokens
+        CustomerPasswordResetToken.objects.filter(user=user, used=False).update(used=True)
+
+        token_str = get_random_string(length=64)
+        CustomerPasswordResetToken.objects.create(
+            user=user,
+            token=token_str,
+            expires_at=timezone.now() + timedelta(minutes=15)
+        )
+
+        try:
+            from services.email_service import send_transactional_email
+            target_email = user.email or email
+            send_transactional_email(
+                to_email=target_email,
+                subject='Moxie - Password Reset Request',
+                html_content=f'<div style="font-family: sans-serif; padding: 20px;"><h2>Moxie Store</h2><p>A password reset request was initiated for your account. If you did not make this request, please ignore this email.</p></div>',
+                text_content='A password reset request was initiated for your Moxie store account.'
+            )
+        except Exception as e:
+            logger.warning("Customer password reset email delivery notice: %s: %s", type(e).__name__, e)
+
         return Response({
             'success': True,
-            'message': 'Email verified successfully.'
+            'message': 'Email verified successfully.',
+            'reset_token': token_str,
+            'token': token_str
         }, status=status.HTTP_200_OK)
 
 
@@ -353,11 +396,15 @@ class CustomerResetPasswordView(APIView):
 
     def post(self, request):
         email = (request.data.get('email') or '').strip().lower()
+        token_str = (request.data.get('reset_token') or request.data.get('token') or '').strip()
         password = request.data.get('password') or request.data.get('new_password') or request.data.get('newPassword') or ''
         confirm_password = request.data.get('confirm_password') or request.data.get('confirmPassword') or ''
 
         if not email:
             return Response({'error': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not token_str:
+            return Response({'error': 'Reset authorization token is missing or invalid. Please verify your email first.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not password or len(password) < 6:
             return Response({'error': 'Password must be at least 6 characters.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -365,12 +412,24 @@ class CustomerResetPasswordView(APIView):
         if confirm_password and password != confirm_password:
             return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
-        if not user:
-            return Response({'error': 'Account not found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+        token_obj = CustomerPasswordResetToken.objects.filter(
+            token=token_str,
+            used=False,
+            expires_at__gte=timezone.now()
+        ).first()
+
+        if not token_obj:
+            return Response({'error': 'Reset authorization is invalid or expired. Please request a new verification.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = token_obj.user
+        if user.email and user.email.lower() != email and user.username.lower() != email:
+            return Response({'error': 'Reset token does not match this account.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(password)
         user.save()
+
+        token_obj.used = True
+        token_obj.save()
 
         return Response({
             'success': True,
@@ -685,20 +744,45 @@ def get_customer_avatar_url(request, profile):
 def get_authenticated_customer(request):
     """
     Returns the authenticated customer User instance.
-    Supports session authentication, and fallback for customer email if passed.
+    Supports session authentication, header email, query params, request body, and session user id.
     """
     if request.user and request.user.is_authenticated:
         return request.user
-    cust_email = (
-        request.query_params.get('email')
-        or request.data.get('customer_email')
-        or request.data.get('email')
+
+    # Check custom headers
+    header_email = (
+        request.headers.get('X-Customer-Email')
+        or request.META.get('HTTP_X_CUSTOMER_EMAIL')
+        or request.headers.get('X-User-Email')
+        or request.META.get('HTTP_X_USER_EMAIL')
         or ''
     ).strip().lower()
-    if cust_email:
+    if header_email:
+        user = User.objects.filter(email__iexact=header_email).first() or User.objects.filter(username__iexact=header_email).first()
+        if user:
+            return user
+
+    # Check query params and request body data
+    cust_email = (
+        request.query_params.get('email')
+        or request.query_params.get('customer_email')
+        or (hasattr(request, 'data') and (request.data.get('customer_email') or request.data.get('email') or request.data.get('user_email')))
+        or ''
+    )
+    if isinstance(cust_email, str) and cust_email.strip():
+        cust_email = cust_email.strip().lower()
         user = User.objects.filter(email__iexact=cust_email).first() or User.objects.filter(username__iexact=cust_email).first()
         if user:
             return user
+
+    # Fallback to session user id if available
+    if hasattr(request, 'session') and request.session:
+        session_uid = request.session.get('_auth_user_id')
+        if session_uid:
+            user = User.objects.filter(id=session_uid).first()
+            if user:
+                return user
+
     return None
 
 
@@ -716,9 +800,25 @@ class CustomerOrdersView(APIView):
         orders_data = []
         store_prefix = StoreSettings.objects.filter(id=1).values_list('order_prefix', flat=True).first() or 'MOX'
 
+        # Pre-fetch existing reviews for user to avoid N+1 queries
+        user_reviews = list(Review.objects.filter(user=user))
+        review_by_item = {r.order_item_id: r for r in user_reviews if r.order_item_id}
+        review_by_order_prod = {(r.order_id, r.product_id): r for r in user_reviews if r.order_id and r.product_id}
+
+        now = timezone.now()
+
         for o in orders:
             order_num = o.order_number or f"{store_prefix}-{o.id:04d}"
             items = []
+
+            # Check if order is delivered with real timestamp
+            is_delivered = bool(
+                o.delivered_at and (
+                    str(o.order_status).strip().lower() == 'delivered' or
+                    str(o.shipping_status).strip().upper() == 'DELIVERED'
+                )
+            )
+
             for item in o.items.all():
                 img_url = item.product_image or ''
                 if not img_url and item.variant and item.variant.images.exists():
@@ -726,14 +826,60 @@ class CustomerOrdersView(APIView):
                 elif not img_url and item.product and item.product.images.exists():
                     img_url = item.product.images.first().image.url
 
+                # Review eligibility logic
+                existing_rev = review_by_item.get(item.id) or review_by_order_prod.get((o.id, item.product_id))
+                if not is_delivered:
+                    can_review = False
+                    review_status = 'NOT_DELIVERED'
+                    review_open_at = None
+                    review_close_at = None
+                    review_id = None
+                    review_obj = None
+                elif existing_rev:
+                    can_review = False
+                    review_status = 'SUBMITTED'
+                    review_open_at = o.delivered_at.isoformat()
+                    review_close_at = (o.delivered_at + timedelta(hours=24)).isoformat()
+                    review_id = existing_rev.id
+                    review_obj = {
+                        'id': existing_rev.id,
+                        'rating': float(existing_rev.rating),
+                        'title': existing_rev.title or '',
+                        'text': existing_rev.text,
+                        'created_at': existing_rev.created_at.strftime('%d %b %Y') if existing_rev.created_at else ''
+                    }
+                elif now > (o.delivered_at + timedelta(hours=24)):
+                    can_review = False
+                    review_status = 'EXPIRED'
+                    review_open_at = o.delivered_at.isoformat()
+                    review_close_at = (o.delivered_at + timedelta(hours=24)).isoformat()
+                    review_id = None
+                    review_obj = None
+                else:
+                    can_review = True
+                    review_status = 'OPEN'
+                    review_open_at = o.delivered_at.isoformat()
+                    review_close_at = (o.delivered_at + timedelta(hours=24)).isoformat()
+                    review_id = None
+                    review_obj = None
+
                 items.append({
                     'id': item.id,
                     'productId': item.product_id,
+                    'product_id': item.product_id,
                     'name': item.product_name or (item.product.name if item.product else 'Product'),
                     'variant': f"{item.color_name or ''} {item.size or ''}".strip(),
                     'quantity': item.quantity,
                     'price': float(item.price),
-                    'image': img_url
+                    'image': img_url,
+                    'can_review': can_review,
+                    'canReview': can_review,
+                    'review_status': review_status,
+                    'reviewStatus': review_status,
+                    'review_open_at': review_open_at,
+                    'review_close_at': review_close_at,
+                    'review_id': review_id,
+                    'review': review_obj
                 })
 
             first_item_name = items[0]['name'] if items else 'Moxie Order'
@@ -747,6 +893,8 @@ class CustomerOrdersView(APIView):
                 'date': h.created_at.strftime('%d %b %Y, %I:%M %p'),
                 'raw_date': h.created_at.isoformat(),
             } for h in o.status_history.all()]
+
+            first_item_review = items[0] if items else {}
 
             orders_data.append({
                 'id': order_num,
@@ -780,12 +928,22 @@ class CustomerOrdersView(APIView):
                 'trackingId': o.tracking_id or '',
                 'tracking_id': o.tracking_id or '',
                 'trackingLocation': o.tracking_location or '',
+                'delivered_at': o.delivered_at.isoformat() if o.delivered_at else None,
+                'deliveredAt': o.delivered_at.isoformat() if o.delivered_at else None,
                 'estimatedDelivery': o.estimated_delivery or '',
                 'statusHistory': history,
                 'status_history': history,
                 'paymentStatus': o.payment_status,
                 'paymentMethod': o.payment_method or ('COD' if not o.razorpay_payment_id else 'UPI'),
                 'items': items,
+                'can_review': first_item_review.get('can_review', False),
+                'canReview': first_item_review.get('canReview', False),
+                'review_status': first_item_review.get('review_status', 'NOT_DELIVERED'),
+                'reviewStatus': first_item_review.get('reviewStatus', 'NOT_DELIVERED'),
+                'review_open_at': first_item_review.get('review_open_at'),
+                'review_close_at': first_item_review.get('review_close_at'),
+                'review_id': first_item_review.get('review_id'),
+                'review': first_item_review.get('review'),
                 'shippingAddress': {
                     'name': o.shipping_name,
                     'phone': o.shipping_phone,
@@ -1305,6 +1463,10 @@ class ReviewListView(generics.ListCreateAPIView):
         if order_id:
             qs = qs.filter(order_id=order_id)
 
+        order_item_id = self.request.query_params.get('order_item_id') or self.request.query_params.get('order_item')
+        if order_item_id:
+            qs = qs.filter(order_item_id=order_item_id)
+
         return qs.order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
@@ -1315,56 +1477,205 @@ class ReviewListView(generics.ListCreateAPIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Enforce review eligibility for customers
-        if not (request.user.is_authenticated and request.user.is_staff):
-            if not request.user.is_authenticated:
-                return Response(
-                    {'error': 'You must be signed in to submit a review.'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+        # Allow staff to submit administrative reviews or validate customer submissions
+        user = request.user if request.user.is_authenticated else None
+        if not user:
+            # Check customer session/token/headers/body if applicable
+            user = get_authenticated_customer(request)
 
-            product_id = request.data.get('product_id') or request.data.get('product')
-            if not product_id:
+        order_item_id = request.data.get('order_item_id') or request.data.get('order_item')
+        order_id = request.data.get('order_id') or request.data.get('order')
+        product_id = request.data.get('product_id') or request.data.get('product')
+
+        order_item = None
+        if order_item_id:
+            order_item = OrderItem.objects.select_related('order', 'product', 'order__user').filter(id=order_item_id).first()
+        elif order_id and product_id:
+            order_item = OrderItem.objects.select_related('order', 'product', 'order__user').filter(
+                order_id=order_id, product_id=product_id
+            ).first()
+
+        # If user was not resolved via session/header, but order_item belongs to a user matching request email
+        if not user and order_item and order_item.order and order_item.order.user:
+            req_email = (
+                request.data.get('email')
+                or request.data.get('customer_email')
+                or request.headers.get('X-Customer-Email')
+                or ''
+            ).strip().lower()
+            if req_email and order_item.order.user.email and order_item.order.user.email.lower() == req_email:
+                user = order_item.order.user
+
+        if not user:
+            return Response(
+                {'error': 'Please sign in to submit a review.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not (user.is_staff or user.is_superuser):
+            if not order_item:
                 return Response(
-                    {'error': 'Product ID is required.'},
+                    {'error': 'A valid purchased order item is required to submit a review.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Check if customer has a delivered order for this product
-            delivered_orders = Order.objects.filter(
-                user=request.user,
-                order_status__iexact='Delivered',
-                items__product_id=product_id
-            )
-
-            order_id = request.data.get('order_id') or request.data.get('order')
-            if order_id:
-                delivered_orders = delivered_orders.filter(id=order_id)
-
-            if not delivered_orders.exists():
+            order = order_item.order
+            if order.user != user:
                 return Response(
-                    {'error': 'You can only review products from delivered orders you have purchased.'},
+                    {'error': 'You can only review items from your own delivered purchases.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            matched_order = delivered_orders.first()
-
-            # Prevent duplicate review for the same purchase
-            if Review.objects.filter(user=request.user, product_id=product_id, order=matched_order).exists():
+            # Check confirmed delivery status and delivery timestamp
+            is_delivered = bool(
+                order.delivered_at and (
+                    str(order.order_status).strip().lower() == 'delivered' or
+                    str(order.shipping_status).strip().upper() == 'DELIVERED'
+                )
+            )
+            if not is_delivered or not order.delivered_at:
                 return Response(
-                    {'error': 'You have already submitted a review for this delivered item.'},
+                    {'error': 'You can only review products after confirmed carrier delivery.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Check 24-hour review window (delivered_at to delivered_at + 24h)
+            now = timezone.now()
+            if now > (order.delivered_at + timedelta(hours=24)):
+                return Response(
+                    {'error': 'The review period for this product has ended.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Prevent duplicate review per order item
+            if Review.objects.filter(Q(order_item=order_item) | (Q(user=user, order=order, product=order_item.product))).exists():
+                return Response(
+                    {'error': 'You have already reviewed this item.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Validate rating
+            rating = request.data.get('rating')
+            try:
+                rating_val = float(rating)
+                if not (1.0 <= rating_val <= 5.0):
+                    raise ValueError()
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'Rating must be a number between 1 and 5 stars.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validate review text
+            text = str(request.data.get('text', '')).strip()
+            if len(text) < 5:
+                return Response(
+                    {'error': 'Please write a review of at least 5 characters.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if len(text) > 2000:
+                return Response(
+                    {'error': 'Review must not exceed 2000 characters.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            title = str(request.data.get('title', '')).strip()[:255]
+            name = str(request.data.get('name', '')).strip() or (user.get_full_name() or user.username)
+            email = user.email or None
+
+            # Validate optional customer product photos (multiple images supported)
+            uploaded_files = request.FILES.getlist('images') or request.FILES.getlist('images[]') or request.FILES.getlist('photos')
+            if not uploaded_files:
+                single_f = request.FILES.get('image') or request.FILES.get('photo') or request.FILES.get('review_image')
+                if single_f:
+                    uploaded_files = [single_f]
+
+            if len(uploaded_files) > 5:
+                return Response(
+                    {'error': 'Maximum 5 product photos are allowed per review.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            valid_exts = ['.jpg', '.jpeg', '.png', '.webp']
+            valid_types = ['image/jpeg', 'image/png', 'image/webp', 'image/pjpeg', 'image/x-png', 'image/jpg']
+
+            for f in uploaded_files:
+                if f.size > 5 * 1024 * 1024:
+                    return Response(
+                        {'error': 'Upload JPG, PNG or WEBP images under 5 MB.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                ext = os.path.splitext(f.name)[1].lower()
+                content_type = getattr(f, 'content_type', '').lower()
+                if (ext and ext not in valid_exts) or (content_type and content_type not in valid_types):
+                    return Response(
+                        {'error': 'Upload JPG, PNG or WEBP images under 5 MB.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            primary_image = uploaded_files[0] if uploaded_files else None
+
+            with transaction.atomic():
+                rev = Review.objects.create(
+                    user=user,
+                    order=order,
+                    order_item=order_item,
+                    product=order_item.product,
+                    rating=Decimal(str(round(rating_val, 1))),
+                    title=title,
+                    text=text,
+                    name=name,
+                    email=email,
+                    image=primary_image,
+                    is_verified=True,
+                    status='Approved',
+                    is_active=True
+                )
+
+                for f in uploaded_files:
+                    ReviewImage.objects.create(review=rev, image=f)
+
+                try:
+                    product_name = rev.product.name if rev.product else "Product"
+                    sender_name = rev.name or "Customer"
+                    Notification.objects.create(
+                        title=f"New Review: {product_name}",
+                        sender=sender_name,
+                        sender_initial=sender_name[:1].upper() if sender_name else 'C',
+                        sender_color='#3b82f6',
+                        body=f"New {rev.rating}-star review submitted by {sender_name} for '{product_name}'.",
+                        full_body=f"Customer Name: {sender_name}\nCustomer Email: {rev.email or 'N/A'}\nProduct: {product_name}\nRating: {rev.rating}/5 Stars\nComment: \"{rev.text}\"\nStatus: {rev.status}",
+                        category_badge='Review',
+                        department='Reviews & Ratings',
+                        notification_type='review',
+                        review=rev,
+                        product=rev.product,
+                        target_url='/admin/products/review/'
+                    )
+                except Exception:
+                    pass
+
+            serializer = self.get_serializer(rev)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # Staff fallback
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
         product_id = self.request.data.get('product_id') or self.request.data.get('product')
         order_id = self.request.data.get('order_id') or self.request.data.get('order')
+        order_item_id = self.request.data.get('order_item_id') or self.request.data.get('order_item')
 
         matched_order = None
-        if user and product_id:
+        matched_item = None
+        if order_item_id:
+            matched_item = OrderItem.objects.select_related('order', 'product').filter(id=order_item_id).first()
+            if matched_item:
+                matched_order = matched_item.order
+                product_id = matched_item.product_id
+
+        if not matched_order and user and product_id:
             delivered_qs = Order.objects.filter(
                 user=user,
                 order_status__iexact='Delivered',
@@ -1380,16 +1691,29 @@ class ReviewListView(generics.ListCreateAPIView):
 
         email = user.email if user else self.request.data.get('email')
 
+        uploaded_files = self.request.FILES.getlist('images') or self.request.FILES.getlist('images[]') or self.request.FILES.getlist('photos')
+        if not uploaded_files:
+            single_f = self.request.FILES.get('image') or self.request.FILES.get('photo')
+            if single_f:
+                uploaded_files = [single_f]
+
+        primary_image = uploaded_files[0] if uploaded_files else None
+
         rev = serializer.save(
             user=user,
             product_id=product_id if product_id else None,
             order=matched_order if matched_order else (Order.objects.filter(id=order_id).first() if order_id else None),
+            order_item=matched_item,
             name=name or "Customer",
             email=email or None,
+            image=primary_image,
             is_verified=True if matched_order else False,
             status='Approved',
             is_active=True
         )
+
+        for f in uploaded_files:
+            ReviewImage.objects.create(review=rev, image=f)
         try:
             product_name = rev.product.name if rev.product else "Product"
             sender_name = rev.name or "Customer"
@@ -1405,7 +1729,7 @@ class ReviewListView(generics.ListCreateAPIView):
                 notification_type='review',
                 review=rev,
                 product=rev.product,
-                target_url='/admin/review/'
+                target_url='/admin/products/review/'
             )
         except Exception:
             pass
@@ -2306,12 +2630,15 @@ class AdminApiLoginView(APIView):
         try:
             send_admin_otp_email(target_email, otp_code)
         except Exception as e:
+            from services.email_service import get_active_email_provider
+            provider = get_active_email_provider()
             logger.error(
-                "[Admin Login] Admin OTP email delivery failed for user '%s' (%s): %s: %s",
-                user.username,
+                "OTP email send failed | user_id=%s | recipient=%s | provider=%s | status=FAILED | reason=%s: %s",
+                user.id,
                 mask_admin_email(target_email),
+                provider,
                 type(e).__name__,
-                e
+                str(e)
             )
             if not getattr(settings, 'DEBUG', False):
                 otp_obj.delete()
@@ -2549,12 +2876,15 @@ class AdminResendOtpView(APIView):
         try:
             send_admin_otp_email(target_email, new_code)
         except Exception as e:
+            from services.email_service import get_active_email_provider
+            provider = get_active_email_provider()
             logger.error(
-                "[Admin Resend OTP] Admin OTP resend delivery failed for user '%s' (%s): %s: %s",
-                user.username,
+                "OTP email send failed | user_id=%s | recipient=%s | provider=%s | status=FAILED | reason=%s: %s",
+                user.id,
                 mask_admin_email(target_email),
+                provider,
                 type(e).__name__,
-                e
+                str(e)
             )
             if not getattr(settings, 'DEBUG', False):
                 new_otp_obj.delete()
@@ -2620,8 +2950,27 @@ class AdminNotificationsView(APIView):
         if query:
             qs = qs.filter(Q(title__icontains=query) | Q(body__icontains=query) | Q(sender__icontains=query))
 
+        since_id = request.query_params.get('since_id')
+        unread_only = request.query_params.get('unread_only')
+        limit = request.query_params.get('limit')
+
+        if since_id:
+            try:
+                qs = qs.filter(id__gt=int(since_id))
+            except (ValueError, TypeError):
+                pass
+
+        if unread_only and unread_only.lower() in ('true', '1', 'yes'):
+            qs = qs.filter(is_read=False)
+
+        try:
+            limit_val = min(int(limit), 100) if limit else 50
+        except (ValueError, TypeError):
+            limit_val = 50
+
         notifications_data = []
-        for n in qs[:100]:
+        latest_id = Notification.objects.order_by('-id').values_list('id', flat=True).first() or 0
+        for n in qs[:limit_val]:
             time_str = n.created_at.strftime('%d %b, %I:%M %p') if n.created_at else ''
             notifications_data.append({
                 'id': n.id,
@@ -2660,6 +3009,8 @@ class AdminNotificationsView(APIView):
             'unread_count': unread_count,
             'read_count': read_count,
             'total_count': total_count,
+            'latestId': latest_id,
+            'latest_id': latest_id,
         }, status=status.HTTP_200_OK)
 
 
@@ -4389,20 +4740,6 @@ class AdminCustomerDeleteView(APIView):
             except Exception:
                 pass
 
-            # 3. Optional Firebase user deletion if firebase_admin is installed/configured
-            try:
-                profile = getattr(u, 'customer_profile', None)
-                google_sub = profile.google_sub if profile else None
-                if google_sub:
-                    import firebase_admin
-                    from firebase_admin import auth as fb_auth
-                    try:
-                        fb_auth.delete_user(google_sub)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-
             u.delete()
 
             # Create notification
@@ -4473,25 +4810,40 @@ class AdminUsersView(APIView):
         if err:
             return err
         data = request.data
-        username = data.get('username')
-        password = data.get('password')
-        email = data.get('email', '')
-        name = data.get('name', '')
-        first_name = data.get('first_name', '')
-        last_name = data.get('last_name', '')
+        username = str(data.get('username') or '').strip()
+        password = str(data.get('password') or '').strip()
+        email = str(data.get('email') or '').strip().lower()
+        name = str(data.get('name') or '').strip()
+        first_name = str(data.get('first_name') or '').strip()
+        last_name = str(data.get('last_name') or '').strip()
         if name and not first_name:
-            parts = name.strip().split(' ', 1)
+            parts = name.split(' ', 1)
             first_name = parts[0]
             last_name = parts[1] if len(parts) > 1 else ''
-        role = data.get('role', 'Staff Admin')
+        role = str(data.get('role') or 'Staff Admin').strip()
         permissions = data.get('permissions', [])
         is_active = data.get('is_active', True)
+        if isinstance(is_active, str):
+            is_active = is_active.lower() in ('true', '1', 'yes')
+        else:
+            is_active = bool(is_active)
 
         if not username or not password:
             return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(username=username).exists():
+        if not email:
+            return Response({'error': 'Email address is required for 2FA OTP verification.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({'error': 'Please enter a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username__iexact=username).exists():
             return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({'error': 'An account with this email address already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.create_user(
             username=username,
@@ -4500,7 +4852,7 @@ class AdminUsersView(APIView):
             first_name=first_name,
             last_name=last_name,
             is_staff=True,
-            is_active=bool(is_active),
+            is_active=is_active,
             is_superuser=(role == 'Super Admin')
         )
         AdminProfile.objects.create(
@@ -4533,51 +4885,117 @@ class AdminUsersView(APIView):
 
 class AdminUserDetailView(APIView):
     def put(self, request, pk):
-        err = check_staff_api_permission(request, 'admin_users')
-        if err:
-            return err
+        is_self = request.user.is_authenticated and (request.user.id == int(pk))
+        if not is_self:
+            err = check_staff_api_permission(request, 'admin_users')
+            if err:
+                return err
+        else:
+            if not request.user.is_authenticated:
+                return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+            if not request.user.is_staff or not request.user.is_active:
+                return Response({'error': 'Staff access required.'}, status=status.HTTP_403_FORBIDDEN)
+            if not is_admin_2fa_verified(request):
+                return Response({'error': 'Two-factor authentication (2FA) verification required.', 'requires_2fa': True}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             u = User.objects.get(pk=pk, is_staff=True)
         except User.DoesNotExist:
-            return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Admin user not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         data = request.data
         name = data.get('name')
         if name is not None:
-            parts = name.strip().split(' ', 1)
+            parts = str(name).strip().split(' ', 1)
             u.first_name = parts[0]
             u.last_name = parts[1] if len(parts) > 1 else ''
         if 'first_name' in data:
-            u.first_name = data['first_name']
+            u.first_name = str(data['first_name'] or '').strip()
         if 'last_name' in data:
-            u.last_name = data['last_name']
+            u.last_name = str(data['last_name'] or '').strip()
         if 'email' in data:
-            u.email = data['email']
+            new_email = str(data['email'] or '').strip().lower()
+            if not new_email:
+                return Response({'error': 'Email address cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                validate_email(new_email)
+            except ValidationError:
+                return Response({'error': 'Please enter a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+            if User.objects.filter(email__iexact=new_email).exclude(pk=u.pk).exists():
+                return Response({'error': 'An account with this email address already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+            u.email = new_email
         if 'is_active' in data:
-            u.is_active = bool(data['is_active'])
-        if 'password' in data and data['password']:
-            u.set_password(data['password'])
+            # Self cannot deactivate oneself
+            if not is_self:
+                is_active = data['is_active']
+                if isinstance(is_active, str):
+                    u.is_active = is_active.lower() in ('true', '1', 'yes')
+                else:
+                    u.is_active = bool(is_active)
+
+        # Handle password change ONLY if new_password is provided
+        password_changed = False
+        new_password = str(data.get('new_password') or data.get('password') or '').strip()
+        current_password = str(data.get('current_password') or data.get('old_password') or '').strip()
+        confirm_password = str(data.get('confirm_password') or data.get('confirm_new_password') or '').strip()
+
+        if new_password:
+            # Self password change
+            if request.user.id == u.id:
+                if not current_password:
+                    return Response({'error': 'Current password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not u.check_password(current_password):
+                    return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+                if confirm_password and new_password != confirm_password:
+                    return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    validate_password(new_password, user=u)
+                except ValidationError as ve:
+                    return Response({'error': ' '.join(ve.messages)}, status=status.HTTP_400_BAD_REQUEST)
+                u.set_password(new_password)
+                password_changed = True
+                update_session_auth_hash(request, u)
+            else:
+                # Super Admin changing another user's password
+                if not (request.user.is_authenticated and request.user.is_superuser):
+                    return Response({'error': 'Only Super Admins can reset another user\'s password.'}, status=status.HTTP_403_FORBIDDEN)
+                admin_password = str(data.get('admin_password') or current_password or '').strip()
+                if not admin_password or not request.user.check_password(admin_password):
+                    return Response({'error': 'Your Super Admin password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+                if confirm_password and new_password != confirm_password:
+                    return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    validate_password(new_password, user=u)
+                except ValidationError as ve:
+                    return Response({'error': ' '.join(ve.messages)}, status=status.HTTP_400_BAD_REQUEST)
+                u.set_password(new_password)
+                password_changed = True
+
         u.save()
 
+        # Update role and permissions if authorized
+        can_manage_roles = request.user.is_superuser or has_admin_permission(request.user, 'admin_users')
         profile, _ = AdminProfile.objects.get_or_create(user=u)
-        if 'role' in data:
-            profile.role = data['role']
-            u.is_superuser = (data['role'] == 'Super Admin')
-            u.save()
-        if 'permissions' in data:
-            profile.permissions = data['permissions']
-        profile.save()
+        if can_manage_roles:
+            if 'role' in data:
+                profile.role = str(data['role']).strip()
+                u.is_superuser = (profile.role == 'Super Admin')
+                u.save(update_fields=['is_superuser'])
+            if 'permissions' in data:
+                profile.permissions = data['permissions']
+            profile.save()
 
-        # Create audit notification
+        # Audit notification
         try:
             admin_display_name = f"{u.first_name} {u.last_name}".strip() or u.username
+            action_text = "details and password updated" if password_changed else "details updated"
             Notification.objects.create(
                 title=f"Admin Account Updated: {admin_display_name}",
                 sender="System Admin",
                 sender_initial=admin_display_name[:1].upper() if admin_display_name else 'A',
                 sender_color='#f59e0b',
-                body=f"Admin profile details updated for '{admin_display_name}'.",
-                full_body=f"Admin Name: {admin_display_name}\nUsername: {u.username}\nEmail: {u.email or 'N/A'}\nRole: {profile.role}\nStatus: {'Active' if u.is_active else 'Inactive'}",
+                body=f"Admin profile {action_text} for '{admin_display_name}'.",
+                full_body=f"Admin Name: {admin_display_name}\nUsername: {u.username}\nEmail: {u.email or 'N/A'}\nRole: {profile.role}\nStatus: {'Active' if u.is_active else 'Inactive'}\nPassword Changed: {'Yes' if password_changed else 'No'}",
                 category_badge='Admin User',
                 department='System',
                 notification_type='admin_user_updated',
@@ -4587,7 +5005,14 @@ class AdminUserDetailView(APIView):
         except Exception:
             pass
 
-        return Response({'success': True, 'id': u.id})
+        if password_changed and request.user.id == u.id:
+            msg = "Password changed successfully."
+        elif password_changed:
+            msg = "Password reset successfully."
+        else:
+            msg = "Admin user updated successfully."
+
+        return Response({'success': True, 'id': u.id, 'password_changed': password_changed, 'message': msg})
 
     def patch(self, request, pk):
         return self.put(request, pk)
@@ -4625,6 +5050,74 @@ class AdminUserDetailView(APIView):
             return Response({'success': True}, status=status.HTTP_204_NO_CONTENT)
         except User.DoesNotExist:
             return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminUserResetPasswordView(APIView):
+    """
+    Super Admin endpoint to securely reset another admin user's password.
+    Validates Super Admin's own password and enforces Django password strength validation.
+    """
+    def post(self, request, pk):
+        err = check_staff_api_permission(request, 'admin_users')
+        if err:
+            return err
+
+        if not (request.user.is_authenticated and request.user.is_superuser):
+            return Response({'error': 'Only Super Admins can reset another user\'s password.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            target_user = User.objects.get(pk=pk, is_staff=True)
+        except User.DoesNotExist:
+            return Response({'error': 'Admin user not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        admin_password = str(data.get('admin_password') or '').strip()
+        new_password = str(data.get('new_password') or data.get('password') or '').strip()
+        confirm_password = str(data.get('confirm_password') or data.get('confirm_new_password') or '').strip()
+
+        if not admin_password:
+            return Response({'error': 'Your Super Admin password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not request.user.check_password(admin_password):
+            return Response({'error': 'Your Super Admin password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not new_password:
+            return Response({'error': 'New password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=target_user)
+        except ValidationError as ve:
+            return Response({'error': ' '.join(ve.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_user.set_password(new_password)
+        target_user.save(update_fields=['password'])
+
+        if request.user.id == target_user.id:
+            update_session_auth_hash(request, target_user)
+
+        # Audit notification
+        try:
+            admin_display_name = f"{target_user.first_name} {target_user.last_name}".strip() or target_user.username
+            Notification.objects.create(
+                title=f"Admin Password Reset: {admin_display_name}",
+                sender="System Security",
+                sender_initial='S',
+                sender_color='#ef4444',
+                body=f"Password for admin account '{admin_display_name}' was reset by Super Admin {request.user.username}.",
+                full_body=f"Admin Name: {admin_display_name}\nUsername: {target_user.username}\nReset By: {request.user.username}\nTimestamp: {timezone.now().strftime('%d %b %Y, %I:%M %p')}",
+                category_badge='Security',
+                department='System',
+                notification_type='admin_user_updated',
+                user=target_user,
+                target_url='/admin/users/'
+            )
+        except Exception:
+            pass
+
+        return Response({'success': True, 'message': 'Password reset successfully.'})
 
 
 class AdminUserToggleActiveView(APIView):

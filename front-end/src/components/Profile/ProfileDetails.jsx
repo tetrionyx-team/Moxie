@@ -49,12 +49,26 @@ export default function ProfileDetails({ profile, onUpdate }) {
     }
   }, [profile, user, isEditing]);
 
+  const [heroImgError, setHeroImgError] = useState(false);
+  const [editImgError, setEditImgError] = useState(false);
+
+  // Reset img error if avatar source changes
+  useEffect(() => {
+    setHeroImgError(false);
+    setEditImgError(false);
+  }, [previewUrl, selectedBase64, formData.avatar, profile?.avatar, user?.avatar]);
+
   const getInitials = (name) => {
-    if (!name) return "U";
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return "U";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    const raw =
+      name?.trim() ||
+      profile?.name?.trim() ||
+      user?.name?.trim() ||
+      (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
+      user?.username?.trim() ||
+      profile?.email?.trim() ||
+      user?.email?.trim() ||
+      "U";
+    return raw.charAt(0).toUpperCase() || "U";
   };
 
   const handleChange = (e) => {
@@ -288,11 +302,12 @@ export default function ProfileDetails({ profile, onUpdate }) {
           <form onSubmit={handleSubmit} noValidate className="profile-edit-form">
             <div className="profile-edit-avatar-row">
               <div className="profile-edit-avatar-preview">
-                {currentAvatarDisplay ? (
+                {currentAvatarDisplay && !editImgError ? (
                   <img
                     src={currentAvatarDisplay}
                     alt="Avatar Preview"
                     className="avatar-preview-img"
+                    onError={() => setEditImgError(true)}
                   />
                 ) : (
                   <div className="avatar-preview-initials">
@@ -420,11 +435,12 @@ export default function ProfileDetails({ profile, onUpdate }) {
             {/* Left: Avatar & Direct Camera Upload */}
             <div className="profile-hero-avatar-col">
               <div className="profile-hero-avatar-wrap">
-                {currentAvatarDisplay ? (
+                {currentAvatarDisplay && !heroImgError ? (
                   <img
                     src={currentAvatarDisplay}
                     alt={userName}
                     className="profile-hero-avatar-img"
+                    onError={() => setHeroImgError(true)}
                   />
                 ) : (
                   <div className="profile-hero-avatar-initials">

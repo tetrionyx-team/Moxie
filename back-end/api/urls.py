@@ -32,6 +32,7 @@ from .views import (
     AdminSettingsView,
     AdminTestEmailView,
     AdminUserDetailView,
+    AdminUserResetPasswordView,
     AdminUsersView,
     AdminUserToggleActiveView,
     AdminVerifyOtpView,
@@ -187,6 +188,7 @@ urlpatterns = [
     # Admin Users
     path('admin-users/', AdminUsersView.as_view(), name='admin-users'),
     path('admin-users/<int:pk>/', AdminUserDetailView.as_view(), name='admin-user-detail'),
+    path('admin-users/<int:pk>/reset-password/', AdminUserResetPasswordView.as_view(), name='admin-user-reset-password'),
     path('admin-users/<int:pk>/toggle-active/', AdminUserToggleActiveView.as_view(), name='admin-user-toggle-active'),
 
     # Admin Settings & Profile

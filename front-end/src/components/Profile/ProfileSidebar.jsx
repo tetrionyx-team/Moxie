@@ -46,13 +46,28 @@ export default function ProfileSidebar({
     }
   };
 
+  const [sidebarImgError, setSidebarImgError] = React.useState(false);
+  const avatarUrl = profile?.avatar || user?.avatar || "";
+
+  React.useEffect(() => {
+    setSidebarImgError(false);
+  }, [avatarUrl]);
+
   const displayName =
     profile?.name ||
     user?.name ||
     (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
-    (user?.email ? user.email.split("@")[0] : "Sarah Kapoor");
+    (user?.username ? user.username.trim() : "") ||
+    (user?.email ? user.email.split("@")[0] : "User");
 
-  const avatarInitial = (displayName || "M").charAt(0).toUpperCase();
+  const avatarInitial = (
+    profile?.name?.trim()?.charAt(0) ||
+    user?.name?.trim()?.charAt(0) ||
+    user?.first_name?.trim()?.charAt(0) ||
+    user?.username?.trim()?.charAt(0) ||
+    user?.email?.trim()?.charAt(0) ||
+    "U"
+  ).toUpperCase();
 
   return (
     <aside className="profile-sidebar-container" aria-label="Account navigation">
@@ -64,7 +79,17 @@ export default function ProfileSidebar({
         aria-label="View profile details"
       >
         <div className="sidebar-user-avatar" aria-hidden="true">
-          <span>{avatarInitial}</span>
+          {avatarUrl && !sidebarImgError ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="sidebar-avatar-img"
+              onError={() => setSidebarImgError(true)}
+              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+            />
+          ) : (
+            <span>{avatarInitial}</span>
+          )}
         </div>
         <div className="sidebar-user-meta">
           <span className="sidebar-user-name">{displayName}</span>

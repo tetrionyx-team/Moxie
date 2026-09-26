@@ -6,8 +6,18 @@
 
 import { apiFetch } from "../api/apiConfig";
 
-// Default generic user avatar placeholder
-const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80";
+// Helper to filter out legacy/demo avatar placeholder URLs
+const sanitizeAvatar = (avatar) => {
+  if (!avatar || typeof avatar !== "string") return "";
+  if (
+    avatar.includes("images.unsplash.com/photo-1535713875002-d1d0cf377fde") ||
+    avatar.includes("user-placeholder") ||
+    avatar.includes("defaultProfile")
+  ) {
+    return "";
+  }
+  return avatar;
+};
 
 export const profileService = {
   fetchProfile: async (email) => {
@@ -18,7 +28,7 @@ export const profileService = {
         const data = await res.json();
         const profile = {
           ...data,
-          avatar: data.avatar || DEFAULT_AVATAR,
+          avatar: sanitizeAvatar(data.avatar),
         };
         if (email) {
           try {
@@ -32,7 +42,11 @@ export const profileService = {
         if (email) {
           try {
             const cached = localStorage.getItem(`moxie_profile_${email}`);
-            if (cached) return JSON.parse(cached);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              parsed.avatar = sanitizeAvatar(parsed.avatar);
+              return parsed;
+            }
           } catch {}
         }
         return null;
@@ -42,7 +56,11 @@ export const profileService = {
       if (email) {
         try {
           const cached = localStorage.getItem(`moxie_profile_${email}`);
-          if (cached) return JSON.parse(cached);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            parsed.avatar = sanitizeAvatar(parsed.avatar);
+            return parsed;
+          }
         } catch {}
       }
     }
@@ -54,6 +72,7 @@ export const profileService = {
     const payload = {
       ...data,
       email: email || data?.email || "",
+      avatar: sanitizeAvatar(data?.avatar),
     };
 
     const res = await apiFetch("/customer/profile/", {
@@ -63,9 +82,10 @@ export const profileService = {
 
     if (res.ok) {
       const resData = await res.json();
+      const rawAvatar = (resData.profile && resData.profile.avatar) || data.avatar || "";
       const updated = {
         ...(resData.profile || resData),
-        avatar: (resData.profile && resData.profile.avatar) || data.avatar || DEFAULT_AVATAR,
+        avatar: sanitizeAvatar(rawAvatar),
       };
       const userEmail = email || updated.email;
       if (userEmail) {

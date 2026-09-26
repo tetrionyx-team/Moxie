@@ -90,24 +90,24 @@
   color: #111111;
 }
 
-/* Dynamic Notification Badge */
 .mobile-nav-badge {
   position: absolute;
   top: -4px;
   right: -8px;
   background: var(--moxie-gold, #c9a35c);
-  color: #ffffff;
+  color: #071426;
   font-family: 'Outfit', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 800;
   line-height: 1;
-  min-width: 16px;
-  height: 16px;
+  min-width: 18px;
+  height: 18px;
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 3px;
+  padding: 0 4px;
   border: 1.5px solid #ffffff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }

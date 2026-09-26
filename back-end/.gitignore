@@ -31,12 +31,17 @@ __pycache__/
 
 # Database
 db.sqlite3
+db.sqlite3*
 db.sqlite3-journal
+db.sqlite3-shm
+db.sqlite3-wal
 
 # Django static files
 staticfiles/
-# media/
 
+# Uploaded Media (ignore all uploaded files, keep directory structure via .gitkeep)
+media/*
+!media/**/.gitkeep
 
 # Logs & OS / IDE files
 *.log

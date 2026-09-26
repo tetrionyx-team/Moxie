@@ -8,11 +8,31 @@ export const AuthContext = createContext();
 
 const CURRENT_USER_STORAGE_KEY = "moxie_current_user";
 
+// Helper to sanitize out any legacy demo/placeholder image URLs
+const sanitizeAvatar = (avatar) => {
+  if (!avatar || typeof avatar !== "string") return "";
+  if (
+    avatar.includes("images.unsplash.com/photo-1535713875002-d1d0cf377fde") ||
+    avatar.includes("user-placeholder") ||
+    avatar.includes("defaultProfile")
+  ) {
+    return "";
+  }
+  return avatar;
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          parsed.avatar = sanitizeAvatar(parsed.avatar);
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -35,6 +55,7 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
+          const rawAvatar = data.user.avatar || (data.profile && data.profile.avatar) || "";
           const authUser = {
             id: data.user.id || data.user.email,
             name:
@@ -43,7 +64,7 @@ export function AuthProvider({ children }) {
               data.user.email.split("@")[0],
             email: data.user.email,
             mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
-            avatar: data.user.avatar || (data.profile && data.profile.avatar) || "",
+            avatar: sanitizeAvatar(rawAvatar),
             is_staff: !!data.user.is_staff,
           };
           setUser(authUser);
@@ -177,6 +198,7 @@ export function AuthProvider({ children }) {
       throw new Error("Authentication failed. No user details returned.");
     }
 
+    const rawAvatar = data.user.avatar || (data.profile && data.profile.avatar) || "";
     const authUser = {
       id: data.user.id || data.user.email,
       name:
@@ -185,7 +207,7 @@ export function AuthProvider({ children }) {
         data.user.email.split("@")[0],
       email: data.user.email,
       mobile: data.user.mobile || (data.profile && data.profile.mobile) || "",
-      avatar: data.user.avatar || (data.profile && data.profile.avatar) || "",
+      avatar: sanitizeAvatar(rawAvatar),
       is_staff: !!data.user.is_staff,
     };
 
@@ -379,7 +401,11 @@ export function AuthProvider({ children }) {
       throw new Error(data.error || "No account found with this email address.");
     }
 
-    return { success: true, message: data.message || "Email verified." };
+    if (data.reset_token) {
+      sessionStorage.setItem("customer_reset_token", data.reset_token);
+    }
+
+    return { success: true, message: data.message || "Email verified.", resetToken: data.reset_token };
   };
 
   // Reset Password for exact matching customer (Step 2)
@@ -393,6 +419,8 @@ export function AuthProvider({ children }) {
       throw new Error("Passwords do not match.");
     }
 
+    const resetToken = sessionStorage.getItem("customer_reset_token") || "";
+
     const res = await apiFetch("/auth/reset-password/", {
       method: "POST",
       body: JSON.stringify({
@@ -400,6 +428,8 @@ export function AuthProvider({ children }) {
         password: newPassword,
         new_password: newPassword,
         confirm_password: confirmPassword,
+        reset_token: resetToken,
+        token: resetToken,
       }),
     });
 
@@ -408,6 +438,7 @@ export function AuthProvider({ children }) {
       throw new Error(data.error || "Failed to reset password.");
     }
 
+    sessionStorage.removeItem("customer_reset_token");
     return { success: true, message: data.message || "Password Changed Successfully" };
   };
 

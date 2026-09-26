@@ -125,6 +125,27 @@ export default function MessagesPage() {
     fetchNotifications().catch(() => {})
   }, [fetchNotifications])
 
+  // Periodic auto-polling every 15s when tab is visible
+  useEffect(() => {
+    let timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications().catch(() => {})
+      }
+    }, 15000)
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchNotifications])
+
   useEffect(() => {
     const handleNotificationUpdate = () => {
       fetchNotifications().catch(() => {})

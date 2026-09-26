@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { FaStar } from "react-icons/fa";
+import { LuCheck } from "react-icons/lu";
+import WriteReviewModal from "../Review/WriteReviewModal";
 import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
 
-export default function OrderDetails({ order, onBack }) {
+export default function OrderDetails({ order, onBack, user }) {
+  const [reviewModalItem, setReviewModalItem] = useState(null);
+  const [reviewedItems, setReviewedItems] = useState({});
+
   if (!order) return null;
 
   const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, '0')}` : "MOX-0001");
@@ -36,6 +42,7 @@ export default function OrderDetails({ order, onBack }) {
   const district = order.district || addressObj.district || city;
   const pinCode = order.pinCode || order.pincode || addressObj.pincode || "—";
   const currentStatus = order.orderStatus || order.status || "Confirmed";
+  const isDelivered = (currentStatus || "").toLowerCase() === "delivered" || (order.shippingStatus || "").toUpperCase() === "DELIVERED";
 
   return (
     <div>
@@ -61,8 +68,16 @@ export default function OrderDetails({ order, onBack }) {
             const fallback = getFallbackImage(item.productName || item.name, order.category);
             const itemImg = getOrderImageUrl(rawImg, item.productName || item.name, order.category);
 
+            const isItemReviewed = Boolean(
+              reviewedItems[item.id] ||
+              item.review_status === "SUBMITTED" ||
+              item.review
+            );
+            const canItemReview = isDelivered && (item.can_review || item.canReview || item.review_status === "OPEN") && !isItemReviewed;
+            const isExpired = isDelivered && item.review_status === "EXPIRED" && !isItemReviewed;
+
             return (
-              <div key={idx} className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light">
+              <div key={idx} className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-3">
                   <img
                     src={itemImg || fallback}
@@ -82,12 +97,69 @@ export default function OrderDetails({ order, onBack }) {
                     </span>
                   </div>
                 </div>
-                <div className="text-end">
-                  <div style={{ fontSize: "14px", fontWeight: "600" }}>
-                    ₹{itemPrice.toLocaleString("en-IN")} × {itemQty}
-                  </div>
-                  <div style={{ fontSize: "14px", fontWeight: "700", color: "#2c3e50" }}>
-                    ₹{(itemPrice * itemQty).toLocaleString("en-IN")}
+
+                <div className="d-flex align-items-center gap-3">
+                  {canItemReview && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{
+                        background: "#fbf7ef",
+                        border: "1px solid #f3e8cf",
+                        color: "#9a7228",
+                        fontWeight: "700",
+                        fontSize: "12px",
+                        borderRadius: "8px",
+                        padding: "6px 12px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px"
+                      }}
+                      onClick={() => setReviewModalItem({ item, order })}
+                    >
+                      <FaStar style={{ color: "#f59e0b" }} /> Write Review
+                    </button>
+                  )}
+
+                  {isItemReviewed && (
+                    <span
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        color: "#166534",
+                        fontWeight: "700",
+                        fontSize: "11.5px",
+                        borderRadius: "8px",
+                        padding: "4px 10px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <LuCheck /> Reviewed
+                    </span>
+                  )}
+
+                  {isExpired && (
+                    <span
+                      style={{
+                        color: "#94a3b8",
+                        fontSize: "11.5px",
+                        fontWeight: "600",
+                        padding: "4px 8px"
+                      }}
+                    >
+                      Review closed
+                    </span>
+                  )}
+
+                  <div className="text-end">
+                    <div style={{ fontSize: "14px", fontWeight: "600" }}>
+                      ₹{itemPrice.toLocaleString("en-IN")} × {itemQty}
+                    </div>
+                    <div style={{ fontSize: "14px", fontWeight: "700", color: "#2c3e50" }}>
+                      ₹{(itemPrice * itemQty).toLocaleString("en-IN")}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -197,6 +269,23 @@ export default function OrderDetails({ order, onBack }) {
           </div>
         </div>
       </div>
+
+      {reviewModalItem && (
+        <WriteReviewModal
+          orderItem={reviewModalItem.item}
+          order={reviewModalItem.order}
+          user={user}
+          onClose={() => setReviewModalItem(null)}
+          onSuccess={() => {
+            if (reviewModalItem.item?.id) {
+              setReviewedItems((prev) => ({
+                ...prev,
+                [reviewModalItem.item.id]: true,
+              }));
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

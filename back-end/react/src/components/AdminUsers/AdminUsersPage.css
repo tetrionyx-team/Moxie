@@ -551,6 +551,27 @@
   border-color: #4f46e5;
 }
 
+.pw-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  z-index: 2;
+  transition: color 0.15s ease;
+}
+
+.pw-toggle-btn:hover {
+  color: #1e293b;
+}
+
 .permissions-checklist-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

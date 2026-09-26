@@ -19,7 +19,7 @@ function SpecialOffer() {
                         <Link to="/products/watches" className="offer-btn">Shop Now</Link>
                     </div>
                     <div className="offer-img-container">
-                        <img src={watchImg} alt="Watches Deal" className="offer-img" />
+                        <img src={watchImg} alt="Watches Deal" className="offer-img" loading="lazy" decoding="async" />
                     </div>
                 </div>
 
@@ -32,7 +32,7 @@ function SpecialOffer() {
                         <Link to="/products/shoes" className="offer-btn">Explore Shop</Link>
                     </div>
                     <div className="offer-img-container">
-                        <img src={shoeImg} alt="Shoes New Collection" className="offer-img shoe-offer-img" />
+                        <img src={shoeImg} alt="Shoes New Collection" className="offer-img shoe-offer-img" loading="lazy" decoding="async" />
                     </div>
                 </div>
 
@@ -45,7 +45,7 @@ function SpecialOffer() {
                         <Link to="/products/air-buds" className="offer-btn">Explore Shop</Link>
                     </div>
                     <div className="offer-img-container">
-                        <img src={budsImg} alt="Air Buds Premium Quality" className="offer-img" />
+                        <img src={budsImg} alt="Air Buds Premium Quality" className="offer-img" loading="lazy" decoding="async" />
                     </div>
                 </div>
 

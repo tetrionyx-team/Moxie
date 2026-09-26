@@ -247,6 +247,7 @@ export default function ProductCard({ product }) {
             alt={product.name}
             className="premium-card-img"
             loading="lazy"
+            decoding="async"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = NEUTRAL_PLACEHOLDER;

@@ -64,4 +64,25 @@ describe("Header component", () => {
     expect(screen.getByRole("link", { name: "Accessories" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Deals" })).toBeInTheDocument();
   });
+
+  it("renders cart badge correctly when cartCount is provided", () => {
+    const customCartContext = {
+      cartCount: 3,
+      openCart: jest.fn(),
+    };
+    render(
+      <AuthProvider>
+        <DataProvider>
+          <WishlistProvider>
+            <CartProvider value={customCartContext}>
+              <ModalProvider>
+                <Header searchQuery="" setSearchQuery={() => {}} />
+              </ModalProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </DataProvider>
+      </AuthProvider>
+    );
+    expect(screen.getByText("CART")).toBeInTheDocument();
+  });
 });

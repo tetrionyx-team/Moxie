@@ -276,18 +276,212 @@
             color: #0f172a;
             text-decoration: underline;
         }
-        .otp-success-badge {
-            display: inline-flex;
+
+        /* ── Large OTP Success Validation Animation (250px - 350px) ── */
+        .otp-boxes-wrapper {
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 24px 0;
+            width: 100%;
+        }
+
+        .otp-boxes-wrapper.is-animating-success {
+            min-height: 240px;
+            transition: min-height 0.4s ease;
+        }
+
+        .otp-orbit-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transform-origin: center center;
+            z-index: 20;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .otp-orbit-container.is-spinning {
+            animation: otpOrbitSmooth 3.2s linear infinite;
+        }
+
+        @keyframes otpOrbitSmooth {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ── Large Center Glowing Circular Orb ── */
+        .otp-large-center-orb {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #ffc83b 35%, #fdb101 70%, #d97706 100%);
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 15;
+            box-shadow: 0 0 24px rgba(253, 177, 1, 0.95), 0 0 50px rgba(253, 177, 1, 0.65), 0 0 85px rgba(253, 177, 1, 0.35), inset 0 0 12px rgba(255, 255, 255, 0.85);
+            transition: transform 0.45s cubic-bezier(0.34, 1.35, 0.64, 1), opacity 0.35s ease;
+        }
+
+        .otp-large-center-orb.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            animation: orbPulse 1.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes orbPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.96);
+                box-shadow: 0 0 20px rgba(253, 177, 1, 0.9), 0 0 45px rgba(253, 177, 1, 0.6), 0 0 75px rgba(253, 177, 1, 0.3);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.08);
+                box-shadow: 0 0 30px rgba(253, 177, 1, 1), 0 0 65px rgba(253, 177, 1, 0.8), 0 0 100px rgba(253, 177, 1, 0.45);
+            }
+        }
+
+        /* ── 2-3 Expanding Circular Ripple Rings (250px - 350px) ── */
+        .otp-ripple-layer {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 340px;
+            height: 340px;
+            pointer-events: none;
+            z-index: 8;
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-top: 24px;
-            padding: 8px 18px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 30px;
-            color: #15803d;
-            font-weight: 700;
+        }
+
+        .otp-ripple-ring {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid rgba(253, 177, 1, 0.75);
+            background: radial-gradient(circle, rgba(253, 177, 1, 0.12) 0%, rgba(253, 177, 1, 0.02) 65%, transparent 100%);
+            transform: scale(0.3);
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(253, 177, 1, 0.3);
+        }
+
+        .otp-ripple-ring.is-animating.ring-1 {
+            animation: otpRippleLarge 1.35s cubic-bezier(0.15, 0.85, 0.35, 1) 0.15s forwards;
+        }
+
+        .otp-ripple-ring.is-animating.ring-2 {
+            animation: otpRippleLarge 1.35s cubic-bezier(0.15, 0.85, 0.35, 1) 0.38s forwards;
+        }
+
+        .otp-ripple-ring.is-animating.ring-3 {
+            animation: otpRippleLarge 1.35s cubic-bezier(0.15, 0.85, 0.35, 1) 0.6s forwards;
+        }
+
+        @keyframes otpRippleLarge {
+            0% {
+                transform: scale(0.35);
+                opacity: 0.95;
+                border-color: rgba(253, 177, 1, 0.85);
+            }
+            45% {
+                opacity: 0.65;
+            }
+            100% {
+                transform: scale(7.2); /* 46px * 7.2 ≈ 331px */
+                opacity: 0;
+                border-color: rgba(253, 177, 1, 0);
+            }
+        }
+
+        /* ── Soft Rose Center Orb for Wrong OTP ── */
+        .otp-large-center-orb.error-orb {
+            background: radial-gradient(circle at 35% 35%, #fff1f2 0%, #fda4af 35%, #f43f5e 70%, #e11d48 100%) !important;
+            box-shadow: 0 0 22px rgba(244, 63, 94, 0.85), 0 0 48px rgba(244, 63, 94, 0.55), 0 0 80px rgba(244, 63, 94, 0.28), inset 0 0 12px rgba(255, 255, 255, 0.85) !important;
+            animation: orbErrorPulse 0.8s ease-in-out infinite alternate !important;
+        }
+
+        @keyframes orbErrorPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.95);
+                box-shadow: 0 0 18px rgba(244, 63, 94, 0.75), 0 0 40px rgba(244, 63, 94, 0.45);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.06);
+                box-shadow: 0 0 28px rgba(244, 63, 94, 0.95), 0 0 60px rgba(244, 63, 94, 0.7);
+            }
+        }
+
+        /* ── Soft Fluid Ripple Rings for Wrong OTP ── */
+        .otp-ripple-ring.error-ring {
+            border: 1.5px solid rgba(244, 63, 94, 0.75) !important;
+            background: radial-gradient(circle, rgba(244, 63, 94, 0.12) 0%, rgba(244, 63, 94, 0.02) 65%, transparent 100%) !important;
+            box-shadow: 0 0 22px rgba(244, 63, 94, 0.35) !important;
+        }
+
+        .otp-ripple-ring.error-ring.is-animating.ring-1 {
+            animation: otpRippleError 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards !important;
+        }
+
+        .otp-ripple-ring.error-ring.is-animating.ring-2 {
+            animation: otpRippleError 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards !important;
+        }
+
+        .otp-ripple-ring.error-ring.is-animating.ring-3 {
+            animation: otpRippleError 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.42s forwards !important;
+        }
+
+        @keyframes otpRippleError {
+            0% {
+                transform: scale(0.35);
+                opacity: 0.85;
+                border-color: rgba(244, 63, 94, 0.8);
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(7.2);
+                opacity: 0;
+                border-color: rgba(244, 63, 94, 0);
+            }
+        }
+
+        /* ── Organic Rejection Wobble for OTP Boxes ── */
+        .otp-orbit-container.is-error-shaking {
+            animation: otpErrorShudder 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        @keyframes otpErrorShudder {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+            15% { transform: translate3d(-4px, 0, 0) rotate(-1.5deg); }
+            30% { transform: translate3d(4px, 0, 0) rotate(1.5deg); }
+            45% { transform: translate3d(-3px, 0, 0) rotate(-1deg); }
+            60% { transform: translate3d(3px, 0, 0) rotate(1deg); }
+            75% { transform: translate3d(-1.5px, 0, 0) rotate(-0.5deg); }
+            90% { transform: translate3d(1.5px, 0, 0) rotate(0.5deg); }
+        }
+
+        .otp-fade-out {
+            opacity: 0 !important;
+            transform: scale(0.96);
+            pointer-events: none !important;
+            transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        .login-card.card-success-exit {
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.35s ease, transform 0.35s ease;
         }
     </style>
 </head>
@@ -340,7 +534,7 @@
         </div>
 
         <!-- STEP 2: OTP VERIFICATION FORM -->
-        <div id="step-otp" style="display: none;">
+        <div id="step-otp" style="display: none; position: relative;">
             <h2 class="card-heading">VERIFY YOUR IDENTITY</h2>
             <p class="card-sub">
                 We sent a 6-digit security code to<br />
@@ -349,12 +543,24 @@
 
             <form id="otp-form">
                 <div class="otp-boxes-wrapper" id="otp-inputs-row">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="0" aria-label="Digit 1" autocomplete="off">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="1" aria-label="Digit 2" autocomplete="off">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="2" aria-label="Digit 3" autocomplete="off">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="3" aria-label="Digit 4" autocomplete="off">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="4" aria-label="Digit 5" autocomplete="off">
-                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="5" aria-label="Digit 6" autocomplete="off">
+                    <!-- Expanding Circular Ripple Rings (250px - 350px) -->
+                    <div class="otp-ripple-layer" id="otp-ripple-layer" aria-hidden="true">
+                        <div class="otp-ripple-ring ring-1"></div>
+                        <div class="otp-ripple-ring ring-2"></div>
+                        <div class="otp-ripple-ring ring-3"></div>
+                    </div>
+
+                    <!-- Large Glowing Center Circular Orb -->
+                    <div id="otp-large-center-orb" class="otp-large-center-orb" aria-hidden="true"></div>
+
+                    <div class="otp-orbit-container" id="otp-orbit-layer">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="0" aria-label="Digit 1" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="1" aria-label="Digit 2" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="2" aria-label="Digit 3" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="3" aria-label="Digit 4" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="4" aria-label="Digit 5" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-box" data-idx="5" aria-label="Digit 6" autocomplete="off">
+                    </div>
                 </div>
 
                 <div class="otp-meta-info">
@@ -379,22 +585,6 @@
                     <button type="button" id="btn-back-to-signin" class="back-btn">&larr; Back to Sign In</button>
                 </div>
             </form>
-        </div>
-
-        <!-- STEP 3: SUCCESS ANIMATION -->
-        <div id="step-success" style="display: none; text-align: center; padding: 10px 0;">
-            <div class="otp-boxes-wrapper" id="otp-success-row">
-                <div class="otp-digit-box success">&#10003;</div>
-                <div class="otp-digit-box success">&#10003;</div>
-                <div class="otp-digit-box success">&#10003;</div>
-                <div class="otp-digit-box success">&#10003;</div>
-                <div class="otp-digit-box success">&#10003;</div>
-                <div class="otp-digit-box success">&#10003;</div>
-            </div>
-            <div class="otp-success-badge">
-                <span>&#10003;</span> Identity Verified
-            </div>
-            <p class="card-sub" style="margin-top: 12px;">Redirecting to Admin Dashboard...</p>
         </div>
     </div>
 
@@ -586,6 +776,20 @@
         btnSubmitOtp.disabled = true;
         btnSubmitOtp.textContent = 'Verifying Code...';
 
+        var wrapper = document.getElementById('otp-inputs-row');
+        var orbitLayer = document.getElementById('otp-orbit-layer');
+        var centerOrb = document.getElementById('otp-large-center-orb');
+        var rippleLayer = document.getElementById('otp-ripple-layer');
+
+        var fadeElements = [
+            document.querySelector('#step-otp .card-heading'),
+            document.querySelector('#step-otp .card-sub'),
+            document.querySelector('#step-otp .otp-meta-info'),
+            btnSubmitOtp,
+            document.getElementById('resend-container'),
+            document.querySelector('#step-otp .back-row')
+        ];
+
         fetch('/api/admin/verify-otp/', {
             method: 'POST',
             headers: {
@@ -597,32 +801,206 @@
         })
         .then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
         .then(function(resObj) {
-            btnSubmitOtp.disabled = false;
-            btnSubmitOtp.innerHTML = 'VERIFY &amp; SIGN IN &rarr;';
             if (resObj.status !== 200) {
-                if (resObj.data.attempts_remaining !== undefined) {
-                    attemptsText.textContent = resObj.data.attempts_remaining;
-                }
-                otpInputs.forEach(function(i) { i.value = ''; i.classList.remove('filled'); i.classList.add('error'); });
-                showError(resObj.data.error || "That security code didn't match. Check the code and try again.");
-                if (resObj.data.is_locked) {
-                    otpInputs.forEach(function(i) { i.disabled = true; });
-                    btnSubmitOtp.disabled = true;
-                } else {
-                    otpInputs[0]?.focus();
-                }
+                // WRONG OTP ANIMATION:
+                // 1. Fade out auxiliary elements & expand container
+                fadeElements.forEach(function(el) {
+                    if (el) el.classList.add('otp-fade-out');
+                });
+                if (wrapper) wrapper.classList.add('is-animating-success');
+
+                // 2. Animate OTP boxes toward center in orbit formation with red warning color
+                var wrapperRect = wrapper.getBoundingClientRect();
+                var targetX = wrapperRect.left + wrapperRect.width / 2;
+                var targetY = wrapperRect.top + wrapperRect.height / 2;
+                var orbitRadius = 68;
+
+                var n = otpInputs.length;
+                var configs = (n === 4) ? [
+                    { angle: -135, tilt: -14 },
+                    { angle: -45,  tilt: 16 },
+                    { angle: 135,  tilt: -12 },
+                    { angle: 45,   tilt: 18 }
+                ] : [
+                    { angle: -140, tilt: -14 },
+                    { angle: -80,  tilt: 12 },
+                    { angle: -20,  tilt: -10 },
+                    { angle: 40,   tilt: 16 },
+                    { angle: 100,  tilt: -12 },
+                    { angle: 160,  tilt: 18 }
+                ];
+
+                otpInputs.forEach(function(box, i) {
+                    var cfg = configs[i] || { angle: (i * (360 / n) - 90), tilt: (i % 2 === 0 ? -14 : 16) };
+                    var angleRad = cfg.angle * (Math.PI / 180);
+                    var circlePosX = targetX + orbitRadius * Math.cos(angleRad);
+                    var circlePosY = targetY + orbitRadius * Math.sin(angleRad);
+
+                    var boxRect = box.getBoundingClientRect();
+                    var boxCenterX = boxRect.left + boxRect.width / 2;
+                    var boxCenterY = boxRect.top + boxRect.height / 2;
+
+                    var deltaX = circlePosX - boxCenterX;
+                    var deltaY = circlePosY - boxCenterY;
+
+                    box.disabled = true;
+                    box.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease, color 0.4s ease';
+                    box.style.borderColor = '#f43f5e';
+                    box.style.backgroundColor = '#fff1f2';
+                    box.style.boxShadow = '0 8px 24px rgba(244, 63, 94, 0.35)';
+                    box.style.borderRadius = '12px';
+                    box.style.color = '#e11d48';
+                    box.style.transform = 'translate(' + deltaX + 'px, ' + deltaY + 'px) scale(0.82) rotate(' + cfg.tilt + 'deg)';
+                });
+
+                // 3. 350ms: Soft Rose Center Orb Blooms In + Soft Ripple Rings + Gentle Wobble
+                setTimeout(function() {
+                    if (centerOrb) {
+                        centerOrb.classList.add('error-orb', 'visible');
+                    }
+                    var rings = document.querySelectorAll('.otp-ripple-ring');
+                    rings.forEach(function(r) {
+                        r.classList.add('error-ring', 'is-animating');
+                    });
+                    if (orbitLayer) {
+                        orbitLayer.classList.add('is-error-shaking');
+                    }
+                }, 350);
+
+                // 4. 1050ms: Fluidly float boxes back to horizontal positions with gentle elastic settlement
+                setTimeout(function() {
+                    if (centerOrb) {
+                        centerOrb.classList.remove('visible', 'error-orb');
+                    }
+                    var rings = document.querySelectorAll('.otp-ripple-ring');
+                    rings.forEach(function(r) {
+                        r.classList.remove('is-animating', 'error-ring');
+                    });
+                    if (orbitLayer) {
+                        orbitLayer.classList.remove('is-error-shaking');
+                    }
+
+                    otpInputs.forEach(function(box) {
+                        box.style.transition = 'transform 0.65s cubic-bezier(0.25, 1, 0.5, 1), border-radius 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, color 0.4s ease';
+                        box.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)';
+                        box.style.borderRadius = '12px';
+                        box.style.borderColor = '#f43f5e';
+                        box.style.backgroundColor = '#fff1f2';
+                        box.style.boxShadow = '0 0 0 2px rgba(244, 63, 94, 0.18)';
+                        box.style.color = '#0f172a';
+                        box.value = '';
+                        box.classList.remove('filled');
+                        box.classList.add('error');
+                        box.disabled = false;
+                    });
+
+                    showError(resObj.data.error || "That security code didn't match. Check the code and try again.");
+                }, 1050);
+
+                // 5. 1400ms: Smoothly restore UI elements, re-enable button & focus first box
+                setTimeout(function() {
+                    fadeElements.forEach(function(el) {
+                        if (el) el.classList.remove('otp-fade-out');
+                    });
+                    if (wrapper) wrapper.classList.remove('is-animating-success');
+
+                    btnSubmitOtp.disabled = false;
+                    btnSubmitOtp.innerHTML = 'VERIFY &amp; SIGN IN &rarr;';
+
+                    if (resObj.data && resObj.data.attempts_remaining !== undefined) {
+                        attemptsText.textContent = resObj.data.attempts_remaining;
+                    }
+
+                    if (resObj.data && resObj.data.is_locked) {
+                        otpInputs.forEach(function(i) { i.disabled = true; });
+                        btnSubmitOtp.disabled = true;
+                    } else {
+                        otpInputs[0]?.focus();
+                    }
+                }, 1400);
+
                 return;
             }
 
-            // SUCCESS
+            // CORRECT OTP:
             clearInterval(timerInterval);
             clearInterval(cooldownInterval);
-            stepOtp.style.display = 'none';
-            stepSuccess.style.display = 'block';
             try { sessionStorage.setItem('adminVisitActive', 'true'); } catch(e) {}
+
+            var destUrl = resObj.data.first_allowed_url || nextUrl;
+
+            // 0ms:
+            // 1. Smoothly fade out auxiliary elements
+            fadeElements.forEach(function(el) {
+                if (el) el.classList.add('otp-fade-out');
+            });
+            if (wrapper) wrapper.classList.add('is-animating-success');
+
+            // 0–400ms: Animate OTP boxes toward exact center with slight rotation, scale 0.82 (numbers kept visible)
+            var wrapperRect = wrapper.getBoundingClientRect();
+            var targetX = wrapperRect.left + wrapperRect.width / 2;
+            var targetY = wrapperRect.top + wrapperRect.height / 2;
+            var orbitRadius = 68; // px orbit radius around 46px glowing center orb
+
+            var n = otpInputs.length;
+            var configs = (n === 4) ? [
+                { angle: -135, tilt: -14 }, // TOP-LEFT
+                { angle: -45,  tilt: 16 },  // TOP-RIGHT
+                { angle: 135,  tilt: -12 }, // BOTTOM-LEFT
+                { angle: 45,   tilt: 18 }   // BOTTOM-RIGHT
+            ] : [
+                { angle: -140, tilt: -14 },
+                { angle: -80,  tilt: 12 },
+                { angle: -20,  tilt: -10 },
+                { angle: 40,   tilt: 16 },
+                { angle: 100,  tilt: -12 },
+                { angle: 160,  tilt: 18 }
+            ];
+
+            otpInputs.forEach(function(box, i) {
+                var cfg = configs[i] || { angle: (i * (360 / n) - 90), tilt: (i % 2 === 0 ? -14 : 16) };
+                var angleRad = cfg.angle * (Math.PI / 180);
+                var circlePosX = targetX + orbitRadius * Math.cos(angleRad);
+                var circlePosY = targetY + orbitRadius * Math.sin(angleRad);
+
+                var boxRect = box.getBoundingClientRect();
+                var boxCenterX = boxRect.left + boxRect.width / 2;
+                var boxCenterY = boxRect.top + boxRect.height / 2;
+
+                var deltaX = circlePosX - boxCenterX;
+                var deltaY = circlePosY - boxCenterY;
+
+                box.disabled = true;
+                box.style.transition = 'transform 0.55s cubic-bezier(0.34, 1.25, 0.64, 1), border-color 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease';
+                box.style.borderColor = '#fdb101';
+                box.style.backgroundColor = '#ffffff';
+                box.style.boxShadow = '0 8px 24px rgba(253, 177, 1, 0.4), 0 2px 8px rgba(0, 0, 0, 0.08)';
+                box.style.borderRadius = '12px';
+                box.style.color = '#0f172a';
+                box.style.transform = 'translate(' + deltaX + 'px, ' + deltaY + 'px) scale(0.82) rotate(' + cfg.tilt + 'deg)';
+            });
+
+            // 400–900ms: Reveal LARGE glowing circular center orb & start smooth circular orbit
             setTimeout(function() {
-                window.location.href = resObj.data.first_allowed_url || nextUrl;
+                if (centerOrb) centerOrb.classList.add('visible');
+                if (orbitLayer) orbitLayer.classList.add('is-spinning');
+            }, 400);
+
+            // 900–1400ms: Large circular ripple rings expand outward across 250px–350px
+            setTimeout(function() {
+                var rings = document.querySelectorAll('.otp-ripple-ring');
+                rings.forEach(function(r) {
+                    r.classList.add('is-animating');
+                });
             }, 850);
+
+            // 1700ms+: Smooth transition to existing Dashboard
+            setTimeout(function() {
+                cardContainer.classList.add('card-success-exit');
+                setTimeout(function() {
+                    window.location.href = destUrl;
+                }, 320);
+            }, 1750);
         })
         .catch(function(err) {
             btnSubmitOtp.disabled = false;

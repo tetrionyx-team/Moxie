@@ -22,36 +22,50 @@
 <!-- Root container for React Banner List -->
 <div id="react-bannerlist-root"></div>
 
+<script id="banners-data" type="application/json">
+[
+    {% for item in cl.result_list %}
+    {
+        "id": "{{ item.id }}",
+        "title": "{{ item.title|escapejs }}",
+        "subtitle": "{{ item.subtitle|escapejs }}",
+        "imageUrl": "{% if item.image %}{{ item.image.url }}{% endif %}",
+        "buttonText": "{{ item.button_text|escapejs }}",
+        "buttonLink": "{{ item.button_link|escapejs }}",
+        "displayOrder": {{ item.display_order|default:0 }},
+        "isActive": {% if item.is_active %}true{% else %}false{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script id="messages-data" type="application/json">
+[
+    {% for message in messages %}
+    { "level": "{{ message.tags }}", "text": "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
 <!-- JS Context Serialization -->
 <script>
     window.DJANGO_CONTEXT = {
-        totalBannersCount: parseInt("{{ total_banners_count|default:0 }}"),
-        activeBannersCount: parseInt("{{ active_banners_count|default:0 }}"),
-        inactiveBannersCount: parseInt("{{ inactive_banners_count|default:0 }}"),
-        totalClicksCount: parseInt("{{ total_clicks_count|default:0 }}"),
+        totalBannersCount: parseInt("{{ total_banners_count|default:0 }}", 10) || 0,
+        activeBannersCount: parseInt("{{ active_banners_count|default:0 }}", 10) || 0,
+        inactiveBannersCount: parseInt("{{ inactive_banners_count|default:0 }}", 10) || 0,
         csrfToken: '{{ csrf_token }}',
-        resultCount: parseInt("{{ cl.result_count|default:0 }}"),
-        resultList: [
-            {% for item in cl.result_list %}
-            {
-                id: "{{ item.id }}",
-                title: "{{ item.title|escapejs }}",
-                subtitle: "{{ item.subtitle|escapejs }}",
-                imageUrl: "{% if item.image %}{{ item.image.url }}{% endif %}",
-                buttonText: "{{ item.button_text|escapejs }}",
-                buttonLink: "{{ item.button_link|escapejs }}",
-                displayOrder: parseInt("{{ item.display_order|default:0 }}"),
-                clickCount: parseInt("{{ item.click_count|default:0 }}"),
-                isActive: {% if item.is_active %} true{% else %} false{% endif %}
-            },
-            {% endfor %}
-        ],
-    djangoMessages: [
-        {% for message in messages %}
-    { level: "{{ message.tags }}", text: "{{ message|escapejs }}" },
-    {% endfor %}
-        ]
+        resultCount: parseInt("{{ cl.result_count|default:0 }}", 10) || 0,
+        resultList: [],
+        djangoMessages: []
     };
+
+    try {
+        window.DJANGO_CONTEXT.resultList = JSON.parse(document.getElementById('banners-data').textContent || '[]');
+    } catch (e) { window.DJANGO_CONTEXT.resultList = []; }
+
+    try {
+        window.DJANGO_CONTEXT.djangoMessages = JSON.parse(document.getElementById('messages-data').textContent || '[]');
+    } catch (e) { window.DJANGO_CONTEXT.djangoMessages = []; }
 </script>
 
 <!-- Toast Notification -->

@@ -95,9 +95,8 @@ export default function Footer() {
 
           {/* COLUMN 2 — CATEGORIES (ACCORDION ON MOBILE) */}
           <div
-            className={`footer-column nav-column categories-column ${
-              mobileAccordion === "categories" ? "is-open" : ""
-            }`}
+            className={`footer-column nav-column categories-column ${mobileAccordion === "categories" ? "is-open" : ""
+              }`}
           >
             <button
               type="button"
@@ -134,9 +133,8 @@ export default function Footer() {
 
           {/* COLUMN 3 — SERVICE (ACCORDION ON MOBILE) */}
           <div
-            className={`footer-column nav-column service-column ${
-              mobileAccordion === "service" ? "is-open" : ""
-            }`}
+            className={`footer-column nav-column service-column ${mobileAccordion === "service" ? "is-open" : ""
+              }`}
           >
             <button
               type="button"
@@ -243,7 +241,7 @@ export default function Footer() {
                   <FiPhone />
                 </div>
                 <div className="contact-text">
-                  <span className="contact-label">Mobile</span>
+                  <span className="contact-label">Customer Support</span>
                   <div className="contact-value contact-links">
                     <a href="tel:7871327802" className="contact-link">7871327802</a>
                     <span className="contact-separator">-</span>

@@ -133,6 +133,8 @@ class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='reviews', null=True, blank=True)
     order = models.ForeignKey('api.Order', on_delete=models.SET_NULL, related_name='reviews', null=True, blank=True)
+    order_item = models.ForeignKey('api.OrderItem', on_delete=models.SET_NULL, related_name='reviews', null=True, blank=True)
+    title = models.CharField(max_length=255, blank=True, default='')
     name = models.CharField(max_length=100)
     email = models.CharField(max_length=255, null=True, blank=True)
     rating = models.DecimalField(max_digits=3, decimal_places=1)
@@ -142,9 +144,36 @@ class Review(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Approved')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'order_item'],
+                name='unique_user_order_item_review',
+                condition=models.Q(order_item__isnull=False, user__isnull=False)
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.rating}"
+
+
+class ReviewImage(models.Model):
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+    image = models.ImageField(upload_to='reviews/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"ReviewImage {self.id} for Review {self.review_id}"
 
 
 class FeaturedProduct(models.Model):

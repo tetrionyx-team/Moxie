@@ -230,6 +230,7 @@ export default function ProfilePage({ defaultTab = "profile" }) {
         return (
           <OrderDetails
             order={selectedOrder}
+            user={user}
             onBack={() => setActiveTab("orders")}
           />
         );

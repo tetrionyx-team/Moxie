@@ -65,6 +65,7 @@ export default function EditorialWatches() {
                   alt={card.alt}
                   className="editorial-img"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="editorial-img-overlay" />
               </Link>

@@ -31,15 +31,29 @@ function AccountDropdown({ user, onLogout, onClose }) {
     onClose();
   };
 
-  const userName = user?.name || "User";
+  const [imgError, setImgError] = React.useState(false);
+  const avatarUrl = user?.avatar || user?.image || "";
 
-  // Calculate initials from user name (e.g., "Harish Raja" -> "HR")
+  React.useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
+
+  const userName =
+    user?.name ||
+    (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
+    user?.username ||
+    "User";
+
+  // Calculate initial from user name with priority: full_name -> first_name -> username -> email -> "U"
   const getInitials = (name) => {
-    if (!name) return "U";
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return "U";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    const raw =
+      name?.trim() ||
+      user?.name?.trim() ||
+      user?.first_name?.trim() ||
+      user?.username?.trim() ||
+      user?.email?.trim() ||
+      "U";
+    return raw.charAt(0).toUpperCase() || "U";
   };
 
   return (
@@ -52,11 +66,12 @@ function AccountDropdown({ user, onLogout, onClose }) {
       {/* 1. Profile Header: Avatar + User Name + MOXIE Member Badge */}
       <div className="profile-dropdown-user">
         <div className="profile-avatar" aria-hidden="true">
-          {user?.avatar || user?.image ? (
+          {avatarUrl && !imgError ? (
             <img
-              src={user.avatar || user.image}
+              src={avatarUrl}
               alt={userName}
               className="profile-avatar-img"
+              onError={() => setImgError(true)}
             />
           ) : (
             <span className="profile-avatar-initials">{getInitials(userName)}</span>

@@ -1,264 +1,948 @@
 /* ===================================================
-   MOXIE CUSTOMER TESTIMONIALS SECTION — CONTINUOUS MARQUEE
+   MOXIE COMPACT CUSTOMER REVIEWS SECTION
    =================================================== */
 
-.customer-testimonials-section {
-  width: 100%;
-  background: #ffffff;
-  padding: 72px 0 90px;
-  position: relative;
-  overflow: hidden;
-}
-
-.testimonials-container {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.testimonials-heading {
-  font-size: clamp(26px, 3.5vw, 36px);
-  font-weight: 700;
-  color: #111111;
-  text-align: center;
-  margin: 0 0 48px 0;
-  letter-spacing: -0.5px;
-}
-
-/* Outer Marquee Wrapper with hidden overflow and subtle edge fade */
-.testimonial-marquee {
+.moxie-reviews-section {
   position: relative;
   width: 100%;
+  background: linear-gradient(180deg, #FCFAF6 0%, #FAF6F0 100%);
+  padding: 64px 24px 56px;
   overflow: hidden;
-  padding: 16px 0 24px;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 4%,
-    black 96%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 4%,
-    black 96%,
-    transparent 100%
-  );
-}
-
-/* Continuous Moving Track: RIGHT TO LEFT */
-.testimonial-track {
-  display: flex;
-  width: max-content;
-  animation: testimonialScroll 32s linear infinite;
-  will-change: transform;
-}
-
-/* Hover to Pause on Desktop */
-.testimonial-marquee:hover .testimonial-track {
-  animation-play-state: paused;
-}
-
-/* Groups of Testimonial Cards */
-.testimonial-group {
-  display: flex;
-  gap: 24px;
-  padding-right: 24px;
-  flex-shrink: 0;
-}
-
-/* Continuous Scroll Animation Keyframes */
-@keyframes testimonialScroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* Testimonial Card */
-.testimonial-card {
-  width: 380px;
-  flex: 0 0 380px;
-  min-height: 290px;
-  border-radius: 16px;
-  padding: 26px 28px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 18px;
   box-sizing: border-box;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  user-select: none;
 }
 
-.testimonial-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09);
-  border-color: #d1d5db;
-}
-
-/* Card Header: Avatar, Name + Stars, Quote Icon */
-.testimonial-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-}
-
-.testimonial-user-meta {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.testimonial-avatar {
-  width: 56px;
-  height: 56px;
+/* Subtle luxury cream/gold background curves */
+.moxie-reviews-bg-curve {
+  position: absolute;
   border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 2px solid #f3f4f6;
-  background-color: #f3f4f6;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.testimonial-user-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.moxie-reviews-bg-curve.top-left {
+  width: 440px;
+  height: 440px;
+  top: -220px;
+  left: -180px;
+  background: radial-gradient(circle, rgba(197, 160, 89, 0.08) 0%, rgba(252, 250, 246, 0) 70%);
+  border: 1px solid rgba(197, 160, 89, 0.12);
 }
 
-.testimonial-user-name {
-  font-size: 16.5px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  line-height: 1.3;
+.moxie-reviews-bg-curve.bottom-right {
+  width: 460px;
+  height: 460px;
+  bottom: -230px;
+  right: -190px;
+  background: radial-gradient(circle, rgba(197, 160, 89, 0.07) 0%, rgba(250, 246, 240, 0) 70%);
+  border: 1px solid rgba(197, 160, 89, 0.1);
 }
 
-.testimonial-stars-wrap {
-  display: flex;
-  align-items: center;
-  gap: 2.5px;
-}
-
-.testimonial-star {
-  display: inline-block;
-}
-
-/* Quote Icon */
-.testimonial-quote-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fdb101;
-  opacity: 0.85;
-}
-
-/* Card Message Body */
-.testimonial-card-body {
-  flex: 1;
-}
-
-.testimonial-message {
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: #4b5563;
-  margin: 0;
-  font-weight: 400;
+.moxie-reviews-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* ===================================================
-   RESPONSIVE DESIGN
+   1. SECTION HEADER
    =================================================== */
 
-@media (max-width: 992px) {
-  .customer-testimonials-section {
-    padding: 56px 0 70px;
-  }
+.moxie-reviews-header {
+  text-align: center;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-  .testimonials-heading {
-    margin-bottom: 38px;
-  }
+.moxie-reviews-star-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
 
-  .testimonial-group {
-    gap: 18px;
-    padding-right: 18px;
-  }
+.moxie-gold-star-icon {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 2px 4px rgba(197, 160, 89, 0.25));
+}
 
-  .testimonial-card {
-    width: 330px;
-    flex: 0 0 330px;
-    min-height: 270px;
-    padding: 22px 24px;
-  }
+.moxie-reviews-overline {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 2.4px;
+  color: #B48C48;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
 
-  .testimonial-track {
-    animation-duration: 28s;
+.moxie-reviews-title {
+  font-family: "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 700;
+  color: #071426;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.moxie-reviews-subtitle {
+  font-size: clamp(14px, 1.2vw, 16.5px);
+  color: #64748B;
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: -0.1px;
+}
+
+/* ===================================================
+   2. STATIC CENTERED CONTAINER (<= 3 REVIEWS)
+   =================================================== */
+
+.moxie-reviews-static {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 24px;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 4px 4px 8px;
+}
+
+.moxie-static-card-wrap {
+  display: flex;
+  box-sizing: border-box;
+}
+
+/* Case A: 1 Review - Centered horizontally */
+.moxie-reviews-count-1 {
+  justify-content: center;
+}
+
+.moxie-reviews-count-1 .moxie-static-card-wrap {
+  width: 100%;
+  max-width: 400px;
+  flex: 0 1 400px;
+}
+
+/* Case B: 2 Reviews - 2 Cards centered horizontally */
+.moxie-reviews-count-2 {
+  justify-content: center;
+  gap: 24px;
+}
+
+.moxie-reviews-count-2 .moxie-static-card-wrap {
+  width: 100%;
+  max-width: 400px;
+  flex: 0 1 390px;
+}
+
+/* Case C: 3 Reviews - 3 Cards centered in one row */
+.moxie-reviews-count-3 {
+  justify-content: center;
+  gap: 24px;
+}
+
+.moxie-reviews-count-3 .moxie-static-card-wrap {
+  width: 100%;
+  max-width: 390px;
+  flex: 1 1 0;
+}
+
+/* ===================================================
+   3. CAROUSEL WRAPPER & SLIDER (> 3 REVIEWS)
+   =================================================== */
+
+.moxie-reviews-carousel-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.moxie-carousel-viewport {
+  width: 100%;
+  overflow: hidden;
+  padding: 8px 4px 12px;
+}
+
+.moxie-carousel-track {
+  display: flex;
+  align-items: stretch;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.moxie-carousel-slide {
+  padding: 0 12px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Carousel Left & Right Arrow Buttons */
+.moxie-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid #E5E0D8;
+  color: #071426;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.08);
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  outline: none;
+}
+
+.moxie-carousel-arrow:hover {
+  background: #FAF8F5;
+  border-color: #C5A059;
+  color: #B48C48;
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 6px 18px rgba(7, 20, 38, 0.12);
+}
+
+.moxie-carousel-arrow:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.moxie-carousel-arrow.prev-arrow {
+  left: -22px;
+}
+
+.moxie-carousel-arrow.next-arrow {
+  right: -22px;
+}
+
+/* ===================================================
+   4. COMPACT REUSABLE REVIEW CARD
+   =================================================== */
+
+.moxie-review-card {
+  width: 100%;
+  max-width: 420px;
+  min-height: auto;
+  background: #FFFFFF;
+  border: 1px solid #EBE6DE;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.moxie-review-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  border-color: #DDD4C6;
+}
+
+/* Header Row: Avatar, Name, Verified Badge, Rating, Date */
+.moxie-review-top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.moxie-review-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #EDE8E0;
+}
+
+.moxie-review-avatar-initial {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #F5EFEB;
+  color: #071426;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid #E8E1D5;
+}
+
+.moxie-review-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.moxie-review-name-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.moxie-review-user-name {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #071426;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  line-height: 1.25;
+}
+
+.moxie-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+  flex-shrink: 0;
+  border: 1px solid #C8E6C9;
+}
+
+.moxie-verified-check-icon {
+  flex-shrink: 0;
+}
+
+.moxie-review-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+}
+
+.moxie-review-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.moxie-star-icon {
+  width: 15.5px;
+  height: 15.5px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.moxie-review-rating-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: #071426;
+  line-height: 1;
+}
+
+.moxie-review-date {
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: flex-start;
+  padding-top: 2px;
+}
+
+/* Review Title & Body */
+.moxie-review-body {
+  margin-bottom: 12px;
+  flex-grow: 1;
+}
+
+.moxie-review-title {
+  font-size: 18.5px;
+  font-weight: 700;
+  color: #071426;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.moxie-review-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #475569;
+  margin: 0;
+  font-weight: 400;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Optional Customer Uploaded Product Image Gallery (Horizontal Scroll) */
+.moxie-review-images-row {
+  width: 100%;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.moxie-review-photos-scroll-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.moxie-review-photos-scroll-track::-webkit-scrollbar {
+  height: 4px;
+}
+
+.moxie-review-photos-scroll-track::-webkit-scrollbar-thumb {
+  background: #E2D9CC;
+  border-radius: 999px;
+}
+
+.moxie-review-thumbnail-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  background: #F8FAFC;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  outline: none;
+}
+
+.moxie-review-uploaded-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.moxie-review-img-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 20, 38, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.moxie-review-thumbnail-wrap:hover .moxie-review-uploaded-img {
+  transform: scale(1.06);
+}
+
+.moxie-review-thumbnail-wrap:hover .moxie-review-img-zoom-overlay {
+  opacity: 1;
+}
+
+/* Purchased Product Footer (Compact & Clickable) */
+.moxie-review-product-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #F1ECE4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 68px;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  outline: none;
+}
+
+.moxie-review-product-footer.clickable {
+  cursor: pointer;
+}
+
+.moxie-review-product-footer.clickable:hover .moxie-review-prod-name {
+  color: #B48C48;
+}
+
+.moxie-review-prod-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #F8F6F2;
+  border: 1px solid #EFEAE2;
+  flex-shrink: 0;
+}
+
+.moxie-review-prod-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.moxie-review-prod-label {
+  font-size: 11.5px;
+  color: #94A3B8;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.moxie-review-prod-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #071426;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  transition: color 0.2s ease;
+}
+
+.moxie-review-chevron {
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.moxie-review-product-footer.clickable:hover .moxie-review-chevron {
+  transform: translateX(3px);
+  color: #B48C48;
+}
+
+/* ===================================================
+   5. PAGINATION DOTS
+   =================================================== */
+
+.moxie-reviews-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.moxie-pagination-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #E2D9CC;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: width 0.25s ease, background-color 0.25s ease, border-radius 0.25s ease;
+  outline: none;
+}
+
+.moxie-pagination-dot:hover {
+  background: #C5A059;
+}
+
+.moxie-pagination-dot.active {
+  width: 22px;
+  border-radius: 999px;
+  background: #B48C48;
+}
+
+/* ===================================================
+   6. LIGHTBOX MODAL
+   =================================================== */
+
+.moxie-review-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 20, 38, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: moxieFadeIn 0.2s ease;
+}
+
+.moxie-review-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moxie-lightbox-img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  object-fit: contain;
+}
+
+.moxie-lightbox-close-btn {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: #071426;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, background 0.2s ease;
+  outline: none;
+}
+
+.moxie-lightbox-close-btn:hover {
+  transform: scale(1.1);
+  background: #FAF8F5;
+  color: #B48C48;
+}
+
+.moxie-lightbox-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #071426;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.18s ease;
+  z-index: 10;
+}
+
+.moxie-lightbox-nav-btn:hover {
+  background: #FFFFFF;
+  color: #C5A059;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.moxie-lightbox-nav-btn.prev {
+  left: -20px;
+}
+
+.moxie-lightbox-nav-btn.next {
+  right: -20px;
+}
+
+.moxie-lightbox-counter {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #FFFFFF;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+@keyframes moxieFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-@media (max-width: 600px) {
-  .customer-testimonials-section {
-    padding: 44px 0 54px;
+/* ===================================================
+   7. RESPONSIVE BREAKPOINTS
+   =================================================== */
+
+/* Large Desktop (>= 1400px) */
+@media (min-width: 1400px) {
+  .moxie-carousel-arrow.prev-arrow {
+    left: -32px;
+  }
+  .moxie-carousel-arrow.next-arrow {
+    right: -32px;
+  }
+}
+
+/* Desktop / Laptop (1024px - 1399px) */
+@media (max-width: 1200px) {
+  .moxie-carousel-arrow.prev-arrow {
+    left: -12px;
+  }
+  .moxie-carousel-arrow.next-arrow {
+    right: -12px;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+  .moxie-reviews-section {
+    padding: 56px 20px 48px;
   }
 
-  .testimonials-container {
-    padding: 0 16px;
+  .moxie-reviews-header {
+    margin-bottom: 30px;
   }
 
-  .testimonials-heading {
-    margin-bottom: 28px;
+  .moxie-reviews-static {
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .testimonial-group {
-    gap: 14px;
-    padding-right: 14px;
+  .moxie-reviews-count-3 .moxie-static-card-wrap {
+    flex: 0 1 340px;
   }
 
-  .testimonial-card {
-    width: 300px;
-    flex: 0 0 300px;
-    min-height: 250px;
-    padding: 18px 20px;
-    border-radius: 14px;
+  .moxie-review-card {
+    padding: 22px 20px;
   }
 
-  .testimonial-avatar {
+  .moxie-review-title {
+    font-size: 17.5px;
+  }
+
+  .moxie-review-text {
+    font-size: 14.5px;
+  }
+
+  .moxie-carousel-arrow.prev-arrow {
+    left: -8px;
+  }
+
+  .moxie-carousel-arrow.next-arrow {
+    right: -8px;
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  .moxie-reviews-section {
+    padding: 48px 16px 40px;
+  }
+
+  .moxie-reviews-header {
+    margin-bottom: 24px;
+  }
+
+  .moxie-reviews-title {
+    font-size: 28px;
+  }
+
+  .moxie-reviews-subtitle {
+    font-size: 14.5px;
+  }
+
+  /* Static Mobile: Single card centered, multiple cards swipe-safe horizontal */
+  .moxie-reviews-static {
+    gap: 12px;
+    padding: 4px 4px 12px;
+  }
+
+  .moxie-reviews-count-1 {
+    justify-content: center;
+  }
+
+  .moxie-reviews-count-1 .moxie-static-card-wrap {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    flex: 0 1 360px;
+  }
+
+  .moxie-reviews-count-2,
+  .moxie-reviews-count-3 {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .moxie-reviews-count-2::-webkit-scrollbar,
+  .moxie-reviews-count-3::-webkit-scrollbar {
+    display: none;
+  }
+
+  .moxie-reviews-count-2 .moxie-static-card-wrap,
+  .moxie-reviews-count-3 .moxie-static-card-wrap {
+    flex: 0 0 calc(100vw - 32px);
+    max-width: 360px;
+    scroll-snap-align: center;
+  }
+
+  .moxie-carousel-slide {
+    padding: 0 6px;
+  }
+
+  .moxie-review-card {
+    padding: 18px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  .moxie-review-avatar,
+  .moxie-review-avatar-initial {
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+  }
+
+  .moxie-review-user-name {
+    font-size: 15px;
+    max-width: 120px;
+  }
+
+  .moxie-verified-pill {
+    font-size: 10.5px;
+    padding: 2.5px 6.5px;
+  }
+
+  .moxie-review-date {
+    font-size: 11.5px;
+  }
+
+  .moxie-review-title {
+    font-size: 17px;
+  }
+
+  .moxie-review-text {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .moxie-review-thumbnail-wrap {
+    width: 84px;
+    height: 84px;
+  }
+
+  .moxie-review-product-footer {
+    padding-top: 10px;
+    min-height: 60px;
+  }
+
+  .moxie-review-prod-thumb {
+    width: 52px;
+    height: 52px;
+  }
+
+  .moxie-review-prod-name {
+    font-size: 14px;
+  }
+
+  /* Compact carousel arrows on mobile */
+  .moxie-carousel-arrow {
+    width: 34px;
+    height: 34px;
+  }
+
+  .moxie-carousel-arrow svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .moxie-carousel-arrow.prev-arrow {
+    left: -4px;
+  }
+
+  .moxie-carousel-arrow.next-arrow {
+    right: -4px;
+  }
+}
+
+/* Small Mobile (<= 375px) */
+@media (max-width: 375px) {
+  .moxie-reviews-section {
+    padding: 40px 12px 32px;
+  }
+
+  .moxie-reviews-title {
+    font-size: 25px;
+  }
+
+  .moxie-review-card {
+    padding: 16px 14px 14px;
+  }
+
+  .moxie-review-avatar,
+  .moxie-review-avatar-initial {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .moxie-review-user-name {
+    font-size: 14px;
+    max-width: 95px;
+  }
+
+  .moxie-verified-pill {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+
+  .moxie-review-prod-thumb {
     width: 48px;
     height: 48px;
   }
 
-  .testimonial-user-name {
-    font-size: 15px;
-  }
-
-  .testimonial-message {
-    font-size: 13.5px;
-    line-height: 1.55;
-  }
-
-  .testimonial-track {
-    animation-duration: 24s;
+  .moxie-review-prod-name {
+    font-size: 13px;
   }
 }
 
-/* Reduced Motion Accessibility */
+/* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
-  .testimonial-track {
-    animation: none !important;
-  }
-
-  .testimonial-marquee {
-    overflow-x: auto;
-    mask-image: none;
-    -webkit-mask-image: none;
+  .moxie-carousel-track,
+  .moxie-review-card,
+  .moxie-pagination-dot,
+  .moxie-carousel-arrow {
+    transition: none !important;
   }
 }

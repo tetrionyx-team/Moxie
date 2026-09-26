@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useMemo } from "react";
 
 export const CartContext = createContext();
 
@@ -6,7 +6,9 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem("cart");
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -26,35 +28,36 @@ export const CartProvider = ({ children }) => {
   const closeCart = () => setIsCartOpen(false);
   const toggleCart = () => setIsCartOpen((prev) => !prev);
 
+  const getItemKey = (product) => {
+    if (!product) return "";
+    return (
+      product.cartItemId ||
+      (product.selectedVariant?.id
+        ? `${product.id}-v${product.selectedVariant.id}`
+        : product.selectedColor || product.selectedSize
+        ? `${product.id}-${product.selectedColor || ""}-${product.selectedSize || ""}`
+        : String(product.id))
+    );
+  };
+
   const addToCart = (product, quantity = 1, autoOpen = true) => {
     if (!product || !product.id) return;
 
-    // Resolve unique key based on variant or selection
-    const itemKey = product.selectedVariant?.id
-      ? `${product.id}-v${product.selectedVariant.id}`
-      : product.selectedColor || product.selectedSize
-      ? `${product.id}-${product.selectedColor || ""}-${product.selectedSize || ""}`
-      : String(product.id);
+    const itemKey = getItemKey(product);
+    const addQty = Math.max(1, Number(quantity) || 1);
 
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => {
-        const key = item.cartItemId || (item.selectedVariant?.id
-          ? `${item.id}-v${item.selectedVariant.id}`
-          : item.selectedColor || item.selectedSize
-          ? `${item.id}-${item.selectedColor || ""}-${item.selectedSize || ""}`
-          : String(item.id));
-        return key === itemKey;
-      });
+      const existingIndex = prev.findIndex((item) => getItemKey(item) === itemKey);
 
       if (existingIndex > -1) {
         return prev.map((item, idx) =>
           idx === existingIndex
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: (Number(item.quantity) || 0) + addQty }
             : item
         );
       }
 
-      return [...prev, { ...product, cartItemId: itemKey, quantity }];
+      return [...prev, { ...product, cartItemId: itemKey, quantity: addQty }];
     });
 
     if (autoOpen) {
@@ -63,25 +66,32 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (cartItemIdOrId) => {
+    if (!cartItemIdOrId) return;
     setCart((prev) =>
-      prev.filter(
-        (item) => (item.cartItemId || item.id) !== cartItemIdOrId && item.id !== cartItemIdOrId
-      )
+      prev.filter((item) => {
+        const key = getItemKey(item);
+        return key !== cartItemIdOrId && String(item.id) !== String(cartItemIdOrId);
+      })
     );
   };
 
   const updateQuantity = (cartItemIdOrId, quantity) => {
-    if (quantity <= 0) {
+    const numQty = Number(quantity);
+    if (isNaN(numQty) || numQty <= 0) {
       removeFromCart(cartItemIdOrId);
       return;
     }
     setCart((prev) =>
       prev.map((item) => {
-        const key = item.cartItemId || item.id;
-        if (key === cartItemIdOrId || item.id === cartItemIdOrId) {
-          const maxStock = item.selectedVariant?.stock ?? item.rawStock ?? item.stock_quantity ?? (typeof item.stock === "number" ? item.stock : 999);
+        const key = getItemKey(item);
+        if (key === cartItemIdOrId || String(item.id) === String(cartItemIdOrId)) {
+          const maxStock =
+            item.selectedVariant?.stock ??
+            item.rawStock ??
+            item.stock_quantity ??
+            (typeof item.stock === "number" ? item.stock : 999);
           const validStock = typeof maxStock === "number" && maxStock > 0 ? maxStock : 999;
-          const safeQty = Math.min(quantity, validStock);
+          const safeQty = Math.min(numQty, validStock);
           return { ...item, quantity: safeQty };
         }
         return item;
@@ -93,17 +103,30 @@ export const CartProvider = ({ children }) => {
     setCart([]);
   };
 
-  // Resolve total item count (sum of quantities)
-  const cartCount = cart.reduce((acc, item) => acc + (Number(item.quantity) || 1), 0);
+  // Derive total item count (sum of all quantities)
+  const cartItemCount = useMemo(() => {
+    return cart.reduce(
+      (total, item) => total + Math.max(0, Number(item.quantity || 0)),
+      0
+    );
+  }, [cart]);
 
-  // Resolve subtotal (sum of price * quantity)
-  const subtotal = cart.reduce((acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  // Derive subtotal (sum of price * quantity)
+  const subtotal = useMemo(() => {
+    return cart.reduce(
+      (acc, item) =>
+        acc + (Number(item.price) || 0) * Math.max(0, Number(item.quantity || 0)),
+      0
+    );
+  }, [cart]);
 
   return (
     <CartContext.Provider
       value={{
         cart,
-        cartCount,
+        cartCount: cartItemCount,
+        cartItemCount,
+        count: cartItemCount,
         subtotal,
         isCartOpen,
         openCart,
@@ -121,5 +144,3 @@ export const CartProvider = ({ children }) => {
 };
 
 export const useCart = () => useContext(CartContext);
-
-

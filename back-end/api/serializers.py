@@ -340,6 +340,27 @@ class ReviewSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True, default='')
     product_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     order_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    order_item_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    images = serializers.SerializerMethodField()
+
+    def get_images(self, obj):
+        urls = []
+        try:
+            for img in obj.images.all():
+                if img.image:
+                    try:
+                        urls.append(img.image.url)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        if not urls and obj.image:
+            try:
+                urls.append(obj.image.url)
+            except Exception:
+                pass
+        return urls
 
     class Meta:
         model = Review
@@ -350,19 +371,26 @@ class ReviewSerializer(serializers.ModelSerializer):
             'product_name',
             'order',
             'order_id',
+            'order_item',
+            'order_item_id',
+            'title',
             'name',
             'email',
             'rating',
             'image',
+            'images',
             'text',
             'is_verified',
             'status',
             'is_active',
             'created_at',
+            'updated_at',
         ]
         extra_kwargs = {
             'product': {'required': False, 'allow_null': True},
             'order': {'required': False, 'allow_null': True},
+            'order_item': {'required': False, 'allow_null': True},
+            'title': {'required': False, 'allow_blank': True},
             'name': {'required': False, 'allow_blank': True},
             'email': {'required': False, 'allow_null': True, 'allow_blank': True},
             'image': {'required': False, 'allow_null': True},
