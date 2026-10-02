@@ -88,27 +88,34 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING("No staff admin user found in database."))
 
+        from services.email_service import get_configured_providers
+        configured = get_configured_providers()
+        self.stdout.write(f"Configured Providers Chain: {' -> '.join([p.upper() for p in configured])}")
+
         # 3. Attempt Sending Test Email
-        self.stdout.write(self.style.NOTICE(f"\nAttempting test OTP email to '{mask_email(recipient)}' via provider [{provider.upper()}]..."))
+        self.stdout.write(self.style.NOTICE(f"\nAttempting test OTP email to '{mask_email(recipient)}' via active transport..."))
 
         try:
             send_admin_otp_email(recipient, "849201")
-            self.stdout.write(self.style.SUCCESS(f"[SUCCESS] OTP email dispatched successfully via {provider.upper()}!"))
+            self.stdout.write(self.style.SUCCESS(f"[SUCCESS] OTP email dispatched successfully!"))
             self.stdout.write(self.style.SUCCESS(f"Delivered to '{mask_email(recipient)}'."))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"[FAILED] Error Type: {type(e).__name__}"))
             self.stdout.write(self.style.ERROR(f"[FAILED] Error Details: {e}"))
             self.stdout.write(self.style.NOTICE("\n--- DIAGNOSTIC HINTS ---"))
             err_str = str(e).lower()
-            if "10061" in err_str or "connection refused" in err_str or "timeout" in err_str:
+            if "10061" in err_str or "connection refused" in err_str or "timeout" in err_str or "errno 111" in err_str:
                 self.stdout.write(self.style.WARNING(
                     "SMTP Port Blocked: Render Free Web Services block outbound SMTP ports (25/465/587).\n"
-                    "For Render Free backend, configure Gmail API over HTTPS:\n"
-                    "  EMAIL_PROVIDER=gmail_api\n"
-                    "  GMAIL_CLIENT_ID=...\n"
-                    "  GMAIL_CLIENT_SECRET=...\n"
-                    "  GMAIL_REFRESH_TOKEN=...\n"
-                    "  GMAIL_SENDER_EMAIL=MOXIE <youraccount@gmail.com>"
+                    "For Render Free backend, configure an HTTPS provider in Render Environment Variables:\n"
+                    "  Option 1 (Resend): EMAIL_PROVIDER=resend, RESEND_API_KEY=re_...\n"
+                    "  Option 2 (Brevo):  EMAIL_PROVIDER=brevo, BREVO_API_KEY=xkeysib-...\n"
+                    "  Option 3 (Gmail):  EMAIL_PROVIDER=gmail_api, GMAIL_CLIENT_ID=..., GMAIL_CLIENT_SECRET=..., GMAIL_REFRESH_TOKEN=..."
+                ))
+            elif "403" in err_str or "forbidden" in err_str or "testing emails" in err_str:
+                self.stdout.write(self.style.WARNING(
+                    "Resend Restriction: Resend free tier without custom domain only allows sending to your registered account email.\n"
+                    "Ensure recipient email matches your Resend login email, or verify your custom domain in Resend."
                 ))
             elif "invalid_grant" in err_str or "token" in err_str:
                 self.stdout.write(self.style.WARNING(
@@ -116,5 +123,5 @@ class Command(BaseCommand):
                 ))
             elif "535" in err_str or "authentication" in err_str:
                 self.stdout.write(self.style.WARNING(
-                    "Authentication Failed: Check OAuth credentials or Gmail App Password."
+                    "Authentication Failed: Check OAuth credentials or API keys."
                 ))

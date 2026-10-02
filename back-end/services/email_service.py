@@ -186,17 +186,47 @@ def _send_via_smtp(to_email, subject, html_content, text_content, from_email=Non
     return True
 
 
+def get_configured_providers():
+    """
+    Returns an ordered list of providers that have valid configuration in environment.
+    """
+    providers = []
+    explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
+    if explicit:
+        providers.append(explicit)
+
+    # Check available HTTPS transports
+    if os.environ.get('RESEND_API_KEY', '').strip() and 'resend' not in providers:
+        providers.append('resend')
+    if (os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip()) and 'brevo' not in providers:
+        providers.append('brevo')
+    if os.environ.get('GMAIL_REFRESH_TOKEN', '').strip() and 'gmail_api' not in providers:
+        providers.append('gmail_api')
+    if os.environ.get('SENDGRID_API_KEY', '').strip() and 'sendgrid' not in providers:
+        providers.append('sendgrid')
+    if os.environ.get('POSTMARK_SERVER_TOKEN', '').strip() and 'postmark' not in providers:
+        providers.append('postmark')
+    if os.environ.get('MAILGUN_API_KEY', '').strip() and 'mailgun' not in providers:
+        providers.append('mailgun')
+
+    backend = getattr(settings, 'EMAIL_BACKEND', '')
+    if 'console' in backend.lower() and 'console' not in providers:
+        providers.append('console')
+    elif 'smtp' not in providers:
+        providers.append('smtp')
+
+    return providers
+
+
 def _send_via_resend(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
-    Sends email via Resend Python SDK (HTTPS API).
+    Sends email via Resend HTTPS API.
     Ensures the FROM address is a valid Resend sender (e.g. 'onboarding@resend.dev' or verified custom domain)
     and prevents invalid unverified domains like '@gmail.com' from causing 403 Forbidden errors.
     """
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
         raise ValueError("RESEND_API_KEY is not configured in environment variables.")
-
-    resend.api_key = api_key
 
     # Priority for Resend sender:
     # 1. RESEND_FROM_EMAIL environment variable
@@ -225,39 +255,47 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
     if 'gmail.com' in sender.lower():
         sender = 'MOXIE <onboarding@resend.dev>'
 
-    params = {
+    payload = {
         "from": sender,
-        "to": [to_email],
+        "to": [to_email] if isinstance(to_email, str) else to_email,
         "subject": subject,
         "html": html_content,
         "text": text_content,
     }
     if reply_to:
-        params["reply_to"] = reply_to
+        payload["reply_to"] = reply_to
 
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "MoxieBackend/1.0",
+    }
+
+    timeout = int(os.environ.get('EMAIL_HTTP_TIMEOUT', 15))
     try:
-        response = resend.Emails.send(params)
+        resp = requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=timeout)
+        if resp.status_code not in (200, 201, 202):
+            try:
+                err_data = resp.json()
+                err_msg = err_data.get('message', resp.text)
+            except Exception:
+                err_msg = resp.text
+            raise RuntimeError(f"Resend API error (HTTP {resp.status_code}): {err_msg}")
+        return True
     except Exception as exc:
-        logger.error(
-            "OTP email send failed | recipient=%s | provider=resend | status=EXCEPTION | reason=%s",
-            mask_email(to_email),
-            str(exc)
-        )
-        raise RuntimeError(f"Resend delivery failed: {str(exc)}") from exc
-
-    if isinstance(response, dict) and response.get("error"):
-        err = response.get("error")
-        err_msg = err.get("message") if isinstance(err, dict) else str(err)
-        err_code = err.get("statusCode") if isinstance(err, dict) else "400"
-        logger.error(
-            "OTP email send failed | recipient=%s | provider=resend | status=%s | reason=%s",
-            mask_email(to_email),
-            err_code,
-            err_msg
-        )
-        raise RuntimeError(f"Resend API error ({err_code}): {err_msg}")
-
-    return True
+        if "Resend API error" in str(exc):
+            raise
+        # Fallback to SDK if requests encountered connection issue
+        try:
+            resend.api_key = api_key
+            sdk_resp = resend.Emails.send(payload)
+            if isinstance(sdk_resp, dict) and sdk_resp.get("error"):
+                err = sdk_resp.get("error")
+                err_msg = err.get("message") if isinstance(err, dict) else str(err)
+                raise RuntimeError(f"Resend SDK error: {err_msg}")
+            return True
+        except Exception as sdk_exc:
+            raise RuntimeError(f"Resend delivery failed: {str(exc)} | SDK: {str(sdk_exc)}") from exc
 
 
 def _send_via_brevo(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
@@ -428,38 +466,53 @@ def _send_via_mailgun(to_email, subject, html_content, text_content, from_email=
 def send_transactional_email(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
     Unified dispatcher for transactional emails across all supported transports.
-    Routes to the configured provider cleanly and transparently.
+    Routes to the configured provider cleanly and transparently with automatic fallback.
     """
-    provider = get_active_email_provider()
+    configured_providers = get_configured_providers()
+    if not configured_providers:
+        configured_providers = [get_active_email_provider()]
 
-    try:
-        if provider in ('gmail_api', 'gmail'):
-            return _send_via_gmail_api(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider == 'resend':
-            return _send_via_resend(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider in ('brevo', 'sendinblue'):
-            return _send_via_brevo(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider == 'sendgrid':
-            return _send_via_sendgrid(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider == 'postmark':
-            return _send_via_postmark(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider == 'mailgun':
-            return _send_via_mailgun(to_email, subject, html_content, text_content, from_email, reply_to)
-        elif provider in ('console', 'mock', 'test'):
-            return True
-        elif provider == 'smtp':
-            return _send_via_smtp(to_email, subject, html_content, text_content, from_email, reply_to)
-        else:
-            raise ValueError(f"Unknown or unsupported EMAIL_PROVIDER: '{provider}'")
-    except Exception as e:
-        logger.error(
-            "OTP email send failed | recipient=%s | provider=%s | status=FAILED | reason=%s: %s",
-            mask_email(to_email),
-            provider,
-            type(e).__name__,
-            str(e)
-        )
-        raise
+    last_exception = None
+    for provider in configured_providers:
+        try:
+            if provider in ('gmail_api', 'gmail'):
+                return _send_via_gmail_api(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider == 'resend':
+                return _send_via_resend(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider in ('brevo', 'sendinblue'):
+                return _send_via_brevo(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider == 'sendgrid':
+                return _send_via_sendgrid(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider == 'postmark':
+                return _send_via_postmark(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider == 'mailgun':
+                return _send_via_mailgun(to_email, subject, html_content, text_content, from_email, reply_to)
+            elif provider in ('console', 'mock', 'test'):
+                return True
+            elif provider == 'smtp':
+                return _send_via_smtp(to_email, subject, html_content, text_content, from_email, reply_to)
+            else:
+                raise ValueError(f"Unknown or unsupported EMAIL_PROVIDER: '{provider}'")
+        except Exception as e:
+            last_exception = e
+            logger.warning(
+                "Email provider '%s' failed for %s: %s (%s). Trying next provider if available...",
+                provider,
+                mask_email(to_email),
+                type(e).__name__,
+                str(e)
+            )
+
+    logger.error(
+        "All email transports failed | recipient=%s | last_provider=%s | reason=%s: %s",
+        mask_email(to_email),
+        configured_providers[-1] if configured_providers else 'none',
+        type(last_exception).__name__ if last_exception else 'Unknown',
+        str(last_exception) if last_exception else 'No provider succeeded'
+    )
+    if last_exception:
+        raise last_exception
+    raise RuntimeError("No email transport provider could deliver the message.")
 
 
 def send_admin_otp_email(target_email, otp_code):
