@@ -53,20 +53,30 @@ def mask_email(email_str):
 def get_active_email_provider():
     """
     Resolves the active email transport provider based on environment configuration.
-    Explicit EMAIL_PROVIDER takes precedence ('gmail_api', 'smtp', 'resend', etc.).
-    Otherwise auto-detects based on available API credentials.
+    Explicit EMAIL_PROVIDER takes precedence ('resend', 'gmail_api', 'smtp', etc.).
+    Otherwise auto-detects based on available API credentials with Resend as PRIMARY.
     """
     explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
     if explicit:
         return explicit
 
-    # Auto-detect HTTPS API providers
-    if os.environ.get('GMAIL_REFRESH_TOKEN', '').strip():
-        return 'gmail_api'
+    # 1. Resend HTTPS API (PRIMARY production provider on Render)
     if os.environ.get('RESEND_API_KEY', '').strip():
         return 'resend'
+
+    # 2. Brevo / Sendinblue HTTPS API
     if os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip():
         return 'brevo'
+
+    # 3. Gmail API over HTTPS (Requires refresh token and client credentials)
+    if (
+        os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
+        and os.environ.get('GMAIL_CLIENT_ID', '').strip()
+        and os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
+    ):
+        return 'gmail_api'
+
+    # 4. Other HTTPS API providers
     if os.environ.get('SENDGRID_API_KEY', '').strip():
         return 'sendgrid'
     if os.environ.get('POSTMARK_SERVER_TOKEN', '').strip():
@@ -74,7 +84,7 @@ def get_active_email_provider():
     if os.environ.get('MAILGUN_API_KEY', '').strip():
         return 'mailgun'
 
-    # Fallback to SMTP or standard Django EmailBackend
+    # 5. Fallback to SMTP or standard Django EmailBackend
     backend = getattr(settings, 'EMAIL_BACKEND', '')
     if 'console' in backend.lower():
         return 'console'
@@ -86,13 +96,14 @@ def parse_sender_info(from_email_str=None):
     """
     Extracts name and email address from formatted sender string like 'MOXIE <sender@domain.com>'.
     """
-    raw = from_email_str or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxie.com>')
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
+    raw = from_email_str or getattr(settings, 'DEFAULT_FROM_EMAIL', f'{from_name} <noreply@moxiestore.com>')
     raw = str(raw).strip()
     if '<' in raw and '>' in raw:
         name_part = raw.split('<')[0].strip().strip('"\'')
         email_part = raw.split('<')[1].split('>')[0].strip()
-        return name_part or 'MOXIE', email_part
-    return 'MOXIE', raw
+        return name_part or from_name, email_part
+    return from_name, raw
 
 
 def _send_via_gmail_api(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
@@ -103,11 +114,12 @@ def _send_via_gmail_api(to_email, subject, html_content, text_content, from_emai
     client_id = os.environ.get('GMAIL_CLIENT_ID', '').strip()
     client_secret = os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
     refresh_token = os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
     sender = (
         from_email
         or os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
         or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or 'MOXIE <tetrionyx@gmail.com>'
+        or f"{from_name} <noreply@moxiestore.com>"
     )
 
     if not client_id or not client_secret or not refresh_token:
@@ -165,8 +177,9 @@ def _send_via_smtp(to_email, subject, html_content, text_content, from_email=Non
     """
     Sends email via Django SMTP EmailBackend.
     """
-    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'MOXIE <tetrionyx@gmail.com>'
-    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or 'tetrionyx@gmail.com'
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
+    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{from_name} <noreply@moxiestore.com>"
+    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or os.environ.get('EMAIL_HOST_USER', None)
     sender = from_email or default_from
     reply_list = [reply_to] if reply_to else ([host_user] if host_user else [])
 
@@ -189,19 +202,30 @@ def _send_via_smtp(to_email, subject, html_content, text_content, from_email=Non
 def get_configured_providers():
     """
     Returns an ordered list of providers that have valid configuration in environment.
+    Resend is prioritized as the primary production HTTPS provider.
     """
     providers = []
     explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
     if explicit:
         providers.append(explicit)
 
-    # Check available HTTPS transports
+    # 1. Primary HTTPS transport: Resend
     if os.environ.get('RESEND_API_KEY', '').strip() and 'resend' not in providers:
         providers.append('resend')
+
+    # 2. Brevo
     if (os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip()) and 'brevo' not in providers:
         providers.append('brevo')
-    if os.environ.get('GMAIL_REFRESH_TOKEN', '').strip() and 'gmail_api' not in providers:
+
+    # 3. Gmail API (only if all 3 credentials exist)
+    if (
+        os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
+        and os.environ.get('GMAIL_CLIENT_ID', '').strip()
+        and os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
+        and 'gmail_api' not in providers
+    ):
         providers.append('gmail_api')
+
     if os.environ.get('SENDGRID_API_KEY', '').strip() and 'sendgrid' not in providers:
         providers.append('sendgrid')
     if os.environ.get('POSTMARK_SERVER_TOKEN', '').strip() and 'postmark' not in providers:
@@ -221,39 +245,39 @@ def get_configured_providers():
 def _send_via_resend(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
     Sends email via Resend HTTPS API.
-    Ensures the FROM address is a valid Resend sender (e.g. 'onboarding@resend.dev' or verified custom domain)
-    and prevents invalid unverified domains like '@gmail.com' from causing 403 Forbidden errors.
+    Uses verified production sender domain configured via RESEND_FROM_EMAIL or DEFAULT_FROM_EMAIL.
+    Provides clear error logging if unverified domain / sandbox limits are encountered.
     """
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
         raise ValueError("RESEND_API_KEY is not configured in environment variables.")
 
-    # Priority for Resend sender:
-    # 1. RESEND_FROM_EMAIL environment variable
-    # 2. Explicit from_email argument (if not an unverified @gmail.com)
-    # 3. DEFAULT_FROM_EMAIL setting / env (if not an unverified @gmail.com)
-    # 4. Fallback to Resend's default onboarding testing address: 'MOXIE <onboarding@resend.dev>'
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
     resend_env_sender = os.environ.get('RESEND_FROM_EMAIL', '').strip()
     default_from = os.environ.get('DEFAULT_FROM_EMAIL', '').strip() or getattr(settings, 'DEFAULT_FROM_EMAIL', None) or ''
 
+    # Priority for Resend sender:
+    # 1. RESEND_FROM_EMAIL environment variable
+    # 2. DEFAULT_FROM_EMAIL (if not sandbox default)
+    # 3. Explicit from_email argument
+    # 4. Fallback to Resend onboarding sandbox address
     sender = ''
     if resend_env_sender:
         sender = resend_env_sender
-    elif from_email and 'gmail.com' not in str(from_email).lower():
-        sender = str(from_email).strip()
-    elif default_from and 'gmail.com' not in str(default_from).lower():
+    elif default_from and 'onboarding@resend.dev' not in str(default_from).lower():
         sender = str(default_from).strip()
-    elif from_email:
+    elif from_email and 'onboarding@resend.dev' not in str(from_email).lower():
         sender = str(from_email).strip()
     elif default_from:
         sender = str(default_from).strip()
+    elif from_email:
+        sender = str(from_email).strip()
     else:
-        sender = 'MOXIE <onboarding@resend.dev>'
+        sender = f"{from_name} <onboarding@resend.dev>"
 
-    # Resend cannot send from gmail.com without domain verification.
-    # Automatically switch to Resend test sender if unverified gmail.com is provided.
-    if 'gmail.com' in sender.lower():
-        sender = 'MOXIE <onboarding@resend.dev>'
+    # Ensure display name format e.g. "MOXIE <auth@yourdomain.com>"
+    if '<' not in sender and '@' in sender:
+        sender = f"{from_name} <{sender}>"
 
     payload = {
         "from": sender,
@@ -272,30 +296,29 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
     }
 
     timeout = int(os.environ.get('EMAIL_HTTP_TIMEOUT', 15))
-    try:
-        resp = requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=timeout)
-        if resp.status_code not in (200, 201, 202):
-            try:
-                err_data = resp.json()
-                err_msg = err_data.get('message', resp.text)
-            except Exception:
-                err_msg = resp.text
-            raise RuntimeError(f"Resend API error (HTTP {resp.status_code}): {err_msg}")
-        return True
-    except Exception as exc:
-        if "Resend API error" in str(exc):
-            raise
-        # Fallback to SDK if requests encountered connection issue
+    resp = requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=timeout)
+    if resp.status_code not in (200, 201, 202):
         try:
-            resend.api_key = api_key
-            sdk_resp = resend.Emails.send(payload)
-            if isinstance(sdk_resp, dict) and sdk_resp.get("error"):
-                err = sdk_resp.get("error")
-                err_msg = err.get("message") if isinstance(err, dict) else str(err)
-                raise RuntimeError(f"Resend SDK error: {err_msg}")
-            return True
-        except Exception as sdk_exc:
-            raise RuntimeError(f"Resend delivery failed: {str(exc)} | SDK: {str(sdk_exc)}") from exc
+            err_data = resp.json()
+            err_msg = err_data.get('message', resp.text)
+        except Exception:
+            err_msg = resp.text
+
+        if resp.status_code == 403 and ("verify a domain" in err_msg.lower() or "only send testing emails" in err_msg.lower()):
+            logger.error(
+                "Resend Domain Verification Required | recipient=%s | reason=%s",
+                mask_email(to_email),
+                err_msg
+            )
+            raise RuntimeError(
+                f"Resend Domain Verification Required (HTTP 403): Testing emails can only be sent to the Resend account owner. "
+                f"To send OTP emails to all users, verify your custom domain at https://resend.com/domains and set "
+                f"RESEND_FROM_EMAIL='{from_name} <auth@yourdomain.com>' in Render Environment Variables."
+            )
+
+        raise RuntimeError(f"Resend API error (HTTP {resp.status_code}): {err_msg}")
+
+    return True
 
 
 def _send_via_brevo(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
@@ -518,34 +541,20 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
 def send_admin_otp_email(target_email, otp_code):
     """
     Sends the cryptographically secure 6-digit OTP to the registered admin email
-    using the active production transport (Gmail API over HTTPS on Render Free or local SMTP).
+    using the active production transport (Resend HTTPS API / Gmail API / SMTP).
     Preserves exact MOXIE branded HTML & text content and 5-minute expiry notices.
     """
     subject = 'Your MOXIE Admin Verification Code'
-    provider = get_active_email_provider()
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
 
-    if provider == 'resend':
-        from_email = (
-            os.environ.get('RESEND_FROM_EMAIL', '').strip()
-            or (os.environ.get('DEFAULT_FROM_EMAIL', '').strip() if 'gmail.com' not in os.environ.get('DEFAULT_FROM_EMAIL', '').lower() else '')
-            or (str(getattr(settings, 'DEFAULT_FROM_EMAIL', '')).strip() if 'gmail.com' not in str(getattr(settings, 'DEFAULT_FROM_EMAIL', '')).lower() else '')
-            or 'MOXIE <onboarding@resend.dev>'
-        )
-    elif provider in ('gmail_api', 'gmail'):
-        from_email = (
-            os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
-            or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
-            or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-            or 'MOXIE <tetrionyx@gmail.com>'
-        )
-    else:
-        from_email = (
-            os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
-            or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-            or 'MOXIE <tetrionyx@gmail.com>'
-        )
+    from_email = (
+        os.environ.get('RESEND_FROM_EMAIL', '').strip()
+        or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
+        or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        or f"{from_name} <noreply@moxiestore.com>"
+    )
 
-    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or 'tetrionyx@gmail.com'
+    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or os.environ.get('EMAIL_HOST_USER', None)
 
     plain_message = (
         f"MOXIE Admin Verification\n\n"
