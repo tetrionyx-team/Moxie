@@ -2626,7 +2626,7 @@ class AdminApiLoginView(APIView):
             is_locked=False
         )
 
-        # Send verification email via active transport (Resend HTTPS API on Render Free / SMTP)
+        # Send verification email via active transport (Gmail API over HTTPS / verified Resend / SMTP)
         try:
             send_admin_otp_email(target_email, otp_code)
         except Exception as e:
@@ -2640,12 +2640,15 @@ class AdminApiLoginView(APIView):
                 type(e).__name__,
                 str(e)
             )
-            if not getattr(settings, 'DEBUG', False):
-                otp_obj.delete()
-                return Response(
-                    {'error': 'Unable to send verification email. Please try again.'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+            # Invalidate/delete un-delivered OTP record and prevent pending session
+            otp_obj.delete()
+            return Response(
+                {
+                    'success': False,
+                    'error': 'OTP delivery is temporarily unavailable. Please try again later.'
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
         # Set pending challenge state in secure session
         request.session['admin_pending_user_id'] = user.id
@@ -2872,7 +2875,7 @@ class AdminResendOtpView(APIView):
 
         request.session['admin_pending_otp_id'] = new_otp_obj.id
 
-        # Send verification email via active transport (Resend HTTPS API on Render Free / SMTP)
+        # Send verification email via active transport (Gmail API over HTTPS / verified Resend / SMTP)
         try:
             send_admin_otp_email(target_email, new_code)
         except Exception as e:
@@ -2886,12 +2889,16 @@ class AdminResendOtpView(APIView):
                 type(e).__name__,
                 str(e)
             )
-            if not getattr(settings, 'DEBUG', False):
-                new_otp_obj.delete()
-                return Response(
-                    {'error': 'Unable to send verification email. Please try again.'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+            # Invalidate un-delivered OTP record and clear pending challenge state
+            new_otp_obj.delete()
+            request.session.pop('admin_pending_otp_id', None)
+            return Response(
+                {
+                    'success': False,
+                    'error': 'OTP delivery is temporarily unavailable. Please try again later.'
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
         masked = mask_admin_email(target_email)
 

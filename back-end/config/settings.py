@@ -377,7 +377,6 @@ if GOOGLE_APPLICATION_CREDENTIALS and os.path.exists(GOOGLE_APPLICATION_CREDENTI
 # EMAIL CONFIGURATION (SMTP / HTTPS Transactional Providers)
 # ============================================================
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
-EMAIL_FROM_NAME = os.environ.get('EMAIL_FROM_NAME', 'MOXIE').strip()
 
 # SMTP Configuration (Paid Render instances / Local Dev)
 EMAIL_BACKEND = os.environ.get(
@@ -390,22 +389,19 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1',
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 if EMAIL_USE_SSL:
     EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tetrionyx@gmail.com').strip()
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '').strip().strip("'\"")
-DEFAULT_FROM_EMAIL = os.environ.get(
-    'DEFAULT_FROM_EMAIL',
-    os.environ.get('RESEND_FROM_EMAIL', f"{EMAIL_FROM_NAME} <noreply@moxiestore.com>")
-).strip()
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MOXIE <tetrionyx@gmail.com>').strip()
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 15))
 
 # HTTPS Email Providers (Render Free Web Service Compatible)
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
-RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', '').strip()
-
 GMAIL_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID', '').strip()
 GMAIL_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
 GMAIL_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
 GMAIL_SENDER_EMAIL = os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', '').strip()
 
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', os.environ.get('SENDINBLUE_API_KEY', '')).strip()
 BREVO_FROM_EMAIL = os.environ.get('BREVO_FROM_EMAIL', '').strip()

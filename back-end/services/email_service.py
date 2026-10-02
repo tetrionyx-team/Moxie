@@ -1,23 +1,23 @@
 """
 Moxie Email Delivery Service Abstraction
 =========================================
-Supports multiple delivery transports:
-1. Gmail API over HTTPS (Primary Render Free provider via OAuth 2.0 refresh token)
-2. SMTP (Default / Paid Render instances / Local Dev fallback)
-3. Resend HTTPS API (Alternative HTTPS provider)
-4. Brevo / Sendinblue HTTPS API
-5. SendGrid HTTPS API
-6. Postmark HTTPS API
-7. Mailgun HTTPS API
-8. Console / Testing Transport
+Primary Production Transport:
+1. Gmail API over HTTPS (OAuth 2.0 refresh token)
 
-Provides unified API for Admin OTP verification emails and transactional store messages.
+Secondary Fallbacks:
+2. Resend HTTPS API (Only when verified custom domain is configured)
+3. SMTP (Only when explicitly configured)
+4. Console / Testing Transport (Local dev)
+
+Provides unified, secure API for Admin OTP verification emails and transactional store messages.
 """
 
 import os
 import json
 import logging
 import base64
+import socket
+import smtplib
 import requests
 from email.message import EmailMessage
 from django.conf import settings
@@ -26,6 +26,7 @@ from django.core.mail import EmailMultiAlternatives
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 
 import resend
 
@@ -50,25 +51,37 @@ def mask_email(email_str):
         return '***@***.***'
 
 
+def is_resend_custom_domain_configured():
+    """
+    Checks if a valid, non-sandbox, non-gmail custom domain is configured for Resend.
+    Resend rejects unverified domains and does not permit gmail.com senders.
+    """
+    resend_key = os.environ.get('RESEND_API_KEY', '').strip()
+    if not resend_key:
+        return False
+
+    sender = os.environ.get('RESEND_FROM_EMAIL', '').strip() or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
+    if not sender or '@' not in sender:
+        return False
+
+    sender_lower = sender.lower()
+    # Reject sandbox and unverified public providers
+    if 'gmail.com' in sender_lower or 'resend.dev' in sender_lower or 'onboarding@' in sender_lower:
+        return False
+
+    return True
+
+
 def get_active_email_provider():
     """
     Resolves the active email transport provider based on environment configuration.
-    Explicit EMAIL_PROVIDER takes precedence ('resend', 'gmail_api', 'smtp', etc.).
-    Otherwise auto-detects based on available API credentials with Resend as PRIMARY.
+    Primary production provider is Gmail API.
     """
     explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
     if explicit:
         return explicit
 
-    # 1. Resend HTTPS API (PRIMARY production provider on Render)
-    if os.environ.get('RESEND_API_KEY', '').strip():
-        return 'resend'
-
-    # 2. Brevo / Sendinblue HTTPS API
-    if os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip():
-        return 'brevo'
-
-    # 3. Gmail API over HTTPS (Requires refresh token and client credentials)
+    # 1. Primary Production Transport: Gmail API
     if (
         os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
         and os.environ.get('GMAIL_CLIENT_ID', '').strip()
@@ -76,20 +89,65 @@ def get_active_email_provider():
     ):
         return 'gmail_api'
 
-    # 4. Other HTTPS API providers
-    if os.environ.get('SENDGRID_API_KEY', '').strip():
-        return 'sendgrid'
-    if os.environ.get('POSTMARK_SERVER_TOKEN', '').strip():
-        return 'postmark'
-    if os.environ.get('MAILGUN_API_KEY', '').strip():
-        return 'mailgun'
+    # 2. Secondary: Resend (Only if verified custom domain is configured)
+    if is_resend_custom_domain_configured():
+        return 'resend'
 
-    # 5. Fallback to SMTP or standard Django EmailBackend
+    # 3. Brevo (if configured)
+    if os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip():
+        return 'brevo'
+
+    # 4. Fallback to SMTP or standard Django EmailBackend
     backend = getattr(settings, 'EMAIL_BACKEND', '')
     if 'console' in backend.lower():
         return 'console'
 
-    return 'smtp'
+    return 'gmail_api'
+
+
+def get_configured_providers():
+    """
+    Returns an ordered list of providers that have valid configuration in environment.
+    Strict Priority:
+    1. Gmail API (Primary)
+    2. Resend (ONLY if verified custom domain is configured)
+    3. Brevo (if configured)
+    4. SMTP (ONLY if explicitly configured or local dev)
+    """
+    explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
+    if explicit:
+        return [explicit]
+
+    providers = []
+
+    # 1. Primary: Gmail API
+    if (
+        os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
+        and os.environ.get('GMAIL_CLIENT_ID', '').strip()
+        and os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
+    ):
+        providers.append('gmail_api')
+
+    # 2. Secondary: Resend (only if verified custom domain is available)
+    if is_resend_custom_domain_configured():
+        providers.append('resend')
+
+    # 3. Brevo
+    if os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip():
+        providers.append('brevo')
+
+    # 4. Local console / SMTP
+    backend = getattr(settings, 'EMAIL_BACKEND', '')
+    if 'console' in backend.lower():
+        providers.append('console')
+    elif getattr(settings, 'DEBUG', False) and getattr(settings, 'EMAIL_HOST_PASSWORD', None):
+        providers.append('smtp')
+
+    if not providers:
+        # Default to gmail_api to enforce diagnostic error handling
+        providers.append('gmail_api')
+
+    return providers
 
 
 def parse_sender_info(from_email_str=None):
@@ -97,7 +155,7 @@ def parse_sender_info(from_email_str=None):
     Extracts name and email address from formatted sender string like 'MOXIE <sender@domain.com>'.
     """
     from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
-    raw = from_email_str or getattr(settings, 'DEFAULT_FROM_EMAIL', f'{from_name} <noreply@moxiestore.com>')
+    raw = from_email_str or getattr(settings, 'DEFAULT_FROM_EMAIL', f'{from_name} <tetrionyx@gmail.com>')
     raw = str(raw).strip()
     if '<' in raw and '>' in raw:
         name_part = raw.split('<')[0].strip().strip('"\'')
@@ -109,17 +167,16 @@ def parse_sender_info(from_email_str=None):
 def _send_via_gmail_api(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
     Sends email via Google Gmail API (HTTPS) using OAuth 2.0 server-side refresh token.
-    Works reliably on Render Free without requiring outbound SMTP ports (25/465/587).
+    Gracefully handles and safely logs invalid_grant / RefreshError without leaking secrets.
     """
     client_id = os.environ.get('GMAIL_CLIENT_ID', '').strip()
     client_secret = os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
     refresh_token = os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
-    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
-    sender = (
+    sender_raw = (
         from_email
         or os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
         or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or f"{from_name} <noreply@moxiestore.com>"
+        or 'MOXIE <tetrionyx@gmail.com>'
     )
 
     if not client_id or not client_secret or not refresh_token:
@@ -142,140 +199,74 @@ def _send_via_gmail_api(to_email, subject, html_content, text_content, from_emai
     )
 
     # Force token refresh if expired or not yet loaded
-    if not creds.valid:
-        creds.refresh(Request())
+    try:
+        if not creds.valid:
+            creds.refresh(Request())
+    except RefreshError as r_err:
+        logger.error("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.")
+        raise RuntimeError("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.") from r_err
+    except Exception as exc:
+        err_msg = str(exc).lower()
+        if "invalid_grant" in err_msg or "bad request" in err_msg:
+            logger.error("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.")
+            raise RuntimeError("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.") from exc
+        logger.error("Gmail OAuth token refresh failed: %s", type(exc).__name__)
+        raise RuntimeError(f"Gmail OAuth token refresh failed: {type(exc).__name__}") from exc
 
-    service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
+    try:
+        service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
 
-    msg = EmailMessage()
-    msg['Subject'] = subject
-    msg['From'] = sender
-    msg['To'] = to_email
-    if reply_to:
-        msg['Reply-To'] = reply_to
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = sender_raw
+        msg['To'] = to_email
+        if reply_to:
+            msg['Reply-To'] = reply_to
 
-    # Plain text body
-    msg.set_content(text_content)
+        # Plain text body
+        msg.set_content(text_content)
 
-    # Rich HTML body alternative
-    if html_content:
-        msg.add_alternative(html_content, subtype='html')
+        # Rich HTML body alternative
+        if html_content:
+            msg.add_alternative(html_content, subtype='html')
 
-    # Encode message as URL-safe base64 string
-    raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
+        # Encode message as URL-safe base64 string
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
 
-    # Send message using Gmail API users().messages().send over HTTPS
-    service.users().messages().send(
-        userId='me',
-        body={'raw': raw_message}
-    ).execute()
+        # Send message using Gmail API users().messages().send over HTTPS
+        service.users().messages().send(
+            userId='me',
+            body={'raw': raw_message}
+        ).execute()
 
-    return True
-
-
-def _send_via_smtp(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
-    """
-    Sends email via Django SMTP EmailBackend.
-    """
-    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
-    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{from_name} <noreply@moxiestore.com>"
-    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or os.environ.get('EMAIL_HOST_USER', None)
-    sender = from_email or default_from
-    reply_list = [reply_to] if reply_to else ([host_user] if host_user else [])
-
-    email = EmailMultiAlternatives(
-        subject=subject,
-        body=text_content,
-        from_email=sender,
-        to=[to_email],
-        reply_to=reply_list,
-    )
-    if html_content:
-        email.attach_alternative(html_content, "text/html")
-
-    sent_count = email.send(fail_silently=False)
-    if sent_count < 1:
-        raise RuntimeError("Django SMTP send returned 0 sent messages.")
-    return True
-
-
-def get_configured_providers():
-    """
-    Returns an ordered list of providers that have valid configuration in environment.
-    Resend is prioritized as the primary production HTTPS provider.
-    """
-    providers = []
-    explicit = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
-    if explicit:
-        providers.append(explicit)
-
-    # 1. Primary HTTPS transport: Resend
-    if os.environ.get('RESEND_API_KEY', '').strip() and 'resend' not in providers:
-        providers.append('resend')
-
-    # 2. Brevo
-    if (os.environ.get('BREVO_API_KEY', '').strip() or os.environ.get('SENDINBLUE_API_KEY', '').strip()) and 'brevo' not in providers:
-        providers.append('brevo')
-
-    # 3. Gmail API (only if all 3 credentials exist)
-    if (
-        os.environ.get('GMAIL_REFRESH_TOKEN', '').strip()
-        and os.environ.get('GMAIL_CLIENT_ID', '').strip()
-        and os.environ.get('GMAIL_CLIENT_SECRET', '').strip()
-        and 'gmail_api' not in providers
-    ):
-        providers.append('gmail_api')
-
-    if os.environ.get('SENDGRID_API_KEY', '').strip() and 'sendgrid' not in providers:
-        providers.append('sendgrid')
-    if os.environ.get('POSTMARK_SERVER_TOKEN', '').strip() and 'postmark' not in providers:
-        providers.append('postmark')
-    if os.environ.get('MAILGUN_API_KEY', '').strip() and 'mailgun' not in providers:
-        providers.append('mailgun')
-
-    backend = getattr(settings, 'EMAIL_BACKEND', '')
-    if 'console' in backend.lower() and 'console' not in providers:
-        providers.append('console')
-    elif 'smtp' not in providers:
-        providers.append('smtp')
-
-    return providers
+        return True
+    except Exception as api_err:
+        err_str = str(api_err).lower()
+        if "invalid_grant" in err_str:
+            logger.error("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.")
+            raise RuntimeError("Gmail OAuth refresh token is invalid or revoked. Reauthorization required.") from api_err
+        logger.error("Gmail API message send failed: %s", type(api_err).__name__)
+        raise RuntimeError(f"Gmail API send failed: {type(api_err).__name__}") from api_err
 
 
 def _send_via_resend(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
     Sends email via Resend HTTPS API.
-    Uses verified production sender domain configured via RESEND_FROM_EMAIL or DEFAULT_FROM_EMAIL.
-    Provides clear error logging if unverified domain / sandbox limits are encountered.
+    Only called when a verified custom domain sender is configured.
     """
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
         raise ValueError("RESEND_API_KEY is not configured in environment variables.")
 
+    if not is_resend_custom_domain_configured():
+        raise RuntimeError(
+            "Resend custom domain is not verified. "
+            "Please verify a domain at resend.com/domains and set RESEND_FROM_EMAIL with the verified domain."
+        )
+
     from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
-    resend_env_sender = os.environ.get('RESEND_FROM_EMAIL', '').strip()
-    default_from = os.environ.get('DEFAULT_FROM_EMAIL', '').strip() or getattr(settings, 'DEFAULT_FROM_EMAIL', None) or ''
+    sender = os.environ.get('RESEND_FROM_EMAIL', '').strip() or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
 
-    # Priority for Resend sender:
-    # 1. RESEND_FROM_EMAIL environment variable
-    # 2. DEFAULT_FROM_EMAIL (if not sandbox default)
-    # 3. Explicit from_email argument
-    # 4. Fallback to Resend onboarding sandbox address
-    sender = ''
-    if resend_env_sender:
-        sender = resend_env_sender
-    elif default_from and 'onboarding@resend.dev' not in str(default_from).lower():
-        sender = str(default_from).strip()
-    elif from_email and 'onboarding@resend.dev' not in str(from_email).lower():
-        sender = str(from_email).strip()
-    elif default_from:
-        sender = str(default_from).strip()
-    elif from_email:
-        sender = str(from_email).strip()
-    else:
-        sender = f"{from_name} <onboarding@resend.dev>"
-
-    # Ensure display name format e.g. "MOXIE <auth@yourdomain.com>"
     if '<' not in sender and '@' in sender:
         sender = f"{from_name} <{sender}>"
 
@@ -303,19 +294,6 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
             err_msg = err_data.get('message', resp.text)
         except Exception:
             err_msg = resp.text
-
-        if resp.status_code == 403 and ("verify a domain" in err_msg.lower() or "only send testing emails" in err_msg.lower()):
-            logger.error(
-                "Resend Domain Verification Required | recipient=%s | reason=%s",
-                mask_email(to_email),
-                err_msg
-            )
-            raise RuntimeError(
-                f"Resend Domain Verification Required (HTTP 403): Testing emails can only be sent to the Resend account owner. "
-                f"To send OTP emails to all users, verify your custom domain at https://resend.com/domains and set "
-                f"RESEND_FROM_EMAIL='{from_name} <auth@yourdomain.com>' in Render Environment Variables."
-            )
-
         raise RuntimeError(f"Resend API error (HTTP {resp.status_code}): {err_msg}")
 
     return True
@@ -323,13 +301,13 @@ def _send_via_resend(to_email, subject, html_content, text_content, from_email=N
 
 def _send_via_brevo(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
-    Sends email via Brevo / Sendinblue HTTPS API (https://api.brevo.com/v3/smtp/email).
+    Sends email via Brevo / Sendinblue HTTPS API.
     """
     api_key = os.environ.get('BREVO_API_KEY', os.environ.get('SENDINBLUE_API_KEY', '')).strip()
     if not api_key:
         raise ValueError("BREVO_API_KEY is not configured in environment variables.")
 
-    from_raw = from_email or os.environ.get('BREVO_FROM_EMAIL') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxie.com>')
+    from_raw = from_email or os.environ.get('BREVO_FROM_EMAIL') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxiestore.com>')
     sender_name, sender_email = parse_sender_info(from_raw)
 
     payload = {
@@ -364,132 +342,43 @@ def _send_via_brevo(to_email, subject, html_content, text_content, from_email=No
     return True
 
 
-def _send_via_sendgrid(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
+def _send_via_smtp(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
-    Sends email via SendGrid v3 Mail Send HTTPS API (https://api.sendgrid.com/v3/mail/send).
+    Sends email via Django SMTP EmailBackend. Catches authentication and network errors cleanly.
     """
-    api_key = os.environ.get('SENDGRID_API_KEY', '').strip()
-    if not api_key:
-        raise ValueError("SENDGRID_API_KEY is not configured in environment variables.")
+    from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
+    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{from_name} <noreply@moxiestore.com>"
+    host_user = getattr(settings, 'EMAIL_HOST_USER', None) or os.environ.get('EMAIL_HOST_USER', None)
+    sender = from_email or default_from
+    reply_list = [reply_to] if reply_to else ([host_user] if host_user else [])
 
-    from_raw = from_email or os.environ.get('SENDGRID_FROM_EMAIL') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxie.com>')
-    sender_name, sender_email = parse_sender_info(from_raw)
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=sender,
+            to=[to_email],
+            reply_to=reply_list,
+        )
+        if html_content:
+            email.attach_alternative(html_content, "text/html")
 
-    contents = []
-    if text_content:
-        contents.append({"type": "text/plain", "value": text_content})
-    if html_content:
-        contents.append({"type": "text/html", "value": html_content})
-
-    payload = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": sender_email, "name": sender_name},
-        "subject": subject,
-        "content": contents,
-    }
-    if reply_to:
-        reply_name, reply_addr = parse_sender_info(reply_to)
-        payload["reply_to"] = {"email": reply_addr, "name": reply_name}
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "User-Agent": "MoxieBackend/1.0",
-    }
-
-    timeout = int(os.environ.get('EMAIL_HTTP_TIMEOUT', 15))
-    resp = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=timeout)
-
-    if resp.status_code not in (200, 201, 202):
-        try:
-            err_msg = resp.json()
-        except Exception:
-            err_msg = resp.text
-        raise RuntimeError(f"SendGrid API error (HTTP {resp.status_code}): {err_msg}")
-
-    return True
-
-
-def _send_via_postmark(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
-    """
-    Sends email via Postmark HTTPS API (https://api.postmarkapp.com/email).
-    """
-    server_token = os.environ.get('POSTMARK_SERVER_TOKEN', '').strip()
-    if not server_token:
-        raise ValueError("POSTMARK_SERVER_TOKEN is not configured in environment variables.")
-
-    sender = from_email or os.environ.get('POSTMARK_FROM_EMAIL') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxie.com>')
-
-    payload = {
-        "From": sender,
-        "To": to_email,
-        "Subject": subject,
-        "TextBody": text_content,
-    }
-    if html_content:
-        payload["HtmlBody"] = html_content
-    if reply_to:
-        payload["ReplyTo"] = reply_to
-
-    headers = {
-        "X-Postmark-Server-Token": server_token,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    timeout = int(os.environ.get('EMAIL_HTTP_TIMEOUT', 15))
-    resp = requests.post("https://api.postmarkapp.com/email", json=payload, headers=headers, timeout=timeout)
-
-    if resp.status_code not in (200, 201, 202):
-        try:
-            err_msg = resp.json().get('Message', resp.text)
-        except Exception:
-            err_msg = resp.text
-        raise RuntimeError(f"Postmark API error (HTTP {resp.status_code}): {err_msg}")
-
-    return True
-
-
-def _send_via_mailgun(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
-    """
-    Sends email via Mailgun HTTPS API.
-    """
-    api_key = os.environ.get('MAILGUN_API_KEY', '').strip()
-    domain = os.environ.get('MAILGUN_DOMAIN', '').strip()
-    if not api_key or not domain:
-        raise ValueError("MAILGUN_API_KEY and MAILGUN_DOMAIN must be configured.")
-
-    sender = from_email or os.environ.get('MAILGUN_FROM_EMAIL') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'MOXIE <noreply@moxie.com>')
-
-    data = {
-        "from": sender,
-        "to": [to_email],
-        "subject": subject,
-        "text": text_content,
-    }
-    if html_content:
-        data["html"] = html_content
-    if reply_to:
-        data["h:Reply-To"] = reply_to
-
-    endpoint = f"https://api.mailgun.net/v3/{domain}/messages"
-    timeout = int(os.environ.get('EMAIL_HTTP_TIMEOUT', 15))
-    resp = requests.post(endpoint, auth=("api", api_key), data=data, timeout=timeout)
-
-    if resp.status_code not in (200, 201, 202):
-        try:
-            err_msg = resp.json().get('message', resp.text)
-        except Exception:
-            err_msg = resp.text
-        raise RuntimeError(f"Mailgun API error (HTTP {resp.status_code}): {err_msg}")
-
-    return True
+        sent_count = email.send(fail_silently=False)
+        if sent_count < 1:
+            raise RuntimeError("Django SMTP send returned 0 sent messages.")
+        return True
+    except (smtplib.SMTPAuthenticationError, smtplib.SMTPSenderRefused) as auth_err:
+        logger.error("SMTP authentication failed. Check credentials.")
+        raise RuntimeError(f"SMTP Authentication Error: {type(auth_err).__name__}") from auth_err
+    except (OSError, socket.error, socket.timeout) as net_err:
+        logger.error("SMTP network error / port unreachable: %s", type(net_err).__name__)
+        raise RuntimeError(f"SMTP Network Error: {type(net_err).__name__}") from net_err
 
 
 def send_transactional_email(to_email, subject, html_content, text_content, from_email=None, reply_to=None):
     """
-    Unified dispatcher for transactional emails across all supported transports.
-    Routes to the configured provider cleanly and transparently with automatic fallback.
+    Unified dispatcher for transactional emails across supported transports.
+    Routes cleanly with strict provider ordering and controlled error handling.
     """
     configured_providers = get_configured_providers()
     if not configured_providers:
@@ -497,6 +386,7 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
 
     last_exception = None
     for provider in configured_providers:
+        logger.info("Email provider selected: %s", provider)
         try:
             if provider in ('gmail_api', 'gmail'):
                 return _send_via_gmail_api(to_email, subject, html_content, text_content, from_email, reply_to)
@@ -504,12 +394,6 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
                 return _send_via_resend(to_email, subject, html_content, text_content, from_email, reply_to)
             elif provider in ('brevo', 'sendinblue'):
                 return _send_via_brevo(to_email, subject, html_content, text_content, from_email, reply_to)
-            elif provider == 'sendgrid':
-                return _send_via_sendgrid(to_email, subject, html_content, text_content, from_email, reply_to)
-            elif provider == 'postmark':
-                return _send_via_postmark(to_email, subject, html_content, text_content, from_email, reply_to)
-            elif provider == 'mailgun':
-                return _send_via_mailgun(to_email, subject, html_content, text_content, from_email, reply_to)
             elif provider in ('console', 'mock', 'test'):
                 return True
             elif provider == 'smtp':
@@ -519,19 +403,16 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
         except Exception as e:
             last_exception = e
             logger.warning(
-                "Email provider '%s' failed for %s: %s (%s). Trying next provider if available...",
+                "Email provider '%s' failed for %s: %s. Checking next provider...",
                 provider,
                 mask_email(to_email),
-                type(e).__name__,
-                str(e)
+                type(e).__name__
             )
 
     logger.error(
-        "All email transports failed | recipient=%s | last_provider=%s | reason=%s: %s",
+        "All configured email transports failed | recipient=%s | last_provider=%s",
         mask_email(to_email),
-        configured_providers[-1] if configured_providers else 'none',
-        type(last_exception).__name__ if last_exception else 'Unknown',
-        str(last_exception) if last_exception else 'No provider succeeded'
+        configured_providers[-1] if configured_providers else 'none'
     )
     if last_exception:
         raise last_exception
@@ -541,17 +422,17 @@ def send_transactional_email(to_email, subject, html_content, text_content, from
 def send_admin_otp_email(target_email, otp_code):
     """
     Sends the cryptographically secure 6-digit OTP to the registered admin email
-    using the active production transport (Resend HTTPS API / Gmail API / SMTP).
+    using the active production transport (Gmail API over HTTPS / verified Resend / SMTP).
     Preserves exact MOXIE branded HTML & text content and 5-minute expiry notices.
     """
     subject = 'Your MOXIE Admin Verification Code'
     from_name = os.environ.get('EMAIL_FROM_NAME', '').strip() or 'MOXIE'
 
     from_email = (
-        os.environ.get('RESEND_FROM_EMAIL', '').strip()
+        os.environ.get('GMAIL_SENDER_EMAIL', '').strip()
         or os.environ.get('DEFAULT_FROM_EMAIL', '').strip()
         or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        or f"{from_name} <noreply@moxiestore.com>"
+        or f"{from_name} <tetrionyx@gmail.com>"
     )
 
     host_user = getattr(settings, 'EMAIL_HOST_USER', None) or os.environ.get('EMAIL_HOST_USER', None)
