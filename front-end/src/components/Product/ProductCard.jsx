@@ -206,16 +206,26 @@ export default function ProductCard({ product }) {
 
   let sellingPrice = rawPPrice;
   let originalPrice = null;
+  let discountPercent = 0;
 
   if (rawPDisc && rawPDisc > 0 && rawPDisc < rawPPrice) {
     sellingPrice = rawPDisc;
     originalPrice = rawPPrice;
+    discountPercent = Math.round(((rawPPrice - rawPDisc) / rawPPrice) * 100);
   } else if (rawPOrig && rawPOrig > rawPPrice) {
     sellingPrice = rawPPrice;
     originalPrice = rawPOrig;
+    discountPercent = Math.round(((rawPOrig - rawPPrice) / rawPOrig) * 100);
   } else if (rawPDisc && rawPDisc > rawPPrice) {
     sellingPrice = rawPPrice;
     originalPrice = rawPDisc;
+    discountPercent = Math.round(((rawPDisc - rawPPrice) / rawPDisc) * 100);
+  }
+
+  if (discountPercent <= 0 && product?.discount_percentage && Number(product.discount_percentage) > 0) {
+    discountPercent = Math.round(Number(product.discount_percentage));
+  } else if (discountPercent <= 0 && product?.discount_percent && Number(product.discount_percent) > 0) {
+    discountPercent = Math.round(Number(product.discount_percent));
   }
 
   const hasStrikePrice = Boolean(originalPrice && originalPrice > sellingPrice);
@@ -223,8 +233,14 @@ export default function ProductCard({ product }) {
   return (
     <article className="moxie-premium-card">
       <Link to={`/product/${product.id}`} className="premium-card-link">
-        {/* Top Section: Product Image & Wishlist Button */}
+        {/* Top Section: Product Image, Discount Badge & Wishlist Button */}
         <div className="premium-card-media">
+          {discountPercent > 0 && (
+            <span className="premium-card-discount-badge">
+              {discountPercent}% OFF
+            </span>
+          )}
+
           <button
             type="button"
             className={`premium-heart-btn ${wished ? "active" : ""}`}
@@ -307,6 +323,11 @@ export default function ProductCard({ product }) {
             {hasStrikePrice && (
               <span className="product-original-price premium-old-price">
                 ₹{originalPrice.toLocaleString("en-IN")}
+              </span>
+            )}
+            {discountPercent > 0 && (
+              <span className="premium-card-discount-tag">
+                {discountPercent}% OFF
               </span>
             )}
           </div>

@@ -193,3 +193,35 @@
     max-height: 340px;
   }
 }
+
+/* Skeleton Loading Placeholder */
+.moxie-hero-banner-container.moxie-hero-banner-skeleton {
+  background: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.moxie-banner-skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: heroBannerShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes heroBannerShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

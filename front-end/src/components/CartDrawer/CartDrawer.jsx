@@ -200,18 +200,25 @@ export default function CartDrawer() {
     }
   }, [isCartOpen]);
 
-  const handleProceedToCheckout = () => {
+  const handleClose = () => {
+    if (document.activeElement && drawerRef.current && drawerRef.current.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
     if (closeCart) closeCart();
+  };
+
+  const handleProceedToCheckout = () => {
+    handleClose();
     navigate("/checkout");
   };
 
   const handleViewFullCart = () => {
-    if (closeCart) closeCart();
+    handleClose();
     navigate("/cart");
   };
 
   const handleExploreCollection = () => {
-    if (closeCart) closeCart();
+    handleClose();
     navigate("/products");
   };
 
@@ -219,11 +226,11 @@ export default function CartDrawer() {
     <div
       className={`cart-drawer-backdrop ${isCartOpen ? "open" : ""}`}
       onClick={(e) => {
-        if (e.target === e.currentTarget && closeCart) {
-          closeCart();
+        if (e.target === e.currentTarget) {
+          handleClose();
         }
       }}
-      aria-hidden={!isCartOpen}
+      inert={!isCartOpen ? "" : undefined}
     >
       <aside
         ref={drawerRef}
@@ -252,7 +259,7 @@ export default function CartDrawer() {
           <button
             type="button"
             className="cart-drawer-close-btn"
-            onClick={closeCart}
+            onClick={handleClose}
             aria-label="Close shopping bag drawer"
           >
             <LuX />

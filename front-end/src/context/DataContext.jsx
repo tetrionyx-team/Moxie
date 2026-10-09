@@ -8,23 +8,40 @@ import {
 
 const DataContext = createContext(null);
 
+const getCachedData = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(`moxie_cache_${key}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed !== undefined && parsed !== null) return parsed;
+    }
+  } catch {}
+  return fallback;
+};
+
+const setCachedData = (key, val) => {
+  try {
+    localStorage.setItem(`moxie_cache_${key}`, JSON.stringify(val));
+  } catch {}
+};
+
 export const DataProvider = ({ children }) => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [products, setProducts] = useState(() => getCachedData("products", []));
+  const [categories, setCategories] = useState(() => getCachedData("categories", []));
+  const [featuredProducts, setFeaturedProducts] = useState(() => getCachedData("featuredProducts", []));
   const [featuredServerTime, setFeaturedServerTime] = useState(null);
-  const [currentOffer, setCurrentOffer] = useState(null);
-  const [activeOffers, setActiveOffers] = useState([]);
-  const [offerLines, setOfferLines] = useState([]);
-  const [storeSettings, setStoreSettings] = useState({
+  const [currentOffer, setCurrentOffer] = useState(() => getCachedData("currentOffer", null));
+  const [activeOffers, setActiveOffers] = useState(() => getCachedData("activeOffers", []));
+  const [offerLines, setOfferLines] = useState(() => getCachedData("offerLines", []));
+  const [storeSettings, setStoreSettings] = useState(() => getCachedData("storeSettings", {
     maintenance_mode: false,
     store_name: "Moxie",
     allow_order_cancellation: true,
     enable_order_tracking: true,
     allow_registration: true,
     allow_guest_browsing: true,
-  });
-  const [loading, setLoading] = useState(true);
+  }));
+  const [loading, setLoading] = useState(() => products.length === 0);
   const [error, setError] = useState(null);
 
   const mapProducts = (prodList) => {
@@ -179,6 +196,7 @@ export const DataProvider = ({ children }) => {
       // 1. Store settings
       if (settingsRes.status === "fulfilled" && settingsRes.value) {
         setStoreSettings(settingsRes.value);
+        setCachedData("storeSettings", settingsRes.value);
       }
 
       // 2. Active offers
@@ -187,6 +205,9 @@ export const DataProvider = ({ children }) => {
         setCurrentOffer(offersData.offer || null);
         setActiveOffers(offersData.active_offers || []);
         setOfferLines(offersData.offers || []);
+        setCachedData("currentOffer", offersData.offer || null);
+        setCachedData("activeOffers", offersData.active_offers || []);
+        setCachedData("offerLines", offersData.offers || []);
       }
 
       // 3. Featured products
@@ -194,6 +215,7 @@ export const DataProvider = ({ children }) => {
         const featData = featRes.value;
         const featList = Array.isArray(featData) ? featData : featData?.results || [];
         setFeaturedProducts(featList);
+        setCachedData("featuredProducts", featList);
         if (featData?.server_time) {
           setFeaturedServerTime(featData.server_time);
         }
@@ -204,6 +226,7 @@ export const DataProvider = ({ children }) => {
         const catData = catRes.value;
         const catList = Array.isArray(catData) ? catData : catData?.results || [];
         setCategories(catList);
+        setCachedData("categories", catList);
       }
 
       // 5. Products
@@ -212,6 +235,7 @@ export const DataProvider = ({ children }) => {
         const prodList = Array.isArray(prodData) ? prodData : prodData?.results || [];
         const mapped = mapProducts(prodList);
         setProducts(mapped);
+        setCachedData("products", mapped);
       }
     } catch (err) {
       console.error("Error loading frontend dynamic data:", err);

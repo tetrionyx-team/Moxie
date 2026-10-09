@@ -11,8 +11,61 @@ import {
   SearchIcon,
   ViewIcon,
   CancelIcon,
+  FileIcon,
+  PrinterIcon,
+  DownloadIcon,
 } from '../../icons';
+import {
+  generateInvoiceHtml,
+  printOrderInvoice,
+  downloadOrderInvoiceFile,
+  getCleanOrderId,
+} from '../../utils/invoicePrinter';
 import './OrderPage.css';
+
+// High-contrast, crystal clear PDF Badge Icon
+function PdfIcon({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path
+        d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z"
+        fill="currentColor"
+        fillOpacity="0.15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 2V8H20"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <text
+        x="12"
+        y="17"
+        textAnchor="middle"
+        fill="currentColor"
+        fontSize="7.5"
+        fontWeight="900"
+        fontFamily="system-ui, -apple-system, sans-serif"
+        letterSpacing="-0.2px"
+      >
+        PDF
+      </text>
+    </svg>
+  );
+}
 
 function getCsrfToken() {
   const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
@@ -99,6 +152,29 @@ export default function OrderPage() {
   const [shipmentMessage, setShipmentMessage] = useState('');
   const [retryingWa, setRetryingWa] = useState(false);
   const [showTrackingConfirmModal, setShowTrackingConfirmModal] = useState(false);
+
+  // PDF Invoice & Dispatch Slip State
+  const [pdfPreviewOrder, setPdfPreviewOrder] = useState(null);
+  const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
+
+  const handleOpenPdfPreview = async (orderItem) => {
+    if (!orderItem) return;
+    setPdfPreviewOrder(orderItem);
+    setPdfPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/admin-orders/${orderItem.id}/`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const fullDetail = await res.json();
+        setPdfPreviewOrder(prev => ({ ...orderItem, ...fullDetail }));
+      }
+    } catch (err) {
+      console.warn("Failed to fetch full order details for invoice preview:", err);
+    } finally {
+      setPdfPreviewLoading(false);
+    }
+  };
 
   const dateInputRef = useRef(null);
 
@@ -690,219 +766,229 @@ export default function OrderPage() {
       <div className="order-table-card">
         {/* Filter Toolbar with Calendar Date Picker and Export Button */}
         <div className="table-filter-bar">
-          <div className="filter-left-group">
-            <div className="order-search-box">
-              <span className="order-search-icon">
-                <AppIcon icon={SearchIcon} size={16} />
-              </span>
-              <input
-                type="text"
-                placeholder="Search orders, customers, products..."
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="order-search-input"
-              />
-            </div>
+          <div className="order-search-box">
+            <span className="order-search-icon">
+              <AppIcon icon={SearchIcon} size={16} />
+            </span>
+            <input
+              type="text"
+              placeholder="Search orders, customers, products..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="order-search-input"
+            />
           </div>
 
-          <div className="filter-right-group" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Calendar Date Picker with Clear X Button */}
-            <div className="admin-date-picker-wrap">
-              <span className="admin-date-picker-icon" onClick={() => dateInputRef.current?.showPicker?.()}>
-                📅
-              </span>
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={selectedDate}
-                onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
-                className="admin-date-input"
-                aria-label="Filter by order date"
-              />
-              {selectedDate && (
-                <button
-                  type="button"
-                  className="admin-date-clear-btn"
-                  onClick={() => { setSelectedDate(''); setCurrentPage(1); }}
-                  title="Clear Date Filter"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <CustomSelect
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              options={[
-                { value: 'all', label: 'All Status' },
-                { value: 'Confirmed', label: 'Confirmed' },
-                { value: 'Processing', label: 'Processing' },
-                { value: 'Packed', label: 'Packed' },
-                { value: 'Shipped', label: 'Shipped' },
-                { value: 'Out for Delivery', label: 'Out for Delivery' },
-                { value: 'Delivered', label: 'Delivered' },
-                { value: 'Cancelled', label: 'Cancelled' },
-              ]}
-              minWidth="130px"
+          {/* Calendar Date Picker with Clear X Button */}
+          <div className="admin-date-picker-wrap">
+            <span className="admin-date-picker-icon" onClick={() => dateInputRef.current?.showPicker?.()}>
+              📅
+            </span>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={selectedDate}
+              onChange={(e) => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+              className="admin-date-input"
+              aria-label="Filter by order date"
             />
-
-            <CustomSelect
-              value={paymentFilter}
-              onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
-              options={[
-                { value: 'all', label: 'All Payment' },
-                { value: 'Paid', label: 'Paid' },
-                { value: 'Success', label: 'Success' },
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Failed', label: 'Failed' },
-              ]}
-              minWidth="130px"
-            />
-
-            <CustomSelect
-              value={sortOption}
-              onChange={(e) => { setSortOption(e.target.value); setCurrentPage(1); }}
-              options={[
-                { value: 'newest', label: 'Newest First' },
-                { value: 'oldest', label: 'Oldest First' },
-                { value: 'highest', label: 'Highest Amount' },
-                { value: 'lowest', label: 'Lowest Amount' }
-              ]}
-              minWidth="135px"
-            />
-
-            {/* Export Excel Button */}
-            <button
-              type="button"
-              className="admin-btn-export-excel"
-              onClick={handleExportExcel}
-              title="Export filtered orders to Excel (.xlsx)"
-            >
-              <span style={{ fontSize: '15px' }}>📊</span>
-              <span>Export Excel</span>
-            </button>
+            {selectedDate && (
+              <button
+                type="button"
+                className="admin-date-clear-btn"
+                onClick={() => { setSelectedDate(''); setCurrentPage(1); }}
+                title="Clear Date Filter"
+              >
+                ✕
+              </button>
+            )}
           </div>
+
+          <CustomSelect
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: 'all', label: 'All Status' },
+              { value: 'Confirmed', label: 'Confirmed' },
+              { value: 'Processing', label: 'Processing' },
+              { value: 'Packed', label: 'Packed' },
+              { value: 'Shipped', label: 'Shipped' },
+              { value: 'Out for Delivery', label: 'Out for Delivery' },
+              { value: 'Delivered', label: 'Delivered' },
+              { value: 'Cancelled', label: 'Cancelled' },
+            ]}
+            minWidth="110px"
+          />
+
+          <CustomSelect
+            value={paymentFilter}
+            onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: 'all', label: 'All Payment' },
+              { value: 'Paid', label: 'Paid' },
+              { value: 'Success', label: 'Success' },
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Failed', label: 'Failed' },
+            ]}
+            minWidth="110px"
+          />
+
+          <CustomSelect
+            value={sortOption}
+            onChange={(e) => { setSortOption(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: 'newest', label: 'Newest First' },
+              { value: 'oldest', label: 'Oldest First' },
+              { value: 'highest', label: 'Highest Amount' },
+              { value: 'lowest', label: 'Lowest Amount' }
+            ]}
+            minWidth="115px"
+          />
+
+          {/* Export Excel Button */}
+          <button
+            type="button"
+            className="admin-btn-export-excel"
+            onClick={handleExportExcel}
+            title="Export filtered orders to Excel (.xlsx)"
+          >
+            <span style={{ fontSize: '15px' }}>📊</span>
+            <span>Export Excel</span>
+          </button>
         </div>
 
         {/* Orders Table */}
-        <table className="order-table">
-          <thead>
-            <tr>
-              <th>ORDER ID</th>
-              <th>CUSTOMER</th>
-              <th>DATE</th>
-              <th>TOTAL</th>
-              <th>STATUS</th>
-              <th>PAYMENT</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && orders.length === 0 ? (
+        <div className="order-table-wrapper">
+          <table className="order-table">
+            <thead>
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <span style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid #cbd5e1', borderTopColor: '#c9a35c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
-                    <span style={{ fontWeight: '500' }}>Loading orders...</span>
-                  </div>
-                </td>
+                <th>ORDER ID</th>
+                <th>CUSTOMER</th>
+                <th>DATE</th>
+                <th>TOTAL</th>
+                <th>STATUS</th>
+                <th>PAYMENT</th>
+                <th>ACTIONS</th>
               </tr>
-            ) : paginatedOrders.length > 0 ? (
-              paginatedOrders.map((o) => {
-                const orderId = o.orderId || o.order_number || `MOX-${String(o.id).padStart(4, '0')}`;
-                const paymentClass = (o.paymentStatus || 'pending').toLowerCase();
-                const customerName = o.customerName || o.customer?.name || o.shippingAddress?.name || "Customer";
-                const customerEmail = o.email || o.customer?.email || "customer@example.com";
-                const initial = customerName.charAt(0).toUpperCase() || "C";
-                const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || o.total_amount || 0);
-                const isCancelled = (
-                  (o.orderStatus || '').toUpperCase() === 'CANCELLED' ||
-                  (o.order_status || '').toUpperCase() === 'CANCELLED' ||
-                  (o.status || '').toUpperCase() === 'CANCELLED' ||
-                  (o.shipping_status || '').toUpperCase() === 'CANCELLED' ||
-                  (o.shippingStatus || '').toUpperCase() === 'CANCELLED'
-                );
-                const normStatus = (o.shipping_status || o.shippingStatus || o.order_status || o.orderStatus || o.status || '').toUpperCase().replace(/\s+/g, '_');
-                const hasTracking = Boolean(o.tracking_locked || o.tracking_number || o.trackingId || o.tracking_id);
-                const isNewOrder = !hasTracking && !isCancelled;
+            </thead>
+            <tbody>
+              {loading && orders.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                      <span style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid #cbd5e1', borderTopColor: '#c9a35c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                      <span style={{ fontWeight: '500' }}>Loading orders...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedOrders.length > 0 ? (
+                paginatedOrders.map((o) => {
+                  const orderId = o.orderId || o.order_number || `MOX-${String(o.id).padStart(4, '0')}`;
+                  const paymentClass = (o.paymentStatus || 'pending').toLowerCase();
+                  const customerName = o.customerName || o.customer?.name || o.shippingAddress?.name || "Customer";
+                  const customerEmail = o.email || o.customer?.email || "customer@example.com";
+                  const initial = customerName.charAt(0).toUpperCase() || "C";
+                  const orderTotal = Number(o.grandTotal || o.total || o.totalAmount || o.total_amount || 0);
+                  const isCancelled = (
+                    (o.orderStatus || '').toUpperCase() === 'CANCELLED' ||
+                    (o.order_status || '').toUpperCase() === 'CANCELLED' ||
+                    (o.status || '').toUpperCase() === 'CANCELLED' ||
+                    (o.shipping_status || '').toUpperCase() === 'CANCELLED' ||
+                    (o.shippingStatus || '').toUpperCase() === 'CANCELLED'
+                  );
+                  const normStatus = (o.shipping_status || o.shippingStatus || o.order_status || o.orderStatus || o.status || '').toUpperCase().replace(/\s+/g, '_');
+                  const hasTracking = Boolean(o.tracking_locked || o.tracking_number || o.trackingId || o.tracking_id);
+                  const isNewOrder = !hasTracking && !isCancelled;
 
-                let rowClass = '';
-                let displayStatusBadge = o.orderStatus || o.order_status || o.status || 'Confirmed';
-                let badgeClass = (o.orderStatus || o.order_status || o.status || 'confirmed').toLowerCase().replace(/\s+/g, '-');
+                  let rowClass = '';
+                  let displayStatusBadge = o.orderStatus || o.order_status || o.status || 'Confirmed';
+                  let badgeClass = (o.orderStatus || o.order_status || o.status || 'confirmed').toLowerCase().replace(/\s+/g, '-');
 
-                if (isCancelled) {
-                  rowClass = 'order-row-cancelled';
-                  displayStatusBadge = 'CANCELLED';
-                  badgeClass = 'cancelled';
-                } else if (isNewOrder) {
-                  rowClass = 'order-row-new';
-                  displayStatusBadge = 'NEW ORDER';
-                  badgeClass = 'new-order';
-                } else if (normStatus === 'DELIVERED') {
-                  rowClass = 'order-row-delivered';
-                  displayStatusBadge = 'DELIVERED ✓';
-                  badgeClass = 'delivered';
-                } else if (normStatus === 'OUT_FOR_DELIVERY') {
-                  rowClass = 'order-row-out-for-delivery';
-                  displayStatusBadge = 'OUT FOR DELIVERY';
-                  badgeClass = 'out-for-delivery';
-                } else if (normStatus === 'SHIPPED' || normStatus === 'IN_TRANSIT') {
-                  rowClass = 'order-row-shipped';
-                  displayStatusBadge = normStatus === 'IN_TRANSIT' ? 'IN TRANSIT' : 'SHIPPED';
-                  badgeClass = 'shipped';
-                }
+                  if (isCancelled) {
+                    rowClass = 'order-row-cancelled';
+                    displayStatusBadge = 'CANCELLED';
+                    badgeClass = 'cancelled';
+                  } else if (isNewOrder) {
+                    rowClass = 'order-row-new';
+                    displayStatusBadge = 'NEW ORDER';
+                    badgeClass = 'new-order';
+                  } else if (normStatus === 'DELIVERED') {
+                    rowClass = 'order-row-delivered';
+                    displayStatusBadge = 'DELIVERED ✓';
+                    badgeClass = 'delivered';
+                  } else if (normStatus === 'OUT_FOR_DELIVERY') {
+                    rowClass = 'order-row-out-for-delivery';
+                    displayStatusBadge = 'OUT FOR DELIVERY';
+                    badgeClass = 'out-for-delivery';
+                  } else if (normStatus === 'SHIPPED' || normStatus === 'IN_TRANSIT') {
+                    rowClass = 'order-row-shipped';
+                    displayStatusBadge = normStatus === 'IN_TRANSIT' ? 'IN TRANSIT' : 'SHIPPED';
+                    badgeClass = 'shipped';
+                  }
 
-                return (
-                  <tr key={o.id || orderId} className={rowClass}>
-                    <td style={{ fontWeight: '750' }}>{orderId}</td>
-                    <td>
-                      <div className="user-cell">
-                        <div className="user-avatar-circle">
-                          {initial}
+                  return (
+                    <tr key={o.id || orderId} className={rowClass}>
+                      <td style={{ fontWeight: '750' }}>{orderId}</td>
+                      <td>
+                        <div className="user-cell">
+                          <div className="user-avatar-circle">
+                            {initial}
+                          </div>
+                          <div className="user-info">
+                            <span className="user-name">{customerName}</span>
+                            <span className="user-email-sub">{customerEmail}</span>
+                          </div>
                         </div>
-                        <div className="user-info">
-                          <span className="user-name">{customerName}</span>
-                          <span className="user-email-sub">{customerEmail}</span>
+                      </td>
+                      <td style={{ fontSize: '13px' }}>{o.orderDate || o.date}</td>
+                      <td style={{ fontWeight: '750' }}>
+                        ₹{orderTotal.toLocaleString('en-IN')}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${badgeClass}`}>
+                          {displayStatusBadge}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`payment-pill ${paymentClass}`}>
+                          {o.paymentStatus || 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div className="order-actions-cell" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className="action-btn view"
+                            title="View Order Details"
+                            aria-label="View Order Details"
+                            onClick={() => handleOpenDetail(o)}
+                          >
+                            <AppIcon icon={ViewIcon} size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="action-btn pdf"
+                            title="View & Download PDF Invoice / Dispatch Slip"
+                            aria-label="View & Download PDF Invoice"
+                            onClick={() => handleOpenPdfPreview(o)}
+                          >
+                            <PdfIcon size={18} />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '13px' }}>{o.orderDate || o.date}</td>
-                    <td style={{ fontWeight: '750' }}>
-                      ₹{orderTotal.toLocaleString('en-IN')}
-                    </td>
-                    <td>
-                      <span className={`status-pill ${badgeClass}`}>
-                        {displayStatusBadge}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`payment-pill ${paymentClass}`}>
-                        {o.paymentStatus || 'Pending'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="action-btn view"
-                        title="View Order Details"
-                        aria-label="View Order Details"
-                        onClick={() => handleOpenDetail(o)}
-                      >
-                        <AppIcon icon={ViewIcon} size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                  No orders found matching your filter criteria.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    No orders found matching your filter criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* Footer & Pagination Bar */}
         <div className="table-footer-bar">
@@ -944,11 +1030,22 @@ export default function OrderPage() {
       {selectedOrder && (
         <div className="order-modal-backdrop" onClick={() => setSelectedOrder(null)}>
           <div className="order-modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-bar">
+            <div className="modal-header-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
               <h2>ORDER {selectedOrder.orderId || selectedOrder.order_number || selectedOrder.id}</h2>
-              <button className="close-modal-btn" onClick={() => setSelectedOrder(null)} aria-label="Close modal">
-                <AppIcon icon={CancelIcon} size={20} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="admin-btn-header-pdf"
+                  onClick={() => handleOpenPdfPreview(selectedOrderDetail || selectedOrder)}
+                  title="View & Download PDF Invoice / Dispatch Slip"
+                >
+                  <PdfIcon size={16} />
+                  <span>PDF Invoice</span>
+                </button>
+                <button className="close-modal-btn" onClick={() => setSelectedOrder(null)} aria-label="Close modal">
+                  <AppIcon icon={CancelIcon} size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="modal-body-scroll">
@@ -956,167 +1053,206 @@ export default function OrderPage() {
                 <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                   Loading order details...
                 </div>
-              ) : selectedOrderDetail ? (
-                <>
-                  {updateMessage && (
-                    <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: updateMessage.includes('successfully') ? '#dcfce7' : '#fee2e2', color: updateMessage.includes('successfully') ? '#166534' : '#991b1b', fontSize: '13px', fontWeight: '600', marginBottom: '14px' }}>
-                      {updateMessage}
-                    </div>
-                  )}
+              ) : selectedOrderDetail ? (() => {
+                const currentStatusNorm = (
+                  selectedOrderDetail.order_status ||
+                  selectedOrderDetail.orderStatus ||
+                  selectedOrderDetail.status ||
+                  selectedOrderDetail.shipping_status ||
+                  selectedOrderDetail.shippingStatus ||
+                  selectedOrder?.orderStatus ||
+                  selectedOrder?.order_status ||
+                  selectedOrder?.status ||
+                  ''
+                ).toUpperCase().trim();
+                const isOrderCancelled = currentStatusNorm === 'CANCELLED' || currentStatusNorm === 'CANCELED';
 
-                  {/* 1. ORDER SUMMARY & PAYMENT */}
-                  <div className="order-detail-card">
-                    <div className="detail-card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <span>ORDER SUMMARY</span>
-                      <span style={{ fontSize: '11px', background: '#071426', color: '#c99b45', padding: '3px 10px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: '750', letterSpacing: '0.04em' }}>
-                        Current Status: {selectedOrderDetail.order_status || selectedOrderDetail.status || 'Confirmed'}
-                      </span>
-                    </div>
-
-                    {/* Dynamic Order Lifecycle Status Banner */}
-                    <div style={{
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      marginBottom: '14px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      color: '#334155',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px'
-                    }}>
-                      <span style={{ fontSize: '16px' }}>
-                        {(() => {
-                          const s = (selectedOrderDetail.order_status || selectedOrderDetail.status || 'CONFIRMED').toUpperCase().replace(/\s+/g, '_');
-                          if (s === 'DELIVERED') return '✅';
-                          if (s === 'CANCELLED') return '❌';
-                          if (s === 'SHIPPED' || s === 'IN_TRANSIT') return '🚚';
-                          if (s === 'OUT_FOR_DELIVERY') return '📍';
-                          if (s === 'PACKED') return '📦';
-                          return 'ℹ️';
-                        })()}
-                      </span>
-                      <span>{getOrderStatusHint(selectedOrderDetail.order_status || selectedOrderDetail.status)}</span>
-                    </div>
-
-                    {/* Payment Info & COD collection */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
-                        <div>
-                          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Method</span>
-                          <span style={{ fontWeight: '750', color: '#0f172a' }}>{selectedOrderDetail.paymentMethod || 'UPI'}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Status</span>
-                          <span className={`payment-pill ${(selectedOrderDetail.paymentStatus || 'pending').toLowerCase()}`}>
-                            {selectedOrderDetail.paymentStatus || 'Pending'}
-                          </span>
-                        </div>
-                        {Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && (
-                          <div>
-                            <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Balance Due</span>
-                            <span style={{ fontWeight: '800', color: '#b45309' }}>
-                              ₹{Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && selectedOrderDetail.paymentStatus !== 'Paid' && (
-                        <button
-                          type="button"
-                          onClick={handleMarkCodCollected}
-                          disabled={updating}
-                          style={{
-                            background: '#10b981',
-                            color: '#ffffff',
-                            border: '1px solid #059669',
-                            borderRadius: '6px',
-                            padding: '6px 14px',
-                            fontSize: '12px',
-                            fontWeight: '750',
-                            cursor: updating ? 'not-allowed' : 'pointer',
-                          }}
-                        >
-                          {updating ? 'Updating...' : `Mark COD Collected (₹${Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due).toLocaleString('en-IN')})`}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 2. SHIPPING SECTION */}
-                  <div className="order-detail-card courier-shipment-card" style={{ border: '1px solid rgba(201,155,69,0.35)', background: '#ffffff' }}>
-                    <div className="detail-card-title" style={{ color: '#071426', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
-                        {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id)
-                          ? 'SHIPPING DETAILS'
-                          : 'SHIPPING SETUP'}
-                      </span>
-                      {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) && (
-                        <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontWeight: '750' }}>
-                          ✓ Tracking Locked
-                        </span>
-                      )}
-                    </div>
-
-                    {shipmentMessage && (
-                      <div style={{ padding: '8px 12px', borderRadius: '6px', background: shipmentMessage.includes('✓') ? '#dcfce7' : '#fee2e2', color: shipmentMessage.includes('✓') ? '#166534' : '#991b1b', fontSize: '12.5px', fontWeight: '600', marginBottom: '12px' }}>
-                        {shipmentMessage}
+                return (
+                  <>
+                    {updateMessage && (
+                      <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: updateMessage.includes('successfully') ? '#dcfce7' : '#fee2e2', color: updateMessage.includes('successfully') ? '#166534' : '#991b1b', fontSize: '13px', fontWeight: '600', marginBottom: '14px' }}>
+                        {updateMessage}
                       </div>
                     )}
 
-                    {/* Locked Read-Only View if tracking exists / locked */}
-                    {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) ? (
-                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', fontSize: '13px' }}>
+                    {/* 1. ORDER SUMMARY & PAYMENT */}
+                    <div className="order-detail-card">
+                      <div className="detail-card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span>ORDER SUMMARY</span>
+                        <span style={{
+                          fontSize: '11px',
+                          background: isOrderCancelled ? '#fee2e2' : '#071426',
+                          color: isOrderCancelled ? '#991b1b' : '#c99b45',
+                          border: isOrderCancelled ? '1px solid #fca5a5' : 'none',
+                          padding: '3px 10px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          fontWeight: '750',
+                          letterSpacing: '0.04em'
+                        }}>
+                          Current Status: {isOrderCancelled ? 'CANCELLED' : (selectedOrderDetail.order_status || selectedOrderDetail.status || 'Confirmed')}
+                        </span>
+                      </div>
+
+                      {/* Dynamic Order Lifecycle Status / Cancelled Notice */}
+                      {isOrderCancelled ? (
+                        <div style={{
+                          padding: '12px 14px',
+                          borderRadius: '8px',
+                          marginBottom: '14px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#991b1b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}>
+                          <span style={{ fontSize: '18px' }}>❌</span>
                           <div>
-                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Courier Partner</span>
-                            <span style={{ fontWeight: '750', color: '#0f172a' }}>
-                              {selectedOrderDetail.courier_name === 'ST_COURIER' || selectedOrderDetail.courier === 'ST_COURIER'
-                                ? 'ST Courier'
-                                : selectedOrderDetail.courier_name === 'INDIA_POST' || selectedOrderDetail.courier === 'INDIA_POST'
-                                ? 'India Post'
-                                : (selectedOrderDetail.courier_name || selectedOrderDetail.courier || 'ST Courier')}
-                            </span>
+                            <strong>Order Cancelled:</strong> This order has been cancelled by the customer. Shipping fulfillment and tracking setup are closed.
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          marginBottom: '14px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          color: '#334155',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}>
+                          <span style={{ fontSize: '16px' }}>
+                            {(() => {
+                              const s = (selectedOrderDetail.order_status || selectedOrderDetail.status || 'CONFIRMED').toUpperCase().replace(/\s+/g, '_');
+                              if (s === 'DELIVERED') return '✅';
+                              if (s === 'SHIPPED' || s === 'IN_TRANSIT') return '🚚';
+                              if (s === 'OUT_FOR_DELIVERY') return '📍';
+                              if (s === 'PACKED') return '📦';
+                              return 'ℹ️';
+                            })()}
+                          </span>
+                          <span>{getOrderStatusHint(selectedOrderDetail.order_status || selectedOrderDetail.status)}</span>
+                        </div>
+                      )}
+
+                      {/* Payment Info */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
+                          <div>
+                            <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Method</span>
+                            <span style={{ fontWeight: '750', color: '#0f172a' }}>{selectedOrderDetail.paymentMethod || 'UPI'}</span>
                           </div>
                           <div>
-                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>
-                              {((selectedOrderDetail.courier_name || '').toUpperCase().includes('INDIA') || (selectedOrderDetail.courier || '').toUpperCase().includes('INDIA')) ? 'Consignment Number' : 'AWB Number'}
-                            </span>
-                            <span style={{ fontWeight: '800', fontFamily: 'monospace', color: '#c99b45', fontSize: '14px' }}>
-                              {selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id}
+                            <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Payment Status</span>
+                            <span className={`payment-pill ${(selectedOrderDetail.paymentStatus || 'pending').toLowerCase()}`}>
+                              {selectedOrderDetail.paymentStatus || 'Pending'}
                             </span>
                           </div>
-                          <div>
-                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Tracking Status</span>
-                            <span style={{ fontWeight: '750', color: '#0f172a' }}>
-                              {selectedOrderDetail.shippingStatus || selectedOrderDetail.shipping_status || selectedOrderDetail.order_status || 'Shipped'}
-                            </span>
-                          </div>
-                          <div>
-                            <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Assigned On</span>
-                            <span style={{ fontWeight: '600', color: '#475569' }}>
-                              {formatShippedDate(selectedOrderDetail.tracking_assigned_at || selectedOrderDetail.shipped_at || selectedOrderDetail.tracking_updated_at)}
-                            </span>
-                          </div>
+                          {Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && (
+                            <div>
+                              <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>Balance Due</span>
+                              <span style={{ fontWeight: '800', color: '#b45309' }}>
+                                ₹{Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0).toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
-                        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '12px' }}>
-                          <span style={{ color: '#64748b' }}>
-                            Carrier Live Sync: <strong style={{ color: '#475569' }}>Waiting for API configuration</strong>
-                          </span>
-                          <span style={{ color: '#059669', fontWeight: '650' }}>
-                            Tracking information is permanently locked.
-                          </span>
-                        </div>
+                        {!isOrderCancelled && Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due || 0) > 0 && selectedOrderDetail.paymentStatus !== 'Paid' && (
+                          <button
+                            type="button"
+                            onClick={handleMarkCodCollected}
+                            disabled={updating}
+                            style={{
+                              background: '#10b981',
+                              color: '#ffffff',
+                              border: '1px solid #059669',
+                              borderRadius: '6px',
+                              padding: '6px 14px',
+                              fontSize: '12px',
+                              fontWeight: '750',
+                              cursor: updating ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            {updating ? 'Updating...' : `Mark COD Collected (₹${Number(selectedOrderDetail.balanceDue || selectedOrderDetail.balance_due).toLocaleString('en-IN')})`}
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        {((selectedOrderDetail.order_status || selectedOrderDetail.status || '').toUpperCase() === 'CANCELLED') ? (
-                          <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>
-                            This order has been cancelled. Shipping creation is disabled.
+                    </div>
+
+                    {/* 2. SHIPPING & CUSTOMER MESSAGES SECTION (Only for Active Non-Cancelled Orders) */}
+                    {!isOrderCancelled && (
+                      <div className="order-detail-card courier-shipment-card" style={{ border: '1px solid rgba(201,155,69,0.35)', background: '#ffffff' }}>
+                        <div className="detail-card-title" style={{ color: '#071426', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
+                            {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id)
+                              ? 'SHIPPING DETAILS'
+                              : 'SHIPPING SETUP'}
+                          </span>
+                          {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) && (
+                            <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontWeight: '750' }}>
+                              ✓ Tracking Locked
+                            </span>
+                          )}
+                        </div>
+
+                        {shipmentMessage && (
+                          <div style={{ padding: '8px 12px', borderRadius: '6px', background: shipmentMessage.includes('✓') ? '#dcfce7' : '#fee2e2', color: shipmentMessage.includes('✓') ? '#166534' : '#991b1b', fontSize: '12.5px', fontWeight: '600', marginBottom: '12px' }}>
+                            {shipmentMessage}
+                          </div>
+                        )}
+
+                        {/* Locked Read-Only View if tracking exists / locked */}
+                        {(selectedOrderDetail.tracking_locked || selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id) ? (
+                          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', fontSize: '13px' }}>
+                              <div>
+                                <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Courier Partner</span>
+                                <span style={{ fontWeight: '750', color: '#0f172a' }}>
+                                  {selectedOrderDetail.courier_name === 'ST_COURIER' || selectedOrderDetail.courier === 'ST_COURIER'
+                                    ? 'ST Courier'
+                                    : selectedOrderDetail.courier_name === 'INDIA_POST' || selectedOrderDetail.courier === 'INDIA_POST'
+                                    ? 'India Post'
+                                    : (selectedOrderDetail.courier_name || selectedOrderDetail.courier || 'ST Courier')}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                  {((selectedOrderDetail.courier_name || '').toUpperCase().includes('INDIA') || (selectedOrderDetail.courier || '').toUpperCase().includes('INDIA')) ? 'Consignment Number' : 'AWB Number'}
+                                </span>
+                                <span style={{ fontWeight: '800', fontFamily: 'monospace', color: '#c99b45', fontSize: '14px' }}>
+                                  {selectedOrderDetail.tracking_number || selectedOrderDetail.trackingId || selectedOrderDetail.tracking_id}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Tracking Status</span>
+                                <span style={{ fontWeight: '750', color: '#0f172a' }}>
+                                  {selectedOrderDetail.shippingStatus || selectedOrderDetail.shipping_status || selectedOrderDetail.order_status || 'Shipped'}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ display: 'block', color: '#64748b', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '3px' }}>Assigned On</span>
+                                <span style={{ fontWeight: '600', color: '#475569' }}>
+                                  {formatShippedDate(selectedOrderDetail.tracking_assigned_at || selectedOrderDetail.shipped_at || selectedOrderDetail.tracking_updated_at)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '12px' }}>
+                              <span style={{ color: '#64748b' }}>
+                                Carrier Live Sync: <strong style={{ color: '#475569' }}>Waiting for API configuration</strong>
+                              </span>
+                              <span style={{ color: '#059669', fontWeight: '650' }}>
+                                Tracking information is permanently locked.
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <>
@@ -1242,72 +1378,71 @@ export default function OrderPage() {
                             </div>
                           </>
                         )}
-                      </>
-                    )}
 
-                    {/* 3. CUSTOMER MESSAGES SECTION */}
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '6px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: '800', color: '#071426', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        CUSTOMER MESSAGES
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px' }}>
-                        {[
-                          { key: 'order_confirmed', eventType: 'ORDER_CONFIRMED', label: 'Order Confirmation' },
-                          { key: 'shipped', eventType: 'SHIPPED', label: 'Shipment Update' },
-                          { key: 'out_for_delivery', eventType: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
-                          { key: 'delivered', eventType: 'DELIVERED', label: 'Delivered' },
-                        ].map((wa) => {
-                          const rawStatus = (selectedOrderDetail.whatsapp_notifications && selectedOrderDetail.whatsapp_notifications[wa.key]) || 'NOT_SENT';
-                          const isSent = rawStatus === 'SENT';
-                          const isFailed = rawStatus === 'FAILED';
-                          const isSending = rawStatus === 'SENDING';
-                          return (
-                            <div key={wa.key} style={{
-                              background: isSent ? '#f0fdf4' : isFailed ? '#fef2f2' : isSending ? '#fffbeb' : '#f8fafc',
-                              border: `1px solid ${isSent ? '#bbf7d0' : isFailed ? '#fecaca' : isSending ? '#fde68a' : '#e2e8f0'}`,
-                              borderRadius: '6px',
-                              padding: '8px 10px',
-                              fontSize: '11.5px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '4px'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: '700', color: '#334155' }}>{wa.label}</span>
-                                <span style={{
-                                  fontWeight: '700',
-                                  color: isSent ? '#166534' : isFailed ? '#991b1b' : isSending ? '#b45309' : '#64748b'
+                        {/* 3. CUSTOMER MESSAGES SECTION */}
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '6px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: '800', color: '#071426', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            CUSTOMER MESSAGES
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px' }}>
+                            {[
+                              { key: 'order_confirmed', eventType: 'ORDER_CONFIRMED', label: 'Order Confirmation' },
+                              { key: 'shipped', eventType: 'SHIPPED', label: 'Shipment Update' },
+                              { key: 'out_for_delivery', eventType: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+                              { key: 'delivered', eventType: 'DELIVERED', label: 'Delivered' },
+                            ].map((wa) => {
+                              const rawStatus = (selectedOrderDetail.whatsapp_notifications && selectedOrderDetail.whatsapp_notifications[wa.key]) || 'NOT_SENT';
+                              const isSent = rawStatus === 'SENT';
+                              const isFailed = rawStatus === 'FAILED';
+                              const isSending = rawStatus === 'SENDING';
+                              return (
+                                <div key={wa.key} style={{
+                                  background: isSent ? '#f0fdf4' : isFailed ? '#fef2f2' : isSending ? '#fffbeb' : '#f8fafc',
+                                  border: `1px solid ${isSent ? '#bbf7d0' : isFailed ? '#fecaca' : isSending ? '#fde68a' : '#e2e8f0'}`,
+                                  borderRadius: '6px',
+                                  padding: '8px 10px',
+                                  fontSize: '11.5px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px'
                                 }}>
-                                  {isSent ? 'Sent' : isFailed ? 'Failed' : isSending ? 'Sending' : 'Not Sent'}
-                                </span>
-                              </div>
-                              {isFailed && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRetryWhatsApp(wa.eventType)}
-                                  disabled={retryingWa}
-                                  style={{
-                                    background: '#991b1b',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '3px 8px',
-                                    fontSize: '11px',
-                                    fontWeight: '700',
-                                    cursor: retryingWa ? 'not-allowed' : 'pointer',
-                                    marginTop: '2px',
-                                    alignSelf: 'flex-start'
-                                  }}
-                                >
-                                  {retryingWa ? 'Sending...' : 'SEND AGAIN'}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span style={{ fontWeight: '700', color: '#334155' }}>{wa.label}</span>
+                                    <span style={{
+                                      fontWeight: '700',
+                                      color: isSent ? '#166534' : isFailed ? '#991b1b' : isSending ? '#b45309' : '#64748b'
+                                    }}>
+                                      {isSent ? 'Sent' : isFailed ? 'Failed' : isSending ? 'Sending' : 'Not Sent'}
+                                    </span>
+                                  </div>
+                                  {isFailed && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRetryWhatsApp(wa.eventType)}
+                                      disabled={retryingWa}
+                                      style={{
+                                        background: '#991b1b',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '3px 8px',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        cursor: retryingWa ? 'not-allowed' : 'pointer',
+                                        marginTop: '2px',
+                                        alignSelf: 'flex-start'
+                                      }}
+                                    >
+                                      {retryingWa ? 'Sending...' : 'SEND AGAIN'}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
 
                   {/* Customer & Delivery Address Grid */}
                   <div className="info-grid-2">
@@ -1495,7 +1630,8 @@ export default function OrderPage() {
                       )}
                   </div>
                 </>
-              ) : null}
+              );
+            })() : null}
             </div>
           </div>
         </div>
@@ -1550,6 +1686,249 @@ export default function OrderPage() {
               >
                 {savingShipment ? 'CONFIRMING...' : 'CONFIRM & SEND'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Invoice & Dispatch Slip Preview Modal */}
+      {pdfPreviewOrder && (
+        <div className="order-modal-backdrop" onClick={() => setPdfPreviewOrder(null)}>
+          <div className="order-modal-dialog pdf-invoice-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>📄</span>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
+                  INVOICE & DISPATCH SLIP #{getCleanOrderId(pdfPreviewOrder)}
+                </h2>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn-pdf-print"
+                  onClick={() => printOrderInvoice(pdfPreviewOrder)}
+                  title="Print or Save as PDF"
+                >
+                  <AppIcon icon={PrinterIcon} size={16} />
+                  <span>Print / Save as PDF</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-pdf-download"
+                  onClick={() => downloadOrderInvoiceFile(pdfPreviewOrder)}
+                  title="Download HTML/PDF Invoice"
+                >
+                  <AppIcon icon={DownloadIcon} size={16} />
+                  <span>Download Invoice</span>
+                </button>
+                <button
+                  type="button"
+                  className="close-modal-btn"
+                  onClick={() => setPdfPreviewOrder(null)}
+                  aria-label="Close modal"
+                >
+                  <AppIcon icon={CancelIcon} size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="modal-body-scroll pdf-modal-body"
+              style={{
+                padding: '24px',
+                background: '#f8fafc',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                overflowY: 'auto'
+              }}
+            >
+              {pdfPreviewLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  <span style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid #cbd5e1', borderTopColor: '#c99b45', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '10px', verticalAlign: 'middle' }} />
+                  Loading invoice details...
+                </div>
+              ) : (() => {
+                const ord = pdfPreviewOrder;
+                const orderId = getCleanOrderId(ord);
+                const orderDate = ord.orderDate || ord.date || (ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN"));
+                const customerName = ord.customerName || ord.customer?.name || ord.shippingAddress?.name || "Customer";
+                const mobile = ord.mobile || ord.customer?.phone || ord.shippingAddress?.phone || "—";
+                const email = ord.email || ord.customer?.email || "customer@example.com";
+                const address = ord.address || ord.shippingAddress?.address || ord.shippingAddress?.flat || "—";
+                const city = ord.city || ord.shippingAddress?.city || "—";
+                const district = ord.district || ord.shippingAddress?.district || city || "—";
+                const pinCode = ord.pinCode || ord.pincode || ord.shippingAddress?.pincode || "—";
+                const paymentMethod = ord.paymentMethod || ord.paymentInfo?.method || (ord.razorpayOrderId && !ord.razorpayOrderId.startsWith('cod_') ? "UPI" : "COD");
+                const paymentStatus = ord.paymentStatus || ord.paymentInfo?.status || "Pending";
+                const orderStatus = ord.orderStatus || ord.status || "Confirmed";
+                const courier = ord.courier_name || ord.courier || ord.courierPartner || "ST Courier";
+                const trackingId = ord.tracking_number || ord.trackingId || ord.tracking_id || "";
+
+                const subtotal = Number(ord.subtotal || ord.subtotalAmount || ord.pricing?.subtotal || ord.totalAmount || ord.total || 0);
+                const discount = Number(ord.discount || ord.discountAmount || ord.pricing?.discount || 0);
+                const shipping = Number(ord.deliveryCharge || ord.shippingCharge || ord.shippingAmount || ord.pricing?.shipping || 0);
+                const grandTotal = Number(ord.grandTotal || ord.total || ord.totalAmount || ord.pricing?.total || 0);
+                const amountPaid = Number(ord.amountPaid !== undefined ? ord.amountPaid : (paymentStatus === 'Paid' ? grandTotal : (ord.codAdvancePaid ? 100 : 0)));
+                const balanceDue = Number(ord.balanceDue !== undefined ? ord.balanceDue : (paymentStatus === 'Paid' ? 0 : Math.max(0, grandTotal - amountPaid)));
+                const transactionId = ord.transactionRef || ord.razorpayPaymentId || ord.razorpay_payment_id || ord.paymentInfo?.razorpayPaymentId || "—";
+
+                const items = Array.isArray(ord.products) && ord.products.length > 0
+                  ? ord.products
+                  : Array.isArray(ord.items) && ord.items.length > 0
+                  ? ord.items
+                  : [{ productName: ord.name || "Moxie Item", quantity: ord.quantity || 1, price: ord.price || grandTotal, size: ord.variant || "Standard", color: "Default", image: ord.image }];
+
+                return (
+                  <div className="pdf-invoice-sheet" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '28px 32px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', color: '#0f172a' }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #071426', paddingBottom: '18px', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontFamily: 'serif', fontSize: '24px', fontWeight: '800', letterSpacing: '0.1em', color: '#071426' }}>MOXIE</div>
+                        <div style={{ fontSize: '11px', color: '#c99b45', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '2px' }}>LUXURY TIMEPIECES</div>
+                        <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#64748b', lineHeight: '1.4' }}>
+                          Official Moxie Store • Support: +91 7871327802 / +91 7448327802<br />
+                          Email: support@moxietimepieces.com
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-block', background: '#071426', color: '#c99b45', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: '800', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '6px' }}>
+                          TAX INVOICE / DISPATCH SLIP
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: '#334155', marginBottom: '2px' }}><strong>Order ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: '800', color: '#c99b45' }}>{orderId}</span></div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}><strong>Date:</strong> {orderDate}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          <strong>Payment:</strong> <span className={`payment-pill ${(paymentStatus || 'pending').toLowerCase()}`} style={{ fontSize: '11px', padding: '1px 8px' }}>{paymentStatus}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Customer TO Section & Shipment Info Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                      {/* Customer Address Details (TO) */}
+                      <div style={{ background: '#fdfbf7', border: '1px solid #faeccb', borderRadius: '8px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#854d0e', borderBottom: '1px solid #f3e8cf', paddingBottom: '6px', marginBottom: '10px' }}>
+                          📍 TO (DELIVERY ADDRESS)
+                        </div>
+                        <div style={{ fontSize: '12.5px', lineHeight: '1.6', color: '#334155' }}>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>Name:</strong> <span style={{ fontWeight: '750', color: '#0f172a' }}>{customerName}</span></div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>Mobile:</strong> {mobile}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>Email:</strong> {email}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>Address:</strong> {address}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>City:</strong> {city}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>District:</strong> {district}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '75px' }}>PIN Code:</strong> <span style={{ fontWeight: '750', color: '#0f172a' }}>{pinCode}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Shipment & Payment Meta */}
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#071426', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px', marginBottom: '10px' }}>
+                          📦 SHIPMENT & PAYMENT DETAILS
+                        </div>
+                        <div style={{ fontSize: '12.5px', lineHeight: '1.7', color: '#334155' }}>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '100px' }}>Payment Mode:</strong> {paymentMethod}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '100px' }}>Payment Status:</strong> {paymentStatus}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '100px' }}>Courier Partner:</strong> {courier}</div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '100px' }}>Tracking / AWB:</strong> <span style={{ fontFamily: 'monospace', fontWeight: '750', color: '#c99b45' }}>{trackingId || 'Pending Dispatch'}</span></div>
+                          <div><strong style={{ color: '#0f172a', display: 'inline-block', width: '100px' }}>Transaction ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: '11.5px' }}>{transactionId}</span></div>
+                          {ord.codAdvancePaid && (
+                            <div style={{ color: '#166534', fontWeight: '650' }}><strong style={{ color: '#166534', display: 'inline-block', width: '100px' }}>COD Advance:</strong> ₹100 Paid Online</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Order Items (Below Customer Address) */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#071426', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px', marginBottom: '10px' }}>
+                        🛍️ ORDER DETAILS & ITEMS ({items.length})
+                      </div>
+
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                        <thead>
+                          <tr style={{ background: '#f1f5f9', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                            <th style={{ padding: '8px 10px', textAlign: 'center', width: '35px', color: '#475569', fontSize: '11px', fontWeight: '700' }}>#</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'left', color: '#475569', fontSize: '11px', fontWeight: '700' }}>PRODUCT DESCRIPTION</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'center', width: '60px', color: '#475569', fontSize: '11px', fontWeight: '700' }}>QTY</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'right', width: '90px', color: '#475569', fontSize: '11px', fontWeight: '700' }}>PRICE</th>
+                            <th style={{ padding: '8px 10px', textAlign: 'right', width: '100px', color: '#475569', fontSize: '11px', fontWeight: '700' }}>TOTAL</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((it, idx) => {
+                            const pName = it.productName || it.name || "Moxie Item";
+                            const pQty = Number(it.quantity || 1);
+                            const pPrice = Number(it.price || 0);
+                            const pVariant = it.size ? `Size: ${it.size}` : (it.variant || "");
+                            const pColor = it.color ? `Color: ${it.color}` : "";
+                            const variantStr = [pVariant, pColor].filter(Boolean).join(" • ");
+
+                            return (
+                              <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                <td style={{ padding: '9px 10px', textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
+                                <td style={{ padding: '9px 10px' }}>
+                                  <div style={{ fontWeight: '750', color: '#0f172a' }}>{pName}</div>
+                                  {variantStr && <div style={{ fontSize: '11px', color: '#64748b' }}>{variantStr}</div>}
+                                </td>
+                                <td style={{ padding: '9px 10px', textAlign: 'center', fontWeight: '650' }}>{pQty}</td>
+                                <td style={{ padding: '9px 10px', textAlign: 'right' }}>₹{pPrice.toLocaleString('en-IN')}</td>
+                                <td style={{ padding: '9px 10px', textAlign: 'right', fontWeight: '750', color: '#0f172a' }}>₹{(pPrice * pQty).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+
+                      {/* Pricing Summary */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
+                        <div style={{ width: '260px', fontSize: '12.5px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#475569' }}>
+                            <span>Subtotal:</span>
+                            <span style={{ fontWeight: '650', color: '#0f172a' }}>₹{subtotal.toLocaleString('en-IN')}</span>
+                          </div>
+                          {discount > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#166534' }}>
+                              <span>Discount:</span>
+                              <span style={{ fontWeight: '650' }}>-₹{discount.toLocaleString('en-IN')}</span>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#475569' }}>
+                            <span>Delivery Fee:</span>
+                            <span style={{ fontWeight: '650', color: '#0f172a' }}>{shipping > 0 ? `₹${shipping.toLocaleString('en-IN')}` : 'FREE'}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '2px solid #071426', borderBottom: '2px solid #071426', marginTop: '4px', fontSize: '14.5px', fontWeight: '800', color: '#071426' }}>
+                            <span>Grand Total:</span>
+                            <span>₹{grandTotal.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: '#166534', fontWeight: '700', fontSize: '12px' }}>
+                            <span>Amount Paid:</span>
+                            <span>₹{amountPaid.toLocaleString('en-IN')}</span>
+                          </div>
+                          {balanceDue > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#b45309', fontWeight: '750', fontSize: '12px' }}>
+                              <span>Balance Due (COD):</span>
+                              <span>₹{balanceDue.toLocaleString('en-IN')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Notice & Stamp */}
+                    <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '14px', fontSize: '11px', color: '#64748b' }}>
+                      <div style={{ maxWidth: '460px', lineHeight: '1.45' }}>
+                        <strong style={{ color: '#0f172a' }}>Important Notice:</strong> 360° continuous unboxing video mandatory for any return or transit damage claims. Contact support on WhatsApp/Call: <strong>+91 7871327802</strong>.
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: '#475569' }}>Authorized Signatory</div>
+                        <div style={{ fontWeight: '750', color: '#071426' }}>MOXIE TIMEPIECES</div>
+                        <div style={{ display: 'inline-block', border: '1px solid #c99b45', color: '#c99b45', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', fontWeight: '800', textTransform: 'uppercase', marginTop: '3px' }}>VERIFIED INVOICE</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

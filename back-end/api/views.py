@@ -603,11 +603,30 @@ class CustomerGoogleLoginView(APIView):
         full_name = (id_info.get('name') or client_name or '').strip() or f"{given_name} {family_name}".strip() or email.split('@')[0].capitalize()
         avatar = (id_info.get('picture') or request.data.get('avatar') or '').strip()
 
-        existing_users = list(User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)))
-        if len(existing_users) > 1:
-            return Response({'error': 'Multiple user accounts match this email. Please sign in with email and password.'}, status=status.HTTP_400_BAD_REQUEST)
+        existing_users = list(
+            User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email))
+            .distinct()
+            .order_by('-is_active', '-last_login', '-date_joined', '-id')
+        )
 
-        user = existing_users[0] if len(existing_users) == 1 else None
+        user = None
+        if existing_users:
+            # 1. Prefer user with linked google_sub if available
+            if sub:
+                for u in existing_users:
+                    prof = getattr(u, 'customer_profile', None) or CustomerProfile.objects.filter(user=u).first()
+                    if prof and prof.google_sub and str(prof.google_sub) == str(sub):
+                        user = u
+                        break
+            # 2. Prefer exact email match on User.email
+            if not user:
+                for u in existing_users:
+                    if u.email and u.email.strip().lower() == email:
+                        user = u
+                        break
+            # 3. Fallback to first active matching user (ordered by latest login / activity)
+            if not user:
+                user = existing_users[0]
 
         # --- USER EXISTS: Log in user ---
         if user:
@@ -665,8 +684,16 @@ class CustomerGoogleLoginView(APIView):
             given_name = name_parts[0]
             family_name = name_parts[1] if len(name_parts) > 1 else ''
 
+        # Ensure unique username
+        base_username = email
+        final_username = base_username
+        counter = 1
+        while User.objects.filter(username__iexact=final_username).exists():
+            final_username = f"{base_username}_{counter}"
+            counter += 1
+
         user = User.objects.create_user(
-            username=email,
+            username=final_username,
             email=email,
             first_name=given_name,
             last_name=family_name
@@ -2932,7 +2959,10 @@ class AdminApiLogoutView(APIView):
 # ==============================================================================
 # Admin Notifications & Messages API
 # ==============================================================================
+@method_decorator(csrf_exempt, name='dispatch')
 class AdminNotificationsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request):
         category = request.query_params.get('category', 'all').strip().lower()
         query = request.query_params.get('q', '').strip()
@@ -3021,7 +3051,10 @@ class AdminNotificationsView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class AdminNotificationReadView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request, pk):
         try:
             n = Notification.objects.get(pk=pk)
@@ -3043,8 +3076,14 @@ class AdminNotificationReadView(APIView):
         except Notification.DoesNotExist:
             return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    def get(self, request, pk):
+        return self.post(request, pk)
 
+
+@method_decorator(csrf_exempt, name='dispatch')
 class AdminNotificationMarkAllReadView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         Notification.objects.filter(is_read=False).update(is_read=True)
         total_count = Notification.objects.count()
@@ -3058,8 +3097,14 @@ class AdminNotificationMarkAllReadView(APIView):
             'totalCount': total_count,
         }, status=status.HTTP_200_OK)
 
+    def get(self, request):
+        return self.post(request)
 
+
+@method_decorator(csrf_exempt, name='dispatch')
 class AdminNotificationDeleteView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request, pk):
         try:
             n = Notification.objects.get(pk=pk)

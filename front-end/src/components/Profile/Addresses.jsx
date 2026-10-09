@@ -203,7 +203,35 @@ export default function Addresses({
     }
 
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const fieldIdMap = {
+        name: "addressName",
+        phone: "addressPhone",
+        alternate_mobile_number: "addressAltPhone",
+        flat: "addressFlat",
+        city: "addressCity",
+        district: "addressDistrict",
+        state: "addressState",
+        pincode: "addressPincode",
+      };
+
+      const firstKey = errorKeys[0];
+      const elementId = fieldIdMap[firstKey];
+      if (elementId) {
+        setTimeout(() => {
+          const el = document.getElementById(elementId);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.focus();
+          }
+        }, 50);
+      }
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {

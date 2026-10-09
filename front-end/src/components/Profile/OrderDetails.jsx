@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaStar } from "react-icons/fa";
-import { LuCheck } from "react-icons/lu";
+import { LuCheck, LuArrowLeft } from "react-icons/lu";
 import WriteReviewModal from "../Review/WriteReviewModal";
 import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
 
@@ -10,7 +10,18 @@ export default function OrderDetails({ order, onBack, user }) {
 
   if (!order) return null;
 
-  const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, '0')}` : "MOX-0001");
+  const getCleanOrderId = (ord) => {
+    if (!ord) return "MOX-0001";
+    let raw = ord.order_number || ord.orderId || (ord.id ? String(ord.id) : "0001");
+    raw = String(raw).trim();
+    raw = raw.replace(/^(MOX-?)+/i, "");
+    if (!isNaN(Number(raw))) {
+      return `MOX-${raw.padStart(4, "0")}`;
+    }
+    return `MOX-${raw}`;
+  };
+
+  const displayOrderId = getCleanOrderId(order);
   const trackingId = order.trackingId || order.tracking_id || order.tracking_number || "";
   const products = Array.isArray(order.products) && order.products.length > 0
     ? order.products
@@ -45,13 +56,21 @@ export default function OrderDetails({ order, onBack, user }) {
   const isDelivered = (currentStatus || "").toLowerCase() === "delivered" || (order.shippingStatus || "").toUpperCase() === "DELIVERED";
 
   return (
-    <div>
-      <div className="panel-header">
-        <div className="d-flex align-items-center gap-3">
-          <button className="secondary-btn btn-sm py-1 px-2" onClick={onBack}>
-            ← Back
+    <div className="order-details-container">
+      <div className="order-details-top-header">
+        <div className="order-details-header-left">
+          <button
+            type="button"
+            className="profile-back-btn"
+            onClick={onBack}
+            aria-label="Go back to My Orders"
+          >
+            <LuArrowLeft className="back-arrow-icon" />
+            <span>Back</span>
           </button>
-          <h2 style={{ fontSize: "20px" }}>Order #{displayOrderId} Details</h2>
+          <h2 className="order-details-main-heading">
+            Order #{displayOrderId} Details
+          </h2>
         </div>
       </div>
 

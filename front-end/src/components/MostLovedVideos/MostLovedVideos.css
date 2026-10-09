@@ -107,6 +107,11 @@
   flex-direction: column;
   position: relative;
   box-sizing: border-box;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.most-loved-card:hover {
+  transform: translateY(-6px);
 }
 
 /* Video Box */
@@ -114,11 +119,19 @@
   position: relative;
   width: 100%;
   height: 310px;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   background-color: #111111;
   display: block;
   text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.most-loved-card:hover .most-loved-video-wrapper {
+  border-color: rgba(253, 177, 1, 0.4);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5), 0 0 24px rgba(253, 177, 1, 0.18);
 }
 
 .most-loved-video {
@@ -127,7 +140,7 @@
   object-fit: cover;
   object-position: center;
   display: block;
-  transition: transform 350ms ease;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
@@ -136,35 +149,45 @@
 }
 
 .most-loved-card:hover .most-loved-video {
-  transform: scale(1.03);
+  transform: scale(1.06);
 }
 
 /* Subtle Gradient Overlay */
 .most-loved-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 45%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.1) 40%, transparent 70%);
   pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
-/* Premium Badges */
+/* Premium Badges with Ambient Pulse */
 .most-loved-badge {
   position: absolute;
   top: 16px;
   left: 16px;
   z-index: 2;
-  background: rgba(5, 12, 40, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 12, 40, 0.85);
+  border: 1px solid rgba(253, 177, 1, 0.3);
   color: #ffffff;
   padding: 7px 14px;
-  border-radius: 10px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   pointer-events: none;
   line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+.most-loved-card:hover .most-loved-badge {
+  background: #fdb101;
+  color: #071426;
+  border-color: #fdb101;
+  box-shadow: 0 4px 18px rgba(253, 177, 1, 0.4);
 }
 
 /* Card Bottom Info & Navigation */
@@ -183,13 +206,13 @@
 
 .most-loved-card-title {
   font-size: 17.5px;
-  font-weight: 600;
+  font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   margin: 0 0 4px 0;
   line-height: 1.25;
-  transition: color 0.2s ease;
+  transition: color 0.25s ease;
   text-decoration: none;
 }
 
@@ -199,7 +222,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.25s ease;
 }
 
 .most-loved-card:hover .most-loved-card-title,
@@ -210,18 +233,18 @@
 /* Circular Arrow Button */
 .most-loved-arrow-btn {
   flex-shrink: 0;
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 19px;
   text-decoration: none;
-  transition: all 0.22s ease;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
@@ -229,8 +252,9 @@
 .most-loved-card:hover .most-loved-arrow-btn {
   background: #fdb101;
   border-color: #fdb101;
-  color: #000000;
-  transform: translateX(2px);
+  color: #071426;
+  transform: translateX(4px) scale(1.08);
+  box-shadow: 0 4px 16px rgba(253, 177, 1, 0.35);
 }
 
 .most-loved-arrow-btn:focus-visible,

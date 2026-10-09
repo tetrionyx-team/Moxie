@@ -3,18 +3,17 @@ import { useNavigate } from "react-router-dom";
 import {
   LuFileText,
   LuTruck,
-  LuRotateCcw,
   LuRefreshCcw,
   LuCircleX,
   LuShoppingBag,
   LuClock,
   LuCheck,
   LuChevronRight,
-  LuChevronDown,
   LuPackage,
 } from "react-icons/lu";
-import { FiX, FiCheckCircle } from "react-icons/fi";
+import { FiX, FiCheckCircle, FiPhone, FiVideo, FiAlertTriangle } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
+import { FaWhatsapp } from "react-icons/fa6";
 import WriteReviewModal from "../Review/WriteReviewModal";
 import { getOrderImageUrl, getFallbackImage } from "../../utils/orderImage";
 import "./MyOrders.css";
@@ -30,6 +29,7 @@ export default function MyOrders({
   const [activeFilter, setActiveFilter] = useState("all");
   const [reviewModalItem, setReviewModalItem] = useState(null);
   const [viewReviewTarget, setViewReviewTarget] = useState(null);
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
   const [reviewedOrders, setReviewedOrders] = useState(() => {
     const keys = {};
     try {
@@ -181,11 +181,6 @@ export default function MyOrders({
     if (status === "failed") return "Online Payment • Failed";
     if (status === "pending") return `${order.paymentMethod || "UPI"} • Pending`;
     return `${order.paymentMethod || "UPI"} • Paid`;
-  };
-
-  const handleReorder = (order) => {
-    const name = order.name || order.productName || (order.products && order.products[0]?.productName) || "Moxie Item";
-    alert(`Reordered "${name}". Item details have been added to your bag.`);
   };
 
   const handleReturnExchange = (order) => {
@@ -360,7 +355,7 @@ export default function MyOrders({
         </button>
       </div>
 
-      {/* 3. STATUS FILTER TABS & COUNT DROPDOWN */}
+      {/* 3. STATUS FILTER TABS */}
       <div className="orders-filters-bar">
         <div className="orders-tabs-scroll" role="tablist">
           {[
@@ -383,13 +378,6 @@ export default function MyOrders({
               {activeFilter === tab.id && <span className="tab-gold-indicator" />}
             </button>
           ))}
-        </div>
-
-        <div className="orders-count-dropdown-wrap">
-          <span className="orders-count-pill-btn">
-            {filteredOrders.length} {filteredOrders.length === 1 ? "Order" : "Orders"}
-            <LuChevronDown className="count-dropdown-icon" />
-          </span>
         </div>
       </div>
 
@@ -645,6 +633,16 @@ export default function MyOrders({
                                   : timelineStage === 2
                                   ? "25%"
                                   : "0%",
+                              height:
+                                timelineStage >= 5
+                                  ? "100%"
+                                  : timelineStage === 4
+                                  ? "75%"
+                                  : timelineStage === 3
+                                  ? "50%"
+                                  : timelineStage === 2
+                                  ? "25%"
+                                  : "0%",
                             }}
                           />
                         </div>
@@ -664,17 +662,6 @@ export default function MyOrders({
                           return (
                             <div
                               key={stg.key}
-                              ref={(el) => {
-                                if (el && (isCurrent || (timelineStage >= 5 && stg.step === 5))) {
-                                  try {
-                                    el.scrollIntoView({
-                                      behavior: "smooth",
-                                      inline: "center",
-                                      block: "nearest",
-                                    });
-                                  } catch (_) {}
-                                }
-                              }}
                               className={`timeline-node ${
                                 isDone ? "completed" : isCurrent ? "current" : "future"
                               }`}
@@ -686,10 +673,12 @@ export default function MyOrders({
                                   <span className="node-dot" />
                                 )}
                               </div>
-                              <span className="node-label">{stg.label}</span>
-                              {stageTime && (
-                                <span className="node-date">{stageTime}</span>
-                              )}
+                              <div className="node-text-wrap">
+                                <span className="node-label">{stg.label}</span>
+                                {stageTime && (
+                                  <span className="node-date">{stageTime}</span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
@@ -832,31 +821,12 @@ export default function MyOrders({
                       <button
                         type="button"
                         className="btn-order-action btn-action-cancel"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Are you sure you want to cancel Order #${displayOrderId}?`
-                            )
-                          ) {
-                            const rawId = order.id ? String(order.id) : displayOrderId;
-                            onCancelOrder && onCancelOrder(rawId);
-                          }
-                        }}
+                        onClick={() => setCancelModalOrder(order)}
                       >
                         <LuCircleX className="btn-action-icon" aria-hidden="true" />
                         <span>Cancel Order</span>
                       </button>
                     )}
-
-                    {/* Reorder */}
-                    <button
-                      type="button"
-                      className="btn-order-action btn-action-reorder"
-                      onClick={() => handleReorder(order)}
-                    >
-                      <LuRotateCcw className="btn-action-icon" aria-hidden="true" />
-                      <span>Reorder</span>
-                    </button>
                   </div>
                 </div>
               </article>
@@ -969,6 +939,135 @@ export default function MyOrders({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. CANCEL ORDER & POLICY CONFIRMATION MODAL */}
+      {cancelModalOrder && (
+        <div
+          className="privacy-modal-overlay cancel-modal-overlay"
+          onClick={() => setCancelModalOrder(null)}
+          role="presentation"
+        >
+          <div
+            className="privacy-modal-card cancel-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <header className="cancel-modal-header">
+              <div className="cancel-header-badge">
+                <LuCircleX className="cancel-badge-icon" />
+                <span>ORDER CANCELLATION</span>
+              </div>
+              <h2 id="cancel-modal-title" className="cancel-modal-title">
+                Cancel Order #{getDisplayOrderId(cancelModalOrder)}?
+              </h2>
+              <p className="cancel-modal-subtitle">
+                Please review our cancellation & return guidelines before confirming.
+              </p>
+              <button
+                type="button"
+                className="cancel-modal-close-btn"
+                onClick={() => setCancelModalOrder(null)}
+                aria-label="Close cancellation modal"
+              >
+                <FiX size={20} />
+              </button>
+            </header>
+
+            {/* Modal Body */}
+            <div className="cancel-modal-body">
+              {/* Alert / Important Policy Points */}
+              <div className="cancel-policy-alert-box">
+                <div className="cancel-alert-item">
+                  <div className="cancel-alert-icon-wrap gold" aria-hidden="true">
+                    <FiVideo />
+                  </div>
+                  <div className="cancel-alert-content">
+                    <h4 className="cancel-alert-title">Mandatory Packing / Unboxing Video</h4>
+                    <p className="cancel-alert-desc">
+                      For any cancellation, return, or replacement claims, a minimum <strong>1-minute continuous, unedited unboxing/packing video</strong> showing package labels and product condition is required.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="cancel-alert-item">
+                  <div className="cancel-alert-icon-wrap amber" aria-hidden="true">
+                    <FiAlertTriangle />
+                  </div>
+                  <div className="cancel-alert-content">
+                    <h4 className="cancel-alert-title">Manual Owner Refund Process</h4>
+                    <p className="cancel-alert-desc">
+                      Paid amount is <strong>NOT automatically refunded</strong> immediately through the payment gateway. The store owner will verify your request and manually transfer the refund amount directly to your account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Owner Contact Card */}
+              <div className="cancel-owner-contact-card">
+                <div className="contact-card-head">
+                  <span className="contact-card-title">Contact Store Owner / Support</span>
+                  <span className="contact-card-sub">WhatsApp or call directly for immediate assistance</span>
+                </div>
+
+                <div className="cancel-contact-actions-grid">
+                  <a
+                    href={`https://wa.me/917871327802?text=${encodeURIComponent(
+                      `Hello Moxie, I would like to inquire about cancellation and refund for Order #${getDisplayOrderId(
+                        cancelModalOrder
+                      )}.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cancel-btn-whatsapp"
+                    aria-label="Chat on WhatsApp with store owner"
+                  >
+                    <FaWhatsapp className="contact-action-icon" />
+                    <span>WhatsApp: 7871327802</span>
+                  </a>
+
+                  <div className="cancel-phone-links-row">
+                    <a href="tel:7871327802" className="cancel-btn-call" aria-label="Call 7871327802">
+                      <FiPhone className="contact-action-icon" />
+                      <span>Call: 7871327802</span>
+                    </a>
+                    <a href="tel:7448327802" className="cancel-btn-call" aria-label="Call 7448327802">
+                      <FiPhone className="contact-action-icon" />
+                      <span>Call: 7448327802</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <footer className="cancel-modal-footer">
+              <button
+                type="button"
+                className="cancel-btn-keep-order"
+                onClick={() => setCancelModalOrder(null)}
+              >
+                Keep Order
+              </button>
+
+              <button
+                type="button"
+                className="cancel-btn-confirm-cancel"
+                onClick={() => {
+                  const rawId = cancelModalOrder.id ? String(cancelModalOrder.id) : getDisplayOrderId(cancelModalOrder);
+                  onCancelOrder && onCancelOrder(rawId);
+                  setCancelModalOrder(null);
+                }}
+              >
+                <LuCircleX size={16} />
+                <span>Confirm & Cancel Order</span>
+              </button>
+            </footer>
           </div>
         </div>
       )}

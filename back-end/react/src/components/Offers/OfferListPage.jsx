@@ -16,36 +16,74 @@ import {
 } from '../../icons';
 import './OfferListPage.css';
 
+// Component for rendering crisp Apple / iOS style Emojis with fallback
+function IosEmoji({ emoji, size = 20, className = '', alt = '' }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (!emoji) return null;
+
+  if (imgError) {
+    return (
+      <span className={`native-emoji ${className}`} style={{ fontSize: `${size}px`, lineHeight: 1 }}>
+        {emoji}
+      </span>
+    );
+  }
+
+  const src = `https://emojicdn.elk.sh/${encodeURIComponent(emoji)}?style=apple`;
+
+  return (
+    <img
+      src={src}
+      alt={alt || emoji}
+      className={`ios-emoji-img ${className}`}
+      width={size}
+      height={size}
+      loading="lazy"
+      onError={() => setImgError(true)}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        objectFit: 'contain',
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}
+    />
+  );
+}
+
 const EMOJI_CATEGORIES = [
   {
     id: 'offers',
     name: 'Offers & Discounts',
     icon: '🏷️',
-    emojis: ['🏷️', '💸', '🎁', '🎉', '✨', '🔥', '⚡', '🛍️', '💰', '💎', '🌟', '💥', '🔔', '📢'],
+    emojis: ['🏷️', '💸', '🎁', '🎉', '✨', '🔥', '⚡', '🛍️', '💰', '💎', '🌟', '💥', '🔔', '📢', '🚀', '⭐', '🎈'],
   },
   {
     id: 'delivery',
     name: 'Delivery & Shipping',
     icon: '🚚',
-    emojis: ['🚚', '📦', '⚡', '🛵', '✈️', '📫', '⏳', '🚀', '🏃', '💨', '🌍'],
+    emojis: ['🚚', '📦', '⚡', '🛵', '✈️', '📫', '⏳', '🚀', '🏃', '💨', '🌍', '🏠', '📮'],
   },
   {
     id: 'fashion',
     name: 'Fashion & Style',
     icon: '👕',
-    emojis: ['👕', '👟', '⌚', '🛍️', '👗', '🕶️', '💍', '👠', '👜', '🎩', '👡', '👑'],
+    emojis: ['👕', '👟', '⌚', '🛍️', '👗', '🕶️', '💍', '👠', '👜', '🎩', '👡', '👑', '🧥', '🥾'],
   },
   {
     id: 'celebration',
     name: 'Celebration & Festive',
     icon: '🥳',
-    emojis: ['🥳', '🎊', '💫', '🎆', '🎈', '🎇', '✨', '🪅', '🥂', '🎉'],
+    emojis: ['🥳', '🎊', '💫', '🎆', '🎈', '🎇', '✨', '🪅', '🥂', '🎉', '🎂', '🍾', '💐'],
   },
   {
     id: 'popular',
     name: 'Popular & Reactions',
     icon: '⭐',
-    emojis: ['❤️', '⭐', '✅', '👑', '🔥', '✨', '💯', '🏆', '🛒', '😍', '👍', '🎯'],
+    emojis: ['❤️', '⭐', '✅', '👑', '🔥', '✨', '💯', '🏆', '🛒', '😍', '👍', '🎯', '💫', '💥', '🥇'],
   },
 ];
 
@@ -115,7 +153,9 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
         onClick={() => setIsOpen(prev => !prev)}
         title="Select Offer Emoji"
       >
-        <span className="emoji-trigger-icon">{selectedEmoji || '😊'}</span>
+        <span className="emoji-trigger-icon">
+          {selectedEmoji ? <IosEmoji emoji={selectedEmoji} size={20} /> : <IosEmoji emoji="🏷️" size={20} />}
+        </span>
         <span className="emoji-trigger-label">{selectedEmoji ? 'Emoji' : 'Emoji'}</span>
         {selectedEmoji && (
           <span
@@ -133,7 +173,7 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
         <div className="emoji-popover-card">
           <div className="emoji-popover-header">
             <div className="emoji-popover-title">
-              <span>✨ Select Offer Emoji</span>
+              <IosEmoji emoji="✨" size={16} /> <span>Select Offer Emoji</span>
             </div>
             {selectedEmoji && (
               <button
@@ -167,7 +207,7 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
                   onClick={() => setActiveCategory(cat.id)}
                   title={cat.name}
                 >
-                  <span className="cat-icon">{cat.icon}</span>
+                  <span className="cat-icon"><IosEmoji emoji={cat.icon} size={15} /></span>
                   <span className="cat-name">{cat.name.split(' ')[0]}</span>
                 </button>
               ))}
@@ -184,8 +224,9 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
                       type="button"
                       className={`emoji-cell-btn ${selectedEmoji === em ? 'selected' : ''}`}
                       onClick={() => handleSelect(em)}
+                      title={em}
                     >
-                      {em}
+                      <IosEmoji emoji={em} size={24} />
                     </button>
                   ))}
                 </div>
@@ -205,8 +246,9 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
                         type="button"
                         className={`emoji-cell-btn ${selectedEmoji === em ? 'selected' : ''}`}
                         onClick={() => handleSelect(em)}
+                        title={em}
                       >
-                        {em}
+                        <IosEmoji emoji={em} size={24} />
                       </button>
                     ))}
                   </div>
@@ -222,7 +264,7 @@ function EmojiPickerButton({ selectedEmoji, onSelectEmoji }) {
               placeholder="Paste any emoji here (e.g. 💎)"
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
-              maxLength={4}
+              maxLength={8}
               className="emoji-custom-input"
             />
             <button type="submit" className="emoji-custom-apply-btn" disabled={!customInput.trim()}>
@@ -702,14 +744,14 @@ export default function OfferListPage() {
                         <div className="offer-name-box">
                           <div className="offer-avatar-icon">
                             {item.emoji ? (
-                              <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.emoji}</span>
+                              <IosEmoji emoji={item.emoji} size={20} />
                             ) : (
                               <AppIcon icon={SparklesIcon} size={18} color="#6657ec" />
                             )}
                           </div>
                           <div className="offer-meta-info">
                             <strong style={{ whiteSpace: 'pre-line', lineHeight: '1.5' }}>
-                              {item.emoji && <span style={{ marginRight: '6px' }}>{item.emoji}</span>}
+                              {item.emoji && <span style={{ marginRight: '6px' }}><IosEmoji emoji={item.emoji} size={16} /></span>}
                               {truncateText(offerText, 100)}
                             </strong>
                           </div>
@@ -801,11 +843,22 @@ export default function OfferListPage() {
       {/* CREATE OFFER MODAL */}
       {showAddModal && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card offer-redesign-modal">
             <div className="modal-header">
-              <h2>Create & Schedule Offer</h2>
+              <div className="modal-header-left">
+                <div className="modal-header-icon-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 11 18-5v12L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="modal-title">Create & Schedule Offer</h2>
+                  <p className="modal-subtitle">Add a new announcement and schedule it for a specific period.</p>
+                </div>
+              </div>
               <button className="btn-modal-close" onClick={() => setShowAddModal(false)} aria-label="Close modal">
-                <AppIcon icon={CancelIcon} size={20} />
+                <AppIcon icon={CancelIcon} size={16} />
               </button>
             </div>
 
@@ -819,41 +872,63 @@ export default function OfferListPage() {
 
               <div className="modal-form-grid">
                 <div className="form-group full">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                    <label style={{ margin: 0, fontWeight: '750' }}>
-                      Offer Description <span style={{ color: '#ef4444' }}>*</span>
+                  <div className="form-label-row">
+                    <label className="form-field-label">
+                      Offer Description <span className="req-star">*</span>
                     </label>
                     <EmojiPickerButton
                       selectedEmoji={formData.emoji}
                       onSelectEmoji={(emoji) => setFormData({ ...formData, emoji })}
                     />
                   </div>
-                  <textarea
-                    rows="5"
-                    placeholder={'Write your offer here...\n\nExample:\nSave 40% instantly at checkout. Enjoy free express delivery across India.'}
-                    value={formData.offer_text}
-                    onChange={(e) => setFormData({ ...formData, offer_text: e.target.value })}
-                    style={{ fontFamily: 'inherit', resize: 'vertical', fontSize: '14px', lineHeight: '1.6' }}
-                  />
-                  <small style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                  
+                  <div className="offer-textarea-container">
+                    <textarea
+                      rows="2"
+                      placeholder="Write your offer here..."
+                      value={formData.offer_text}
+                      onChange={(e) => setFormData({ ...formData, offer_text: e.target.value.slice(0, 200) })}
+                      className="offer-textarea-input"
+                    />
+                    
+                    {(!formData.offer_text || formData.offer_text.trim().length === 0) && (
+                      <div className="offer-example-card">
+                        <span className="example-icon">💡</span>
+                        <div className="example-body">
+                          <strong className="example-title">Example:</strong>
+                          <p className="example-desc">Save 40% instantly at checkout. Enjoy free express delivery across India.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="offer-char-counter">
+                      {(formData.offer_text || '').length}/200
+                    </div>
+                  </div>
+                  <small className="field-note-text">
                     Supports line breaks and formatted text.
                   </small>
                 </div>
 
                 {/* Live Announcement Bar Preview */}
-                <div className="form-group full" style={{ marginTop: '-4px' }}>
+                <div className="form-group full">
                   <div className="offer-preview-box">
                     <div className="offer-preview-header">
-                      <span className="offer-preview-title">Live Preview (Top Announcement Bar)</span>
+                      <div className="offer-preview-header-left">
+                        <span className="preview-eye-icon-badge">👁</span>
+                        <span className="offer-preview-title">Live Preview <span className="preview-subtitle-light">(Top Announcement Bar)</span></span>
+                      </div>
                       {formData.emoji ? (
-                        <span className="offer-preview-badge">Emoji: {formData.emoji}</span>
+                        <span className="offer-preview-badge">Emoji: <IosEmoji emoji={formData.emoji} size={15} /></span>
                       ) : (
                         <span className="offer-preview-badge muted">No Emoji (Text Only)</span>
                       )}
                     </div>
                     <div className="offer-preview-marquee-strip">
                       <div className="offer-preview-item">
-                        {formData.emoji && <span className="offer-preview-emoji">{formData.emoji}</span>}
+                        <span className="offer-preview-emoji">
+                          {formData.emoji ? <IosEmoji emoji={formData.emoji} size={18} /> : <IosEmoji emoji="📢" size={18} />}
+                        </span>
                         <span className="offer-preview-text">
                           {formData.offer_text.trim() || 'Save 40% instantly at checkout. Enjoy free express delivery across India.'}
                         </span>
@@ -863,31 +938,46 @@ export default function OfferListPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Start Date & Time <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label className="form-field-label">
+                    <span className="date-badge green"><IosEmoji emoji="📅" size={13} /></span>
+                    <span>Start Date & Time</span>
+                    <span className="req-star">*</span>
+                  </label>
                   <input
                     type="datetime-local"
+                    className="styled-date-input start-date-input"
                     value={formData.start_datetime}
                     onChange={(e) => setFormData({ ...formData, start_datetime: e.target.value })}
                     required
                   />
+                  <small className="field-note-text">Set when the offer will be visible.</small>
                 </div>
 
                 <div className="form-group">
-                  <label>End Date & Time <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label className="form-field-label">
+                    <span className="date-badge pink"><IosEmoji emoji="📅" size={13} /></span>
+                    <span>End Date & Time</span>
+                    <span className="req-star">*</span>
+                  </label>
                   <input
                     type="datetime-local"
+                    className="styled-date-input"
                     value={formData.end_datetime}
                     onChange={(e) => setFormData({ ...formData, end_datetime: e.target.value })}
                     required
                   />
+                  <small className="field-note-text">Set when the offer will be hidden.</small>
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn-primary" disabled={submitting} onClick={handleSaveCreate}>
-                {submitting ? 'Saving...' : 'Create Offer'}
+              <button className="btn-modal-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button className="btn-modal-submit" disabled={submitting} onClick={handleSaveCreate}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(-15deg)' }}>
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+                <span>{submitting ? 'Saving...' : 'Create Offer'}</span>
               </button>
             </div>
           </div>
@@ -897,11 +987,22 @@ export default function OfferListPage() {
       {/* EDIT OFFER MODAL */}
       {editTarget && (
         <div className="modal-overlay">
-          <div className="modal-card">
+          <div className="modal-card offer-redesign-modal">
             <div className="modal-header">
-              <h2>Edit Offer & Schedule</h2>
+              <div className="modal-header-left">
+                <div className="modal-header-icon-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 11 18-5v12L3 13v-2z"/>
+                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="modal-title">Edit Offer & Schedule</h2>
+                  <p className="modal-subtitle">Update this announcement and reschedule it as needed.</p>
+                </div>
+              </div>
               <button className="btn-modal-close" onClick={() => setEditTarget(null)} aria-label="Close modal">
-                <AppIcon icon={CancelIcon} size={20} />
+                <AppIcon icon={CancelIcon} size={16} />
               </button>
             </div>
 
@@ -915,37 +1016,63 @@ export default function OfferListPage() {
 
               <div className="modal-form-grid">
                 <div className="form-group full">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                    <label style={{ margin: 0, fontWeight: '750' }}>
-                      Offer Description <span style={{ color: '#ef4444' }}>*</span>
+                  <div className="form-label-row">
+                    <label className="form-field-label">
+                      Offer Description <span className="req-star">*</span>
                     </label>
                     <EmojiPickerButton
                       selectedEmoji={formData.emoji}
                       onSelectEmoji={(emoji) => setFormData({ ...formData, emoji })}
                     />
                   </div>
-                  <textarea
-                    rows="5"
-                    value={formData.offer_text}
-                    onChange={(e) => setFormData({ ...formData, offer_text: e.target.value })}
-                    style={{ fontFamily: 'inherit', resize: 'vertical', fontSize: '14px', lineHeight: '1.6' }}
-                  />
+                  
+                  <div className="offer-textarea-container">
+                    <textarea
+                      rows="2"
+                      placeholder="Write your offer here..."
+                      value={formData.offer_text}
+                      onChange={(e) => setFormData({ ...formData, offer_text: e.target.value.slice(0, 200) })}
+                      className="offer-textarea-input"
+                    />
+
+                    {(!formData.offer_text || formData.offer_text.trim().length === 0) && (
+                      <div className="offer-example-card">
+                        <span className="example-icon">💡</span>
+                        <div className="example-body">
+                          <strong className="example-title">Example:</strong>
+                          <p className="example-desc">Save 40% instantly at checkout. Enjoy free express delivery across India.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="offer-char-counter">
+                      {(formData.offer_text || '').length}/200
+                    </div>
+                  </div>
+                  <small className="field-note-text">
+                    Supports line breaks and formatted text.
+                  </small>
                 </div>
 
                 {/* Live Announcement Bar Preview */}
-                <div className="form-group full" style={{ marginTop: '-4px' }}>
+                <div className="form-group full">
                   <div className="offer-preview-box">
                     <div className="offer-preview-header">
-                      <span className="offer-preview-title">Live Preview (Top Announcement Bar)</span>
+                      <div className="offer-preview-header-left">
+                        <span className="preview-eye-icon-badge">👁</span>
+                        <span className="offer-preview-title">Live Preview <span className="preview-subtitle-light">(Top Announcement Bar)</span></span>
+                      </div>
                       {formData.emoji ? (
-                        <span className="offer-preview-badge">Emoji: {formData.emoji}</span>
+                        <span className="offer-preview-badge">Emoji: <IosEmoji emoji={formData.emoji} size={15} /></span>
                       ) : (
                         <span className="offer-preview-badge muted">No Emoji (Text Only)</span>
                       )}
                     </div>
                     <div className="offer-preview-marquee-strip">
                       <div className="offer-preview-item">
-                        {formData.emoji && <span className="offer-preview-emoji">{formData.emoji}</span>}
+                        <span className="offer-preview-emoji">
+                          {formData.emoji ? <IosEmoji emoji={formData.emoji} size={18} /> : <IosEmoji emoji="📢" size={18} />}
+                        </span>
                         <span className="offer-preview-text">
                           {formData.offer_text.trim() || 'Save 40% instantly at checkout. Enjoy free express delivery across India.'}
                         </span>
@@ -955,31 +1082,46 @@ export default function OfferListPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Start Date & Time <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label className="form-field-label">
+                    <span className="date-badge green"><IosEmoji emoji="📅" size={13} /></span>
+                    <span>Start Date & Time</span>
+                    <span className="req-star">*</span>
+                  </label>
                   <input
                     type="datetime-local"
+                    className="styled-date-input start-date-input"
                     value={formData.start_datetime}
                     onChange={(e) => setFormData({ ...formData, start_datetime: e.target.value })}
                     required
                   />
+                  <small className="field-note-text">Set when the offer will be visible.</small>
                 </div>
 
                 <div className="form-group">
-                  <label>End Date & Time <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label className="form-field-label">
+                    <span className="date-badge pink"><IosEmoji emoji="📅" size={13} /></span>
+                    <span>End Date & Time</span>
+                    <span className="req-star">*</span>
+                  </label>
                   <input
                     type="datetime-local"
+                    className="styled-date-input"
                     value={formData.end_datetime}
                     onChange={(e) => setFormData({ ...formData, end_datetime: e.target.value })}
                     required
                   />
+                  <small className="field-note-text">Set when the offer will be hidden.</small>
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setEditTarget(null)}>Cancel</button>
-              <button className="btn-primary" disabled={submitting} onClick={handleSaveEdit}>
-                {submitting ? 'Saving...' : 'Save Changes'}
+              <button className="btn-modal-cancel" onClick={() => setEditTarget(null)}>Cancel</button>
+              <button className="btn-modal-submit" disabled={submitting} onClick={handleSaveEdit}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'rotate(-15deg)' }}>
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+                <span>{submitting ? 'Saving...' : 'Save Changes'}</span>
               </button>
             </div>
           </div>

@@ -3424,3 +3424,102 @@
   }
 }
 
+/* ------------------------------------------------------------
+   8. LUXURY PROFILE BACK BUTTON & DETAIL HEADERS
+   ------------------------------------------------------------ */
+.order-details-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1ece4;
+}
+
+.order-details-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.order-details-main-heading {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #071426;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.profile-back-btn {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 38px !important;
+  padding: 0 16px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #eae4d9 !important;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 750 !important;
+  color: #071426 !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 4px rgba(7, 20, 38, 0.04) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  font-family: inherit !important;
+  text-decoration: none !important;
+}
+
+.profile-back-btn:hover {
+  background: #fdfbf7 !important;
+  border-color: #c5a059 !important;
+  color: #c5a059 !important;
+  transform: translateX(-2px) !important;
+  box-shadow: 0 3px 10px rgba(197, 160, 89, 0.15) !important;
+}
+
+.profile-back-btn .back-arrow-icon {
+  font-size: 15px;
+  transition: transform 0.2s ease;
+}
+
+.profile-back-btn:hover .back-arrow-icon {
+  transform: translateX(-2px);
+}
+
+.track-refresh-btn {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .order-details-top-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    gap: 10px;
+  }
+
+  .order-details-header-left {
+    gap: 10px;
+  }
+
+  .order-details-main-heading {
+    font-size: 18px;
+  }
+
+  .profile-back-btn {
+    height: 34px !important;
+    padding: 0 12px !important;
+    font-size: 12.5px !important;
+    border-radius: 10px !important;
+  }
+}
+
+

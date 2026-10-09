@@ -10,6 +10,34 @@ import "./WatchShowcase.css";
 
 import { resolveMediaUrl, getProductImageUrl, NEUTRAL_PLACEHOLDER } from "../../utils/productImage";
 
+// Apple / iOS style emoji helper with fallback
+function IosEmoji({ emoji, size = 16, className = "" }) {
+  const [imgError, setImgError] = useState(false);
+  if (!emoji) return null;
+  if (imgError) {
+    return <span className={`native-emoji ${className}`} style={{ fontSize: `${size}px`, lineHeight: 1 }}>{emoji}</span>;
+  }
+  const src = `https://emojicdn.elk.sh/${encodeURIComponent(emoji)}?style=apple`;
+  return (
+    <img
+      src={src}
+      alt={emoji}
+      className={`ios-emoji-img ${className}`}
+      width={size}
+      height={size}
+      loading="lazy"
+      onError={() => setImgError(true)}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        objectFit: "contain",
+        display: "inline-block",
+        verticalAlign: "middle",
+      }}
+    />
+  );
+}
+
 /**
  * Format remaining milliseconds into structured countdown display parts (Days, Hours, Minutes, Seconds)
  */
@@ -36,6 +64,319 @@ function getCountdownParts(msRemaining) {
     minutes: pad(minutes),
     seconds: pad(seconds),
   };
+}
+
+/**
+ * Individual Interactive Showcase Product Card
+ */
+function WatchShowcaseCard({ item, isWished, onToggleWishlist, onAddToCart }) {
+  const p = useMemo(() => item.product || {}, [item.product]);
+  const variants = useMemo(() => (Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : []), [p.variants]);
+  
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  const activeVariant = variants[selectedVariantIdx] || null;
+
+  // Extract all gallery images for the product / active variant
+  const allImages = useMemo(() => {
+    const list = [];
+    if (activeVariant) {
+      if (Array.isArray(activeVariant.images) && activeVariant.images.length > 0) {
+        activeVariant.images.forEach((img) => {
+          const u = resolveMediaUrl(img.image || img.image_url || img.url || img);
+          if (u) list.push(u);
+        });
+      }
+    }
+    if (list.length === 0 && item.image) {
+      list.push(item.image);
+    }
+    if (list.length === 0) {
+      const u = getProductImageUrl(p);
+      if (u) list.push(u);
+    }
+    return list.length > 0 ? list : [NEUTRAL_PLACEHOLDER];
+  }, [activeVariant, item.image, p]);
+
+  const currentImage = allImages[activeImageIdx % allImages.length] || item.image || NEUTRAL_PLACEHOLDER;
+
+  const handlePrevImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+  };
+
+  const handleNextImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+  };
+
+  const activeColorName = activeVariant?.color_name || p.color_name || "Silver Blue";
+
+  // Price calculation based on active variant if available
+  const variantPrice = activeVariant ? parseFloat(activeVariant.price || 0) : item.sellingPrice;
+  const variantDiscPrice = activeVariant && activeVariant.discount_price ? parseFloat(activeVariant.discount_price) : null;
+  const sellingPrice = variantDiscPrice && variantDiscPrice > 0 ? variantDiscPrice : variantPrice;
+  const originalPrice = variantDiscPrice && variantDiscPrice > 0 && variantPrice > variantDiscPrice ? variantPrice : item.originalPrice;
+  const discountPercent = originalPrice && originalPrice > sellingPrice ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : item.discountPercent;
+
+  const rawRating = p.rating ?? p.average_rating ?? p.ratings ?? 0;
+  const ratingVal = Number(rawRating) > 0 ? Number(rawRating).toFixed(1) : "0";
+  const reviewsCount = Number(p.reviews_count ?? p.total_reviews ?? p.num_reviews ?? 0);
+
+  const productRoute = `/product/${item.slug || item.productId}`;
+
+  return (
+    <article className="moxie-promo-card luxury-showcase-card">
+      {/* 1. Full-Width Image Area with Interactive Elements */}
+      <div className="moxie-card-media-wrap">
+        {/* Dynamic Discount / Hot Sale Badge (Top-Left) */}
+        <div className="moxie-card-top-badge">
+          <IosEmoji emoji="🔥" size={13} />
+          <span>{discountPercent > 0 ? `${discountPercent}% OFF` : (item.badgeText || "25% OFF")}</span>
+        </div>
+
+        {/* Wishlist Button (Top-Right) */}
+        <button
+          type="button"
+          className={`moxie-card-heart-btn ${isWished ? "active" : ""}`}
+          onClick={(e) => onToggleWishlist(e, item)}
+          aria-label={isWished ? `Remove ${item.name} from wishlist` : `Add ${item.name} to wishlist`}
+        >
+          {isWished ? (
+            <FaHeart className="moxie-heart-icon filled" />
+          ) : (
+            <FiHeart className="moxie-heart-icon" />
+          )}
+        </button>
+
+        {/* Image Carousel Arrows */}
+        {allImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="moxie-carousel-arrow left"
+              onClick={handlePrevImg}
+              aria-label="Previous image"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="moxie-carousel-arrow right"
+              onClick={handleNextImg}
+              aria-label="Next image"
+            >
+              ›
+            </button>
+          </>
+        )}
+
+        {/* Bottom Pagination Dots */}
+        <div className="moxie-carousel-dots">
+          {(allImages.length > 1 ? allImages : [1, 2, 3, 4]).slice(0, 4).map((_, dotIdx) => (
+            <span
+              key={dotIdx}
+              className={`moxie-carousel-dot ${dotIdx === (activeImageIdx % 4) ? "active" : ""}`}
+            />
+          ))}
+        </div>
+
+        {/* Bottom-Right Expand Icon Button */}
+        <Link to={productRoute} className="moxie-expand-btn" aria-label="Expand product">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </Link>
+
+        {/* Product Image Link */}
+        <Link to={productRoute} className="moxie-card-img-link" aria-label={`View ${item.name} details`}>
+          <img
+            src={currentImage}
+            alt={item.name}
+            className="moxie-card-img"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = NEUTRAL_PLACEHOLDER;
+            }}
+          />
+        </Link>
+      </div>
+
+      {/* 2. Card Content Details */}
+      <div className="moxie-card-body">
+        {/* Title & Rating Row */}
+        <div className="moxie-card-title-rating-row">
+          <div className="moxie-card-title-group">
+            <h3 className="moxie-card-title">
+              <Link to={productRoute} title={item.name}>
+                {item.name}
+              </Link>
+            </h3>
+            <p className="moxie-card-subtitle">
+              {p.description ? p.description.slice(0, 36) + (p.description.length > 36 ? "..." : "") : "Premium Chrono Series Watch"}
+            </p>
+          </div>
+          <div className="moxie-card-rating-pill">
+            <span className="rating-star">⭐</span>
+            <strong className="rating-score">{ratingVal}</strong>
+            <span className="rating-count">({reviewsCount})</span>
+          </div>
+        </div>
+
+        {/* Pricing & Free Shipping Row */}
+        <div className="moxie-card-pricing-shipping-row">
+          <div className="moxie-card-price-stack">
+            <span className="moxie-card-price-current">
+              ₹{sellingPrice.toLocaleString("en-IN")}
+            </span>
+            {originalPrice && (
+              <span className="moxie-card-price-original">
+                ₹{originalPrice.toLocaleString("en-IN")}
+              </span>
+            )}
+            {discountPercent > 0 && (
+              <span className="moxie-discount-pill-tag">
+                {discountPercent}% OFF
+              </span>
+            )}
+          </div>
+          <div className="moxie-shipping-tag">
+            <IosEmoji emoji="🚚" size={13} />
+            <span>Free Shipping</span>
+          </div>
+        </div>
+
+        {/* Offer Ends In Timer Strip */}
+        <div className="moxie-offer-ends-strip" aria-label="Offer countdown timer">
+          <div className="offer-ends-label">
+            <span className="clock-blue-icon">🕒</span>
+            <span>Offer ends in</span>
+          </div>
+          <div className="offer-timer-boxes">
+            <div className="offer-time-cell">
+              <span className="time-val">{item.countdown.days}</span>
+              <span className="time-lbl">DAYS</span>
+            </div>
+            <div className="offer-time-cell">
+              <span className="time-val">{item.countdown.hours}</span>
+              <span className="time-lbl">HOURS</span>
+            </div>
+            <div className="offer-time-cell">
+              <span className="time-val">{item.countdown.minutes}</span>
+              <span className="time-lbl">MINUTES</span>
+            </div>
+            <div className="offer-time-cell">
+              <span className="time-val">{item.countdown.seconds}</span>
+              <span className="time-lbl">SECONDS</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Color Swatches */}
+        <div className="moxie-color-qty-row">
+          <div className="moxie-color-section">
+            <div className="moxie-color-heading">
+              Color: <span>{activeColorName}</span>
+            </div>
+            <div className="moxie-color-swatches-row">
+              {variants.length > 0 ? (
+                variants.slice(0, 5).map((v, vIdx) => {
+                  const isActive = vIdx === selectedVariantIdx;
+                  const swatchImg = v.images && v.images[0] ? resolveMediaUrl(v.images[0].image || v.images[0].url || v.images[0]) : null;
+                  return (
+                    <button
+                      key={v.id || vIdx}
+                      type="button"
+                      className={`moxie-swatch-slot ${isActive ? "active" : ""}`}
+                      style={v.color_code ? { backgroundColor: v.color_code } : {}}
+                      onClick={() => {
+                        setSelectedVariantIdx(vIdx);
+                        setActiveImageIdx(0);
+                      }}
+                      title={v.color_name}
+                    >
+                      {swatchImg && <img src={swatchImg} alt="" className="swatch-img-mini" />}
+                    </button>
+                  );
+                })
+              ) : (
+                <>
+                  <div className="moxie-swatch-slot active" style={{ backgroundColor: "#2563eb" }} />
+                  <div className="moxie-swatch-slot" style={{ backgroundColor: "#0f172a" }} />
+                  <div className="moxie-swatch-slot" style={{ backgroundColor: "#d97706" }} />
+                  <div className="moxie-swatch-slot" style={{ backgroundColor: "#059669" }} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Add To Cart Full Width Button */}
+        <button
+          type="button"
+          className="moxie-card-cart-btn"
+          onClick={(e) => onAddToCart(e, item, activeVariant, 1)}
+          aria-label={`Add ${item.name} to Cart`}
+        >
+          <span className="moxie-cart-btn-content">
+            <FiShoppingCart className="moxie-cart-icon" />
+            <span>Add to Cart</span>
+          </span>
+          <span className="moxie-cart-arrow-circle">➔</span>
+        </button>
+
+        {/* Trust Badges Strip */}
+        <div className="moxie-trust-badges-strip">
+          <div className="trust-cell">
+            <div className="trust-icon-wrap blue">
+              <IosEmoji emoji="🚚" size={13} />
+            </div>
+            <div className="trust-text">
+              <strong>Free Shipping</strong>
+              <small>Across India</small>
+            </div>
+          </div>
+
+          <div className="trust-cell">
+            <div className="trust-icon-wrap blue-shield">
+              <IosEmoji emoji="🛡️" size={13} />
+            </div>
+            <div className="trust-text">
+              <strong>1 Year Warranty</strong>
+              <small>Official Brand</small>
+            </div>
+          </div>
+
+          <div className="trust-cell">
+            <div className="trust-icon-wrap amber">
+              <IosEmoji emoji="📦" size={13} />
+            </div>
+            <div className="trust-text">
+              <strong>Easy Returns</strong>
+              <small>7 Days</small>
+            </div>
+          </div>
+
+          <div className="trust-cell">
+            <div className="trust-icon-wrap pink">
+              <IosEmoji emoji="🎧" size={13} />
+            </div>
+            <div className="trust-text">
+              <strong>24/7 Support</strong>
+              <small>We're here to help</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function WatchShowcase() {
@@ -122,7 +463,7 @@ export default function WatchShowcase() {
           getProductImageUrl(p);
 
         // Countdown calculations based on backend end_date (or default 24h cycle if none)
-        let countdown = { days: "02", hours: "23", minutes: "15", seconds: "30" };
+        let countdown = { days: "00", hours: "23", minutes: "58", seconds: "57" };
         if (item.end_date) {
           const endMs = new Date(item.end_date).getTime();
           if (!isNaN(endMs)) {
@@ -137,6 +478,7 @@ export default function WatchShowcase() {
           productId: p.id,
           slug: p.slug || String(p.id),
           name: p.name,
+          badgeText: item.badge_text || "",
           sellingPrice,
           originalPrice: discountPercent > 0 ? originalPrice : null,
           discountPercent,
@@ -156,14 +498,15 @@ export default function WatchShowcase() {
     }
   };
 
-  const handleAddToCartClick = (e, item) => {
+  const handleAddToCartClick = (e, item, activeVariant, selectedQty = 1) => {
     e.preventDefault();
     e.stopPropagation();
     if (addToCart && item.product) {
       const defaultVariant =
-        Array.isArray(item.product.variants) && item.product.variants.length > 0
+        activeVariant ||
+        (Array.isArray(item.product.variants) && item.product.variants.length > 0
           ? item.product.variants[0]
-          : null;
+          : null);
 
       addToCart(
         {
@@ -173,9 +516,9 @@ export default function WatchShowcase() {
           selectedVariant: defaultVariant,
           variant_id: defaultVariant?.id || item.product.variant_id,
         },
-        1
+        selectedQty
       );
-      if (toast) toast(`${item.name} added to cart`);
+      if (toast) toast(`${item.name} (${selectedQty}) added to cart`);
     }
   };
 
@@ -228,111 +571,18 @@ export default function WatchShowcase() {
           </p>
         </header>
 
-        {/* Minimal Modern White Card Grid (3 Columns Desktop) */}
+        {/* Modern Luxury Showcase Card Grid */}
         <div className="moxie-picks-grid">
           {activeItems.map((item) => {
-            const productRoute = `/product/${item.slug || item.productId}`;
             const isWished = isInWishlist ? isInWishlist(item.productId) : false;
-
             return (
-              <article key={item.id} className="moxie-promo-card">
-                {/* Full-Width Image Area with Overlaid Badges */}
-                <div className="moxie-card-media-wrap">
-                  {/* Dynamic Discount Badge (Top-Left) */}
-                  {item.discountPercent > 0 ? (
-                    <span className="moxie-card-discount-badge">
-                      {item.discountPercent}% OFF
-                    </span>
-                  ) : (
-                    <span className="moxie-card-discount-badge">SPECIAL</span>
-                  )}
-
-                  {/* Wishlist Button (Top-Right) */}
-                  <button
-                    type="button"
-                    className={`moxie-card-heart-btn ${isWished ? "active" : ""}`}
-                    onClick={(e) => handleWishlistClick(e, item)}
-                    aria-label={isWished ? `Remove ${item.name} from wishlist` : `Add ${item.name} to wishlist`}
-                  >
-                    {isWished ? (
-                      <FaHeart className="moxie-heart-icon filled" />
-                    ) : (
-                      <FiHeart className="moxie-heart-icon" />
-                    )}
-                  </button>
-
-                  {/* Product Image Clickable Link */}
-                  <Link
-                    to={productRoute}
-                    className="moxie-card-img-link"
-                    aria-label={`View ${item.name} details`}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="moxie-card-img"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = NEUTRAL_PLACEHOLDER;
-                      }}
-                    />
-                  </Link>
-                </div>
-
-                {/* Card Content Details */}
-                <div className="moxie-card-body">
-                  {/* Product Title */}
-                  <h3 className="moxie-card-title">
-                    <Link to={productRoute} title={item.name}>
-                      {item.name}
-                    </Link>
-                  </h3>
-
-                  {/* Pricing */}
-                  <div className="moxie-card-pricing">
-                    <span className="moxie-card-price-current">
-                      ₹{item.sellingPrice.toLocaleString("en-IN")}
-                    </span>
-                    {item.originalPrice && (
-                      <span className="moxie-card-price-original">
-                        ₹{item.originalPrice.toLocaleString("en-IN")}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 4-Box Minimal Countdown */}
-                  <div className="moxie-card-countdown" aria-label="Offer countdown timer">
-                    <div className="moxie-countdown-box">
-                      <span className="moxie-countdown-num">{item.countdown.days}</span>
-                      <span className="moxie-countdown-lbl">DAYS</span>
-                    </div>
-                    <div className="moxie-countdown-box">
-                      <span className="moxie-countdown-num">{item.countdown.hours}</span>
-                      <span className="moxie-countdown-lbl">HOURS</span>
-                    </div>
-                    <div className="moxie-countdown-box">
-                      <span className="moxie-countdown-num">{item.countdown.minutes}</span>
-                      <span className="moxie-countdown-lbl">MINUTES</span>
-                    </div>
-                    <div className="moxie-countdown-box">
-                      <span className="moxie-countdown-num">{item.countdown.seconds}</span>
-                      <span className="moxie-countdown-lbl">SECONDS</span>
-                    </div>
-                  </div>
-
-                  {/* Full-Width Add To Cart Button */}
-                  <button
-                    type="button"
-                    className="moxie-card-cart-btn"
-                    onClick={(e) => handleAddToCartClick(e, item)}
-                    aria-label={`Add ${item.name} to Cart`}
-                  >
-                    <FiShoppingCart className="moxie-cart-icon" />
-                    <span>Add to Cart</span>
-                  </button>
-                </div>
-              </article>
+              <WatchShowcaseCard
+                key={item.id}
+                item={item}
+                isWished={isWished}
+                onToggleWishlist={handleWishlistClick}
+                onAddToCart={handleAddToCartClick}
+              />
             );
           })}
         </div>

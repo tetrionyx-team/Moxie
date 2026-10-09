@@ -329,7 +329,7 @@ body.is-loading {
     height: 100%;
     background: linear-gradient(90deg, transparent, var(--gold), transparent);
     transform: translateX(-100%);
-    animation: loadingLine 3.5s cubic-bezier(.65, 0, .35, 1) forwards;
+    animation: loadingLine 1.5s cubic-bezier(.65, 0, .35, 1) forwards;
 }
 
 .homepage {

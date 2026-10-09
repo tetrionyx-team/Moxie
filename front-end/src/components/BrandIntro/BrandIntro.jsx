@@ -46,8 +46,8 @@ export default function BrandIntro({ children }) {
 
     useEffect(() => {
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const introDuration = reduceMotion ? 200 : 3500;
-        const spinDuration = reduceMotion ? 0 : 3200;
+        const introDuration = reduceMotion ? 150 : 1500;
+        const spinDuration = reduceMotion ? 0 : 1300;
         const introStart = performance.now();
         let clockFrame;
         let hideTimer;

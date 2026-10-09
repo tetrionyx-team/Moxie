@@ -81,7 +81,7 @@ describe("MyOrders Component", () => {
       />
     );
 
-    expect(screen.getByText("3 Orders")).toBeInTheDocument();
+    expect(screen.getByText("Total Orders")).toBeInTheDocument();
     expect(screen.getByText(/MOX-ORD10245/)).toBeInTheDocument();
     expect(screen.getByText(/Placed on 21 Aug 2026/)).toBeInTheDocument();
     expect(screen.getByText("Classic Black Watch")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("MyOrders Component", () => {
     expect(screen.getByText("SHIPPED")).toBeInTheDocument();
   });
 
-  test("handles action button clicks: View Details, Track Order, Reorder", () => {
+  test("handles action button clicks: View Details, Track Order", () => {
     const handleViewDetails = jest.fn();
     const handleCancelOrder = jest.fn();
 
@@ -111,12 +111,6 @@ describe("MyOrders Component", () => {
     const trackOrderButtons = screen.getAllByRole("button", { name: /Track Order/i });
     fireEvent.click(trackOrderButtons[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/track-order?order=MOX-ORD10245");
-
-    const reorderButtons = screen.getAllByRole("button", { name: /Reorder/i });
-    fireEvent.click(reorderButtons[0]);
-    expect(window.alert).toHaveBeenCalledWith(
-      expect.stringContaining('Reordered "Classic Black Watch"')
-    );
   });
 
   test("handles Return / Exchange on delivered orders", () => {
@@ -129,7 +123,7 @@ describe("MyOrders Component", () => {
     );
   });
 
-  test("handles Cancel Order on cancellable orders (Placed)", () => {
+  test("handles Cancel Order modal and confirmation on cancellable orders (Placed)", () => {
     const handleCancelOrder = jest.fn();
 
     render(
@@ -142,9 +136,16 @@ describe("MyOrders Component", () => {
     const cancelBtn = screen.getByRole("button", { name: /Cancel Order/i });
     fireEvent.click(cancelBtn);
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      expect.stringContaining("Are you sure you want to cancel Order #MOX-ORD10247?")
-    );
+    // Modal opens showing policy details and owner contact
+    expect(screen.getByText(/Cancel Order #MOX-ORD10247\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mandatory Packing \/ Unboxing Video/i)).toBeInTheDocument();
+    expect(screen.getByText(/Manual Owner Refund Process/i)).toBeInTheDocument();
+    expect(screen.getByText(/WhatsApp: 7871327802/i)).toBeInTheDocument();
+
+    // Confirm cancel button in modal
+    const confirmBtn = screen.getByRole("button", { name: /Confirm & Cancel Order/i });
+    fireEvent.click(confirmBtn);
+
     expect(handleCancelOrder).toHaveBeenCalledWith("ORD10247");
   });
 });

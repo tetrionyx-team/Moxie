@@ -42,9 +42,18 @@ const getMediaUrl = (url) => {
 
 export default function Hero() {
   const navigate = useNavigate();
-  const [banners, setBanners] = useState([]);
+  const [banners, setBanners] = useState(() => {
+    try {
+      const cached = localStorage.getItem("moxie_cached_banners");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { }
+    return [];
+  });
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => banners.length === 0);
 
   const videoRef = useRef(null);
   const touchStartX = useRef(null);
@@ -77,13 +86,16 @@ export default function Hero() {
 
         if (validBanners.length > 0) {
           setBanners(validBanners);
+          try {
+            localStorage.setItem("moxie_cached_banners", JSON.stringify(validBanners));
+          } catch { }
           setCurrentSlide(0);
         } else {
           setBanners([]);
         }
       })
       .catch(() => {
-        setBanners([]);
+        // Keep cached banners on fetch error if available
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -175,7 +187,17 @@ export default function Hero() {
     }
   };
 
-  if (loading || !banners || banners.length === 0) {
+  if (loading && (!banners || banners.length === 0)) {
+    return (
+      <section className="moxie-hero-banner-section" aria-label="Loading Featured Banner">
+        <div className="moxie-hero-banner-container moxie-hero-banner-skeleton">
+          <div className="moxie-banner-skeleton-shimmer" />
+        </div>
+      </section>
+    );
+  }
+
+  if (!banners || banners.length === 0) {
     return null;
   }
 

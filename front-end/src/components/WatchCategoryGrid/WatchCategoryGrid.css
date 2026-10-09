@@ -1,0 +1,413 @@
+/* ==========================================================================
+   WATCH CATEGORY GRID COMPONENT (CENTERED & COMPACT LUXURY DESIGN)
+   ========================================================================== */
+
+.watch-cat-section {
+  width: 100%;
+  padding: 34px 16px 26px;
+  background: linear-gradient(180deg, #FAF8F5 0%, #FFFFFF 100%);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Background Subtle Decorative Clock & Ambient Arc */
+.watch-cat-section::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 440px;
+  height: 440px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(203, 213, 225, 0.4);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.watch-cat-section::after {
+  content: "";
+  position: absolute;
+  top: -160px;
+  left: -120px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.watch-cat-container {
+  max-width: 950px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* 1. Eyebrow Pill with Lines */
+.watch-cat-eyebrow-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  margin-bottom: 9px;
+}
+
+.watch-cat-eyebrow-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #CBD5E1);
+}
+
+.watch-cat-eyebrow-line.right {
+  background: linear-gradient(90deg, #CBD5E1, transparent);
+}
+
+.watch-cat-eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3.5px 11px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.watch-cat-eyebrow-icon {
+  font-size: 10px;
+  color: #6366F1;
+}
+
+.watch-cat-eyebrow-text {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.25px;
+  color: #64748B;
+  text-transform: uppercase;
+}
+
+/* 2. Section Header */
+.watch-cat-header {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.watch-cat-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: 0.4px;
+  margin: 0 0 5px 0;
+  line-height: 1.2;
+}
+
+.watch-cat-gradient-text {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 45%, #A855F7 85%, #C084FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.watch-cat-subtitle {
+  font-size: 13.5px;
+  color: #64748B;
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.15px;
+}
+
+/* 3. Grid Layout (Strictly Centered with balanced gap) */
+.watch-cat-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+/* 4. Compact Card Outer Container with Rotating Border Animation on Hover */
+.watch-cat-card {
+  flex: 0 0 132px;
+  width: 132px;
+  max-width: 136px;
+  position: relative;
+  border-radius: 18px;
+  padding: 2.5px; /* Border width path */
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s ease;
+  cursor: pointer;
+  overflow: hidden;
+  background: #FFFFFF;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+/* Moving / Rotating Conic Gradient Border Animation */
+.watch-cat-card::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 220%;
+  height: 220%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #6366F1 50deg,
+    #A855F7 100deg,
+    #EC4899 150deg,
+    #3B82F6 210deg,
+    #10B981 270deg,
+    transparent 320deg
+  );
+  animation: rotateBorderGlow 2.4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.watch-cat-card:hover::before {
+  opacity: 1;
+}
+
+.watch-cat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.22);
+}
+
+@keyframes rotateBorderGlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 5. Inner Card Container */
+.watch-cat-card-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background: #FFFFFF;
+  border-radius: 15.5px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Thumbnail Box */
+.watch-cat-thumb-box {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Floating Icon Badge on Top-Left */
+.watch-cat-floating-badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  border-radius: 6.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  transition: transform 0.25s ease;
+}
+
+.watch-cat-card:hover .watch-cat-floating-badge {
+  transform: scale(1.08);
+}
+
+.watch-cat-badge-icon {
+  font-size: 10px;
+  display: block;
+}
+
+/* Fitted Watch Image */
+.watch-cat-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.watch-cat-card:hover .watch-cat-img {
+  transform: scale(1.05);
+}
+
+/* 6. Bottom Info Row: Centered Name */
+.watch-cat-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 6px 11px;
+  text-align: center;
+  background: #FFFFFF;
+}
+
+.watch-cat-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+  font-family: inherit;
+  transition: color 0.2s ease, transform 0.2s ease;
+  text-align: center;
+}
+
+.watch-cat-card:hover .watch-cat-name {
+  color: #4F46E5;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (MOBILE & TABLET: SMOOTH HORIZONTAL SCROLL 1-ROW)
+   ========================================================================== */
+@media (max-width: 860px) {
+  .watch-cat-section {
+    padding: 26px 0 20px;
+  }
+
+  .watch-cat-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .watch-cat-header {
+    padding: 0 16px;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+
+  .watch-cat-title {
+    font-size: 21px;
+  }
+
+  .watch-cat-subtitle {
+    font-size: 12.5px;
+  }
+
+  /* Single Horizontal Scrollable Track */
+  .watch-cat-grid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    padding: 6px 16px 14px;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: flex-start;
+  }
+
+  .watch-cat-grid::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
+  .watch-cat-card {
+    flex: 0 0 118px;
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
+    scroll-snap-align: start;
+    border-radius: 16px;
+    padding: 2px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+  }
+
+  .watch-cat-card-inner {
+    border-radius: 14px;
+  }
+
+  .watch-cat-info-row {
+    padding: 8px 4px 10px;
+  }
+
+  .watch-cat-name {
+    font-size: 12.5px;
+    font-weight: 800;
+  }
+}
+
+@media (max-width: 480px) {
+  .watch-cat-section {
+    padding: 22px 0 16px;
+  }
+
+  .watch-cat-title {
+    font-size: 19px;
+  }
+
+  .watch-cat-subtitle {
+    font-size: 12px;
+  }
+
+  .watch-cat-header {
+    margin-bottom: 14px;
+    padding: 0 14px;
+  }
+
+  .watch-cat-grid {
+    gap: 10px;
+    padding: 4px 14px 12px;
+  }
+
+  .watch-cat-card {
+    flex: 0 0 108px;
+    width: 108px;
+    min-width: 108px;
+    max-width: 108px;
+    border-radius: 15px;
+    padding: 2px;
+  }
+
+  .watch-cat-card-inner {
+    border-radius: 13px;
+  }
+
+  .watch-cat-info-row {
+    padding: 7px 3px 9px;
+  }
+
+  .watch-cat-name {
+    font-size: 12px;
+  }
+}
+

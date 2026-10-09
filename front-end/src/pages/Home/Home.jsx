@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Banner from "../../components/Banner/Hero";
+import WatchCategoryGrid from "../../components/WatchCategoryGrid/WatchCategoryGrid";
 import WatchShowcase from "../../components/WatchShowcase/WatchShowcase";
 import RecommendedForYou from "../../components/RecommendedForYou/RecommendedForYou";
 import EditorialWatches from "../../components/EditorialWatches/EditorialWatches";
@@ -102,7 +103,10 @@ function Home() {
       {/* 1. Above the fold Hero / Banner (Eagerly rendered, prioritized for FCP & LCP) */}
       <Banner />
 
-      {/* 2. Primary Showcase (Featured / Hot Sale) */}
+      {/* 2. Shop By Watch Category / Collection Section */}
+      <WatchCategoryGrid />
+
+      {/* 3. Primary Showcase (Featured / Hot Sale) */}
       <WatchShowcase />
 
       {/* 3. Progressive Below-the-fold Sections */}
@@ -114,9 +118,8 @@ function Home() {
         <EditorialWatches />
       </LazySection>
 
-      <LazySection minHeight="250px">
-        <SpecialOffer />
-      </LazySection>
+      {/* Special Offers Promotional 3-Card Showcase */}
+      <SpecialOffer />
 
       <LazySection minHeight="350px">
         <MostLovedVideos />

@@ -1,13 +1,17 @@
-/* ===================================================
-   SPECIAL OFFERS SECTION — MOXIE FRONTEND
-   =================================================== */
+/* ==========================================================================
+   SPECIAL OFFERS SECTION — MOXIE REDESIGN (LIGHT LUXURY 3D PROMOTIONAL CARDS)
+   ========================================================================== */
 
 .offers-section {
-  padding: 76px 24px;
+  padding: 56px 24px;
   max-width: 1320px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+.offers-container {
+  width: 100%;
 }
 
 .offers-grid {
@@ -17,177 +21,350 @@
   justify-content: space-between;
 }
 
+/* 1. Base Offer Card */
 .offer-card {
-  background: #000000;
-  border-radius: 16px;
-  min-height: 224px;
-  padding: 28px 24px;
+  border-radius: 28px;
+  min-height: 250px;
+  padding: 28px 26px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.32s ease,
+              border-color 0.32s ease;
+  box-sizing: border-box;
 }
 
 .offer-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
+/* Card 1: Watch (Gold Gradient) */
+.offer-card-watch {
+  background: linear-gradient(135deg, #FFFDF8 0%, #FFF5E4 50%, #FEE8CB 100%);
+}
+
+/* Card 2: Shoe (Sky Blue Gradient) */
+.offer-card-shoe {
+  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 50%, #DBEAFE 100%);
+}
+
+/* Card 3: Air Buds (Lilac / Lavender Gradient) */
+.offer-card-buds {
+  background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #EDE9FE 100%);
+}
+
+/* 2. Card Info (Left Column) */
 .offer-info {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   z-index: 2;
-  width: 58%;
-  height: 100%;
+  width: 54%;
+  position: relative;
 }
 
+/* Offer Tags / Eyebrows */
 .offer-tag {
-  color: #c9a35c;
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 6px;
-}
-
-.offer-title {
-  color: #ffffff;
-  font-size: 23px;
-  font-weight: 800;
-  margin: 0 0 4px 0;
-  line-height: 1.2;
-}
-
-.offer-subtitle {
-  color: #9ca3af;
-  font-size: 13.5px;
-  margin: 0 0 18px 0;
-  font-weight: 500;
-}
-
-.offer-btn {
-  background: #c9a35c;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 9px 22px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  text-decoration: none;
+  letter-spacing: 1.6px;
+  margin-bottom: 8px;
   display: inline-block;
 }
 
-.offer-btn:hover {
-  background: #b8924b;
-  color: #ffffff;
-  transform: translateY(-2px);
+.tag-gold {
+  color: #B45309;
 }
 
-.offer-img-container {
+.tag-blue {
+  color: #1D4ED8;
+}
+
+.tag-purple {
+  color: #7C3AED;
+}
+
+/* Offer Titles */
+.offer-title {
+  color: #0F172A;
+  font-size: 27px;
+  font-weight: 900;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+}
+
+.offer-highlight-gold {
+  color: #B45309;
+  display: block;
+}
+
+.offer-highlight-blue {
+  color: #2563EB;
+  display: block;
+}
+
+.offer-title-underline-blue {
+  width: 85px;
+  height: 3.5px;
+  background: linear-gradient(90deg, #3B82F6 0%, transparent 100%);
+  border-radius: 999px;
+  margin-bottom: 18px;
+  margin-top: 2px;
+}
+
+.offer-highlight-purple {
+  color: #7C3AED;
+  display: block;
+}
+
+/* Offer Subtitles */
+.offer-subtitle {
+  color: #64748B;
+  font-size: 13.5px;
+  margin: 0 0 20px 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 3. Action Buttons */
+.offer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  letter-spacing: 0.2px;
+}
+
+.offer-btn-arrow {
+  font-size: 14px;
+  transition: transform 0.22s ease;
+}
+
+.offer-btn:hover .offer-btn-arrow {
+  transform: translateX(3px);
+}
+
+.btn-dark {
+  background: #071426;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.2);
+}
+
+.btn-dark:hover {
+  background: #112338;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(7, 20, 38, 0.3);
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.btn-blue:hover {
+  background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42);
+}
+
+.btn-purple {
+  background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+.btn-purple:hover {
+  background: linear-gradient(135deg, #5B21B6 0%, #6D28D9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.42);
+}
+
+/* 4. Stage & Product Showcase Area (Right Side) */
+.offer-stage-container {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   width: 44%;
-  height: 85%;
+  height: 90%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1;
 }
 
+/* Floating Badges */
+.offer-floating-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  z-index: 4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease;
+}
+
+.offer-card:hover .offer-floating-badge {
+  transform: scale(1.12);
+}
+
+.badge-gold {
+  background: #B45309;
+  color: #FFFBEB;
+}
+
+.badge-purple {
+  background: #EDE9FE;
+  color: #7C3AED;
+}
+
+.offer-floating-sparkle {
+  position: absolute;
+  top: 48px;
+  right: 4px;
+  color: #A855F7;
+  font-size: 15px;
+  font-weight: bold;
+  opacity: 0.85;
+  animation: sparklePulse 2.5s infinite ease-in-out;
+}
+
+@keyframes sparklePulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* 3D Circular Podium for Shoes & Earbuds */
+.offer-podium-3d {
+  position: absolute;
+  bottom: 12px;
+  width: 140px;
+  height: 28px;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.podium-blue-3d {
+  background: linear-gradient(180deg, #DBEAFE 0%, #BFDBFE 100%);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.podium-purple-3d {
+  background: linear-gradient(180deg, #EDE9FE 0%, #DDD6FE 100%);
+  box-shadow: 0 8px 18px rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Product Images */
 .offer-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), filter 0.35s ease;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), filter 0.38s ease;
 }
 
-.shoe-offer-img {
-  transform: rotate(-10deg);
+/* Watch Stage Full Fit */
+.watch-stage-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(180, 83, 9, 0.08);
 }
 
-.offer-card:hover .offer-img {
-  transform: scale(1.12) rotate(3deg) translateY(-3px);
-  filter: drop-shadow(0 8px 20px rgba(255, 255, 255, 0.2));
+.offer-card:hover .watch-stage-img {
+  transform: scale(1.05);
 }
 
-.offer-card:hover .shoe-offer-img {
-  transform: scale(1.12) rotate(-2deg) translateY(-3px);
-  filter: drop-shadow(0 8px 20px rgba(253, 177, 1, 0.35));
+/* Shoe floating angle */
+.shoe-stage-img {
+  transform: rotate(-12deg) translateY(-8px);
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 991px) {
-  .offers-section {
-    padding: 36px 16px 42px 16px;
-  }
+.offer-card:hover .shoe-stage-img {
+  transform: scale(1.1) rotate(-8deg) translateY(-14px);
+  filter: drop-shadow(0 12px 24px rgba(37, 99, 235, 0.25));
+}
 
+/* Earbuds floating angle */
+.buds-stage-img {
+  transform: translateY(-4px);
+}
+
+.offer-card:hover .buds-stage-img {
+  transform: scale(1.08) translateY(-10px);
+  filter: drop-shadow(0 12px 24px rgba(124, 58, 237, 0.2));
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 1024px) {
   .offers-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 18px;
   }
 
   .offer-card {
-    background: linear-gradient(145deg, #071426 0%, #0c213d 100%);
-    border: 1px solid rgba(213, 173, 98, 0.18);
-    min-height: 180px;
-    padding: 20px;
-  }
-
-  .offer-title {
-    font-size: 20px;
+    min-height: 220px;
+    padding: 24px 22px;
   }
 }
 
 @media (max-width: 480px) {
   .offers-section {
-    padding: 28px 16px 34px 16px;
-  }
-
-  .offers-grid {
-    gap: 12px;
+    padding: 32px 16px;
   }
 
   .offer-card {
-    min-height: 155px;
-    padding: 16px 14px;
-    border-radius: 14px;
-  }
-
-  .offer-info {
-    width: 58%;
-  }
-
-  .offer-tag {
-    font-size: 10px;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+    min-height: 190px;
+    padding: 18px 16px;
+    border-radius: 20px;
   }
 
   .offer-title {
-    font-size: 17px;
-    margin-bottom: 2px;
+    font-size: 21px;
   }
 
   .offer-subtitle {
-    font-size: 11.5px;
-    margin-bottom: 10px;
+    font-size: 12px;
+    margin-bottom: 14px;
   }
 
   .offer-btn {
-    font-size: 11px;
-    padding: 7px 15px;
+    font-size: 12px;
+    padding: 8px 16px;
   }
 
-  .offer-img-container {
+  .offer-stage-container {
     width: 42%;
-    right: 6px;
+    right: 8px;
   }
 }

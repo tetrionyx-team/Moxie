@@ -586,6 +586,13 @@
   flex: 1;
 }
 
+.node-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .node-circle-wrap {
   width: 22px;
   height: 22px;
@@ -963,18 +970,6 @@
   border-color: #dc2626;
 }
 
-/* Reorder */
-.btn-action-reorder {
-  background: #ffffff;
-  border-color: #d1d5db;
-  color: #071426;
-}
-
-.btn-action-reorder:hover {
-  background: #f8fafc;
-  border-color: #071426;
-}
-
 .btn-action-icon {
   font-size: 15px;
 }
@@ -1319,78 +1314,79 @@
     margin-top: 2px;
   }
 
-  /* Mobile Horizontal Scroll Timeline (A1 & A2) */
+  /* Mobile Vertical Stepper Timeline */
   .order-timeline-col {
-    padding: 8px 0;
-    border-top: 1px solid #f8f6f2;
-    margin-top: 2px;
+    padding: 14px 4px 6px;
+    border-top: 1px solid #f1ece4;
+    margin-top: 4px;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .order-timeline-stepper {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: flex-start;
-    justify-content: flex-start;
-    gap: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 10px 4px 12px;
     position: relative;
+    padding: 4px 4px 4px 8px;
     width: 100%;
     box-sizing: border-box;
+    gap: 0;
+    overflow: visible;
   }
 
-  .order-timeline-stepper::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* Vertical Connecting Line */
   .timeline-track-bg {
     position: absolute;
-    top: 20px;
-    left: 50px;
-    right: 50px;
-    height: 2px;
-    width: auto;
+    top: 10px;
+    bottom: 18px;
+    left: 17px;
+    right: auto;
+    width: 2px;
+    height: auto;
     background: #e2e8f0;
     z-index: 1;
   }
 
   .timeline-track-fill {
-    height: 100%;
+    width: 100%;
     background: #c5a059;
-    transition: width 0.3s ease;
+    transition: height 0.3s ease;
   }
 
   .timeline-node {
-    flex: 0 0 100px;
-    min-width: 100px;
-    width: 100px;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
     position: relative;
     z-index: 2;
-    gap: 3px;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+    padding-bottom: 16px;
     box-sizing: border-box;
+  }
+
+  .timeline-node:last-child {
+    padding-bottom: 4px;
   }
 
   .timeline-node .node-circle-wrap {
     position: static;
     transform: none;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-bottom: 2px;
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    margin-top: 1px;
+    margin-bottom: 0;
   }
 
   /* Completed (Gold) */
@@ -1416,15 +1412,24 @@
     border: 2px solid #e2e8f0;
   }
 
+  .node-text-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+
   .timeline-node .node-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     color: #071426;
-    line-height: 1.25;
-    text-align: center;
+    line-height: 1.3;
+    margin: 0;
+    text-align: left;
     white-space: normal;
-    word-break: break-word;
-    margin-top: 0;
   }
 
   .timeline-node.future .node-label {
@@ -1433,11 +1438,11 @@
   }
 
   .timeline-node .node-date {
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 1px;
-    margin-left: 0;
-    text-align: center;
+    font-size: 11.5px;
+    color: #8c827a;
+    font-weight: 600;
+    margin: 0;
+    text-align: right;
     white-space: nowrap;
   }
 
@@ -1525,4 +1530,347 @@
     border-color: #dc2626;
   }
 }
+
+/* ====================================================
+   9. CANCEL ORDER CONFIRMATION & POLICY MODAL
+   ==================================================== */
+.cancel-modal-overlay {
+  z-index: 10000;
+}
+
+.cancel-modal-card {
+  max-width: 540px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.28);
+  border: 1px solid #f1ece4;
+  overflow: hidden;
+  animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cancel-modal-card::-webkit-scrollbar {
+  display: none;
+}
+
+.cancel-modal-header {
+  position: relative;
+  padding: 24px 24px 18px;
+  background: linear-gradient(180deg, #fffaf6 0%, #ffffff 100%);
+  border-bottom: 1px solid #f3ece2;
+}
+
+.cancel-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.cancel-badge-icon {
+  font-size: 13px;
+}
+
+.cancel-modal-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #071426;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
+
+.cancel-modal-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cancel-modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.cancel-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #071426;
+  transform: rotate(90deg);
+}
+
+.cancel-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 72vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cancel-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Alert / Policy Highlight Box */
+.cancel-policy-alert-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cancel-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fdfbf7;
+  border: 1px solid #f1e6d0;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.cancel-alert-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  margin-top: 1px;
+}
+
+.cancel-alert-icon-wrap.gold {
+  background: #fbf3df;
+  color: #c5a059;
+}
+
+.cancel-alert-icon-wrap.amber {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.cancel-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cancel-alert-title {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #071426;
+  margin: 0;
+}
+
+.cancel-alert-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.cancel-alert-desc strong {
+  color: #0f172a;
+}
+
+/* Owner Contact Card */
+.cancel-owner-contact-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contact-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #071426;
+}
+
+.contact-card-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cancel-contact-actions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cancel-btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #25d366;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+}
+
+.cancel-btn-whatsapp:hover {
+  background: #1ebc59;
+  transform: translateY(-1px);
+}
+
+.cancel-phone-links-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cancel-btn-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+.cancel-btn-call:hover {
+  background: #f1f5f9;
+  border-color: #071426;
+  color: #071426;
+}
+
+.contact-action-icon {
+  font-size: 15px;
+}
+
+/* Modal Footer Action Buttons */
+.cancel-modal-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f1ece4;
+  background: #ffffff;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.cancel-btn-keep-order {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.cancel-btn-keep-order:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.cancel-btn-confirm-cancel {
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
+.cancel-btn-confirm-cancel:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .cancel-modal-card {
+    max-width: 95vw;
+    margin: 10px auto;
+    border-radius: 16px;
+  }
+
+  .cancel-modal-header {
+    padding: 18px 16px 14px;
+  }
+
+  .cancel-modal-title {
+    font-size: 18px;
+  }
+
+  .cancel-modal-body {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .cancel-phone-links-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cancel-modal-footer {
+    padding: 14px 16px 18px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .cancel-btn-keep-order,
+  .cancel-btn-confirm-cancel {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+  }
+}
+
 

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback, useMemo } from "react";
+import React, { useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LuMapPin,
@@ -229,7 +229,7 @@ export default function Checkout() {
   const totalItemCount = checkoutList.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
 
   // Address Modal Handlers
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = useCallback(() => {
     if (!user) {
       if (openLogin) openLogin();
       return;
@@ -251,7 +251,16 @@ export default function Checkout() {
     });
     setModalErrors({});
     setIsAddressModalOpen(true);
-  };
+  }, [user, openLogin, addresses.length]);
+
+  // Auto-open Add Address modal when a user newly logs in on Checkout if they have no saved addresses
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    if (!prevUserRef.current && user && !loadingAddresses && addresses.length === 0) {
+      handleOpenAddModal();
+    }
+    prevUserRef.current = user;
+  }, [user, loadingAddresses, addresses.length, handleOpenAddModal]);
 
   const handleOpenEditModal = (addr, e) => {
     if (e) e.stopPropagation();
@@ -321,7 +330,34 @@ export default function Checkout() {
       errors.pincode = "PIN code must be 6 digits.";
     }
     setModalErrors(errors);
-    return Object.keys(errors).length === 0;
+
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const fieldIdMap = {
+        name: "chkAddressName",
+        phone: "chkAddressPhone",
+        flat: "chkAddressFlat",
+        city: "chkAddressCity",
+        district: "chkAddressDistrict",
+        state: "chkAddressState",
+        pincode: "chkAddressPincode",
+      };
+
+      const firstKey = errorKeys[0];
+      const elementId = fieldIdMap[firstKey];
+      if (elementId) {
+        setTimeout(() => {
+          const el = document.getElementById(elementId);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.focus();
+          }
+        }, 50);
+      }
+      return false;
+    }
+
+    return true;
   };
 
   const handleSaveModalAddress = async (e) => {
@@ -385,14 +421,24 @@ export default function Checkout() {
     e.preventDefault();
     if (loading) return;
 
-    // Must have a valid delivery address selected
-    if (!selectedAddress) {
-      setPaymentError("Please select or add a delivery address to continue.");
+    if (!user) {
+      if (openLogin) openLogin();
       return;
     }
 
-    if (!user) {
-      if (openLogin) openLogin();
+    // Must have a valid delivery address selected
+    if (!selectedAddress) {
+      if (addresses.length === 0) {
+        handleOpenAddModal();
+      } else {
+        setPaymentError("Please select or add a delivery address to continue.");
+        const el = document.getElementById("checkout-address-section");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("highlight-pulse");
+          setTimeout(() => el.classList.remove("highlight-pulse"), 1500);
+        }
+      }
       return;
     }
 
@@ -1249,11 +1295,11 @@ export default function Checkout() {
                 <span className="total-highlight-value">₹{totalAmount.toLocaleString("en-IN")}</span>
               </div>
 
-              {/* Action Button: Disabled if no address selected */}
+              {/* Action Button */}
               <button
                 type="submit"
                 className="checkout-submit-btn"
-                disabled={loading || (user && !selectedAddress)}
+                disabled={loading}
               >
                 {loading ? (
                   <span>Processing...</span>
@@ -1263,7 +1309,10 @@ export default function Checkout() {
                     <LuArrowRight className="btn-arrow-icon" />
                   </>
                 ) : !selectedAddress ? (
-                  <span>Select Delivery Address</span>
+                  <>
+                    <span>{addresses.length === 0 ? "Add Delivery Address" : "Select Delivery Address"}</span>
+                    <LuArrowRight className="btn-arrow-icon" />
+                  </>
                 ) : isCod ? (
                   <>
                     <span>Pay ₹{codAdvance.toLocaleString("en-IN")} &amp; Confirm COD</span>
@@ -1282,7 +1331,7 @@ export default function Checkout() {
                 <span>Secure Payment | 100% Safe &amp; Encrypted</span>
               </div>
 
-              {!selectedAddress && (
+              {user && !selectedAddress && (
                 <p className="checkout-address-needed-warning">
                   ⚠️ Please select or add a delivery address to continue.
                 </p>

@@ -95,7 +95,7 @@ describe("ProductCard Component - Clean MOXIE Card Rules", () => {
     image: "/images/cap.png",
   };
 
-  test("TEST CASE 1 & 5: price=1000, discount=2000 displays current price ₹1,000 and struck ₹2,000", () => {
+  test("TEST CASE 1 & 5: price=1000, discount=2000 displays current price ₹1,000, struck ₹2,000, and 50% OFF discount badge", () => {
     const testProd = {
       id: 201,
       name: "Altra Super Premium",
@@ -109,14 +109,16 @@ describe("ProductCard Component - Clean MOXIE Card Rules", () => {
 
     expect(screen.getByText("₹1,000")).toBeInTheDocument();
     expect(screen.getByText("₹2,000")).toBeInTheDocument();
+    expect(screen.getAllByText("50% OFF").length).toBeGreaterThan(0);
     expect(screen.getByText("Altra Super Premium")).toBeInTheDocument();
     expect(screen.getByText("Elegant minimalist design.")).toBeInTheDocument();
   });
 
-  test("TEST CASE 2: price=700, discount=null displays only ₹700 with no strike-through", () => {
+  test("TEST CASE 2: price=700, discount=null displays only ₹700 with no strike-through and no discount badge", () => {
     renderWithProviders(<ProductCard product={plainProductNoDiscount} />);
 
     expect(screen.getByText("₹700")).toBeInTheDocument();
+    expect(screen.queryByText(/% OFF/i)).not.toBeInTheDocument();
     expect(screen.queryByText("₹0")).not.toBeInTheDocument();
     expect(screen.queryByText("₹null")).not.toBeInTheDocument();
     expect(screen.queryByText("₹undefined")).not.toBeInTheDocument();

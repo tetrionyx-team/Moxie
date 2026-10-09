@@ -85,7 +85,7 @@ export default function CustomSelect({
         width: width || (minWidth ? 'auto' : undefined),
         minWidth: isFullWidth ? undefined : minWidth,
         boxSizing: 'border-box',
-        zIndex: isOpen ? 100 : 'auto',
+        zIndex: isOpen ? 9999 : 'auto',
         ...style
       }}
     >
@@ -118,8 +118,16 @@ export default function CustomSelect({
           ...buttonStyle
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, textAlign: 'left' }}>
-          {prefixIcon && <AppIcon icon={prefixIcon} size={15} color="#2563eb" style={{ flexShrink: 0 }} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, textAlign: 'left' }}>
+          {prefixIcon && (
+            typeof prefixIcon === 'function' ? (
+              prefixIcon({ size: 15, color: '#64748b' })
+            ) : React.isValidElement(prefixIcon) ? (
+              prefixIcon
+            ) : (
+              <AppIcon icon={prefixIcon} size={15} color="#64748b" style={{ flexShrink: 0 }} />
+            )
+          )}
           {selectedOption?.dotColor && (
             <span
               style={{

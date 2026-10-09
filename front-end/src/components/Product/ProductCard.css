@@ -72,6 +72,26 @@
   transform: scale(1.04);
 }
 
+/* Discount Badge (Top-Left Overlay) */
+.premium-card-discount-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #071426;
+  background: #D5AF66;
+  border-radius: 999px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
 /* Wishlist Heart Button (Top-Right) */
 .premium-heart-btn {
   position: absolute;
@@ -222,6 +242,18 @@
   text-decoration-thickness: 1.5px;
 }
 
+.premium-card-discount-tag {
+  background: rgba(201, 155, 69, 0.14);
+  color: #B38428;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  align-self: center;
+}
+
 /* ==========================================================================
    5. PREMIUM ADD TO CART BUTTON
    ========================================================================== */
@@ -337,6 +369,16 @@
   .premium-old-price {
     font-size: 12px;
   }
+  .premium-card-discount-badge {
+    top: 8px;
+    left: 8px;
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .premium-card-discount-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
   .premium-btn-wrapper {
     padding: 0 10px 12px;
   }
@@ -390,6 +432,16 @@
   .product-original-price,
   .premium-old-price {
     font-size: 11.5px;
+  }
+  .premium-card-discount-badge {
+    top: 7px;
+    left: 7px;
+    font-size: 9.5px;
+    padding: 2.5px 7px;
+  }
+  .premium-card-discount-tag {
+    font-size: 9.5px;
+    padding: 1.5px 5px;
   }
   .premium-btn-wrapper {
     padding: 0 8px 10px;

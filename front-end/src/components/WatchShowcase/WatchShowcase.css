@@ -1,25 +1,19 @@
 /* ===================================================
-   MOXIE — FINAL APPROVED LIMITED TIME PICKS
-   Compact Premium Ecommerce Showcase (Zero Animation)
-   Palette:
-   - Deep Navy: #071426
-   - Rich Gold / Amber: #FDE08B / #D5AF66 / #C99B45
-   - Clean White: #FFFFFF
-   - Subtle Border: rgba(7, 20, 38, 0.08)
-   - Muted Gray: #64748B / #94A3B8
-   - Background Off-White: #FAF7F2 / #F8FAFC
+   MOXIE — LUXURY LIMITED TIME PICKS SHOWCASE
+   Ultra-Premium High-Fidelity Product Card Styling
    =================================================== */
 
 .moxie-featured-picks-section {
   background: #fafafa;
   background: linear-gradient(180deg, #fafafa 0%, #f7f8fa 100%);
-  padding: 48px 28px 60px;
+  padding: 48px 24px 64px;
   position: relative;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .moxie-featured-picks-container {
-  max-width: 1400px;
+  max-width: 1360px;
   margin: 0 auto;
 }
 
@@ -29,7 +23,7 @@
 .moxie-picks-header {
   text-align: center;
   max-width: 680px;
-  margin: 0 auto 32px;
+  margin: 0 auto 36px;
 }
 
 .moxie-picks-pill {
@@ -43,9 +37,9 @@
   color: #071426;
   background: #fde08b;
   border: 1px solid rgba(213, 173, 98, 0.4);
-  padding: 5px 14px;
+  padding: 6px 14px;
   border-radius: 30px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(253, 224, 139, 0.35);
   line-height: 1;
 }
@@ -53,7 +47,6 @@
 .moxie-picks-crown {
   font-size: 12px;
   line-height: 1;
-  vertical-align: -0.05em;
 }
 
 .moxie-picks-title {
@@ -61,12 +54,12 @@
   font-weight: 800;
   color: #071426;
   letter-spacing: -0.5px;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   line-height: 1.2;
 }
 
 .moxie-picks-subtitle {
-  font-size: 14.5px;
+  font-size: 15px;
   color: #64748b;
   line-height: 1.5;
   margin: 0;
@@ -79,43 +72,51 @@
 .moxie-picks-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 26px;
+  gap: 28px;
   margin: 0 auto;
   align-items: stretch;
 }
 
 /* ===================================================
-   3. STATIC COMPACT PRODUCT CARD
+   3. LUXURY SHOWCASE CARD CONTAINER
    =================================================== */
-.moxie-promo-card {
+.moxie-promo-card.luxury-showcase-card {
   background: #ffffff;
-  border: 1px solid rgba(7, 20, 38, 0.08);
-  border-radius: 18px;
-  padding: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: hidden;
   height: 100%;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.moxie-promo-card.luxury-showcase-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.09);
 }
 
 /* ===================================================
-   4. FULL-WIDTH PRODUCT IMAGE AT TOP (340px Desktop)
+   4. FULL-WIDTH PRODUCT IMAGE STAGE
    =================================================== */
 .moxie-card-media-wrap {
   position: relative;
   width: 100%;
-  height: 340px;
-  background: #f8f6f1;
+  height: 380px;
+  background: #0d141e;
+  background: radial-gradient(circle at center, #1b2638 0%, #0c121e 100%);
   overflow: hidden;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
   display: block;
 }
 
 .moxie-card-img-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
   text-decoration: none;
@@ -128,86 +129,198 @@
   object-fit: cover;
   object-position: center center;
   display: block;
+  transition: transform 0.4s ease;
 }
 
-/* Dynamic Discount Badge (Top-Left Overlay) */
-.moxie-card-discount-badge {
+.moxie-promo-card.luxury-showcase-card:hover .moxie-card-img {
+  transform: scale(1.03);
+}
+
+/* Dynamic Discount / Hot Sale Badge (Top-Left) */
+.moxie-card-top-badge {
   position: absolute;
   top: 14px;
   left: 14px;
-  z-index: 3;
-  font-size: 13.5px;
+  z-index: 4;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: #071426;
   background: #fde08b;
-  border-radius: 10px;
-  padding: 5px 12px;
+  border: 1px solid rgba(213, 173, 98, 0.5);
+  border-radius: 8px;
+  padding: 5px 10px;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   line-height: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   pointer-events: none;
 }
 
-/* Wishlist Button (Top-Right Overlay) */
+/* Wishlist Button (Top-Right) */
 .moxie-card-heart-btn {
   position: absolute;
   top: 14px;
   right: 14px;
-  z-index: 3;
-  width: 40px;
-  height: 40px;
+  z-index: 4;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(7, 20, 38, 0.08);
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #071426;
   cursor: pointer;
   padding: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.moxie-card-heart-btn:hover {
+  transform: scale(1.08);
 }
 
 .moxie-card-heart-btn.active {
   color: #ef4444;
-  background: #fff1f2;
+  background: #ffffff;
   border-color: #fecaca;
 }
 
 .moxie-heart-icon {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .moxie-heart-icon.filled {
   color: #ef4444;
 }
 
+/* Image Carousel Arrows (‹ and ›) */
+.moxie-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 4;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
+.moxie-carousel-arrow:hover {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.85);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.moxie-carousel-arrow.left {
+  left: 12px;
+}
+
+.moxie-carousel-arrow.right {
+  right: 12px;
+}
+
+/* Bottom Pagination Dots */
+.moxie-carousel-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 4;
+}
+
+.moxie-carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  transition: all 0.2s ease;
+}
+
+.moxie-carousel-dot.active {
+  width: 18px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Bottom-Right Expand Icon */
+.moxie-expand-btn {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  z-index: 4;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.moxie-expand-btn:hover {
+  background: rgba(15, 23, 42, 0.85);
+  transform: scale(1.08);
+}
+
 /* ===================================================
-   5. CARD BODY CONTENT (Compact & Aligned)
-   =================================================== */
+   5. CARD BODY CONTENT DETAILS
+   ================================================== */
 .moxie-card-body {
-  padding: 18px;
+  padding: 20px 18px 22px;
   display: flex;
   flex-direction: column;
+  gap: 14px;
   flex: 1;
   box-sizing: border-box;
 }
 
-/* Product Title (2-line consistent area) */
+/* 5.1 Title & Rating Row */
+.moxie-card-title-rating-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.moxie-card-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
 .moxie-card-title {
   font-size: 20px;
   font-weight: 800;
   color: #071426;
   text-align: left;
-  margin: 0 0 8px 0;
+  margin: 0 0 3px 0;
   line-height: 1.25;
-  height: 48px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -215,99 +328,396 @@
 .moxie-card-title a {
   color: #071426;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-/* Pricing Section */
-.moxie-card-pricing {
+.moxie-card-title a:hover {
+  color: #2563eb;
+}
+
+.moxie-card-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.moxie-card-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 4px 9px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.rating-star {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.rating-score {
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.rating-count {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1;
+}
+
+/* 5.2 Pricing & Free Shipping Row */
+.moxie-card-pricing-shipping-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.moxie-card-price-stack {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
 }
 
 .moxie-card-price-current {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 900;
   color: #071426;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .moxie-card-price-original {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: #94a3b8;
   text-decoration: line-through;
   line-height: 1;
 }
 
-/* 4-Box Compact Countdown Timer */
-.moxie-card-countdown {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 16px;
+.moxie-discount-pill-tag {
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 6px;
+  line-height: 1;
 }
 
-.moxie-countdown-box {
+.moxie-shipping-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  line-height: 1;
+}
+
+/* 5.3 Offer Ends In Countdown Strip */
+.moxie-offer-ends-strip {
   background: #f8fafc;
-  border: 1px solid rgba(7, 20, 38, 0.06);
-  border-radius: 10px;
-  padding: 8px 4px;
-  height: 54px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.offer-ends-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.clock-blue-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.offer-timer-boxes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.offer-time-cell {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.moxie-countdown-num {
-  font-size: 17px;
-  font-weight: 800;
+.offer-time-cell .time-val {
+  font-size: 16px;
+  font-weight: 900;
   color: #071426;
-  line-height: 1;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
-.moxie-countdown-lbl {
-  font-size: 9px;
-  font-weight: 700;
+.offer-time-cell .time-lbl {
+  font-size: 8.5px;
+  font-weight: 800;
   color: #64748b;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-top: 3px;
+  margin-top: 2px;
   line-height: 1;
 }
 
-/* Full-Width Add To Cart Button */
-.moxie-card-cart-btn {
-  width: 100%;
-  height: 54px;
-  background: #071426;
-  color: #ffffff;
-  border: none;
-  border-radius: 14px;
-  font-size: 14px;
+/* 5.4 Color Swatches & Quantity Stepper */
+.moxie-color-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.moxie-color-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.moxie-color-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.moxie-color-heading span {
+  color: #071426;
   font-weight: 800;
-  letter-spacing: 0.5px;
+}
+
+.moxie-color-swatches-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moxie-swatch-slot {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  background-color: #2563eb;
+  padding: 0;
+}
+
+.moxie-swatch-slot.active {
+  border-color: #071426;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px rgba(7, 20, 38, 0.2);
+}
+
+.swatch-img-mini {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moxie-qty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.moxie-qty-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.moxie-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  height: 30px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 30px;
+  border: none;
+  background: #f8fafc;
+  color: #071426;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: auto;
-  box-shadow: 0 4px 14px rgba(7, 20, 38, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.qty-btn:hover {
+  background: #e2e8f0;
+}
+
+.qty-val {
+  min-width: 26px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #071426;
+}
+
+/* 5.5 Full-Width Add To Cart Button */
+.moxie-card-cart-btn {
+  width: 100%;
+  height: 50px;
+  background: #071426;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  cursor: pointer;
+  margin-top: 2px;
+  box-shadow: 0 4px 16px rgba(7, 20, 38, 0.2);
   box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.moxie-card-cart-btn:hover {
+  background: #0d223f;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(7, 20, 38, 0.3);
+}
+
+.moxie-cart-btn-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
 }
 
 .moxie-cart-icon {
-  font-size: 16px;
+  font-size: 17px;
   color: #ffffff;
 }
 
+.moxie-cart-arrow-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* 5.6 Trust Badges Strip */
+.moxie-trust-badges-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.trust-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.trust-icon-wrap {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trust-icon-wrap.blue {
+  background: #eff6ff;
+}
+
+.trust-icon-wrap.blue-shield {
+  background: #e0f2fe;
+}
+
+.trust-icon-wrap.amber {
+  background: #fef3c7;
+}
+
+.trust-icon-wrap.pink {
+  background: #fdf2f8;
+}
+
+.trust-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.trust-text strong {
+  font-size: 10px;
+  font-weight: 800;
+  color: #071426;
+  white-space: nowrap;
+}
+
+.trust-text small {
+  font-size: 8.5px;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
 /* ===================================================
-   SKELETON LOADING STATE
+   6. SKELETON LOADING STATE
    =================================================== */
 .skeleton-card {
   pointer-events: none;
@@ -315,9 +725,9 @@
 
 .skeleton-img {
   width: 100%;
-  height: 340px;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
+  height: 380px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
   background: #f1f5f9;
 }
 
@@ -345,116 +755,64 @@
 
 .skeleton-btn {
   width: 100%;
-  height: 54px;
-  border-radius: 14px;
+  height: 50px;
+  border-radius: 12px;
 }
 
 /* ===================================================
-   RESPONSIVE BREAKPOINTS (TABLET & MOBILE)
+   7. RESPONSIVE BREAKPOINTS (TABLET & MOBILE)
    =================================================== */
-@media (max-width: 991px) {
-  .moxie-featured-picks-section {
-    padding: 40px 20px 48px;
-  }
-
+@media (max-width: 1100px) {
   .moxie-picks-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-  }
-
-  .moxie-picks-title {
-    font-size: 30px;
+    gap: 22px;
   }
 
   .moxie-card-media-wrap {
-    height: 300px;
-  }
-
-  .skeleton-img {
-    height: 300px;
+    height: 340px;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 640px) {
   .moxie-featured-picks-section {
-    padding: 32px 16px 40px;
+    padding: 32px 14px 44px;
   }
 
   .moxie-picks-header {
-    margin-bottom: 22px;
+    margin-bottom: 24px;
   }
 
   .moxie-picks-title {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .moxie-picks-subtitle {
-    font-size: 13px;
+    font-size: 13.5px;
   }
 
   .moxie-picks-grid {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 20px;
   }
 
   .moxie-card-media-wrap {
-    height: 230px;
-  }
-
-  .skeleton-img {
-    height: 230px;
-  }
-
-  .moxie-card-heart-btn {
-    width: 38px;
-    height: 38px;
-  }
-
-  .moxie-card-discount-badge {
-    font-size: 13px;
-    padding: 4px 10px;
+    height: 300px;
   }
 
   .moxie-card-body {
-    padding: 14px;
-  }
-
-  .moxie-card-title {
-    font-size: 18px;
-    height: 44px;
-  }
-
-  .moxie-card-pricing {
-    margin-bottom: 12px;
+    padding: 16px 14px 18px;
+    gap: 12px;
   }
 
   .moxie-card-price-current {
-    font-size: 26px;
+    font-size: 24px;
   }
 
-  .moxie-card-price-original {
-    font-size: 14px;
+  .trust-text strong {
+    font-size: 9px;
   }
 
-  .moxie-card-countdown {
-    gap: 6px;
-    margin-bottom: 14px;
-  }
-
-  .moxie-countdown-box {
-    height: 50px;
-    padding: 6px 2px;
-  }
-
-  .moxie-countdown-num {
-    font-size: 15px;
-  }
-
-  .moxie-countdown-lbl {
-    font-size: 8px;
-  }
-
-  .moxie-card-cart-btn {
-    height: 52px;
+  .trust-text small {
+    font-size: 7.5px;
   }
 }

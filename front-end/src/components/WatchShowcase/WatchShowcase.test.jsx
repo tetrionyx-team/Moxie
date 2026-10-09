@@ -116,10 +116,10 @@ describe("WatchShowcase (Limited-Time Picks) Component", () => {
     expect(screen.getByText("Fossil Automatic")).toBeInTheDocument();
     expect(screen.getByText("Casio Vintage")).toBeInTheDocument();
 
-    // Calculated discount badges: (1000 - 600) / 1000 = 40%, (1500 - 1200) / 1500 = 20%
-    expect(screen.getByText("40% OFF")).toBeInTheDocument();
-    expect(screen.getByText("20% OFF")).toBeInTheDocument();
-    expect(screen.getByText("SPECIAL")).toBeInTheDocument();
+    // Calculated discount badges: (1000 - 600) / 1000 = 40%, (1500 - 1200) / 1500 = 20%, item 3 fallback to badge_text: TRENDING
+    expect(screen.getAllByText("40% OFF").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("20% OFF").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("TRENDING").length).toBeGreaterThan(0);
 
     // Pricing
     expect(screen.getByText("₹600")).toBeInTheDocument();

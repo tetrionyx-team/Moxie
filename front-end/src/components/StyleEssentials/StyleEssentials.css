@@ -36,9 +36,10 @@
   font-weight: 800;
   color: #c9a35c;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 2.2px;
   margin-bottom: 6px;
-  display: block;
+  display: inline-block;
+  transition: letter-spacing 0.3s ease, color 0.3s ease;
 }
 
 .style-essentials-title {
@@ -52,11 +53,28 @@
 }
 
 .style-essentials-line {
-  width: 55px;
+  width: 60px;
   height: 3.5px;
-  background-color: #c9a35c;
+  background: linear-gradient(90deg, #c9a35c 0%, #fde08b 50%, #c9a35c 100%);
+  background-size: 200% auto;
   border-radius: 999px;
   margin-top: 12px;
+  animation: shimmerGoldLine 3.5s ease-in-out infinite;
+}
+
+@keyframes shimmerGoldLine {
+  0% {
+    background-position: 0% 50%;
+    transform: scaleX(0.92);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: scaleX(1.08);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: scaleX(0.92);
+  }
 }
 
 .style-essentials-view-all {
@@ -66,18 +84,54 @@
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  padding: 6px 14px 6px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 700;
-  color: #111827;
+  letter-spacing: 0.25px;
+  color: #0f172a;
   text-decoration: none;
-  letter-spacing: 0.02em;
-  transition: color 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.style-essentials-view-all-text {
+  display: inline-block;
+  transition: color 0.2s ease;
+}
+
+.style-essentials-view-all-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #0f172a;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .style-essentials-view-all:hover {
-  color: #c9a35c;
-  transform: translateY(-50%) translateX(3px);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  transform: translateY(-50%) translateY(-2px);
+}
+
+.style-essentials-view-all:hover .style-essentials-view-all-text {
+  color: #ffffff;
+}
+
+.style-essentials-view-all:hover .style-essentials-view-all-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateX(3px);
 }
 
 /* 4-Card Desktop Grid */

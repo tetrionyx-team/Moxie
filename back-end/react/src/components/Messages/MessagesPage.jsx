@@ -205,6 +205,7 @@ export default function MessagesPage() {
         if (typeof window.refreshAdminNotifications === 'function') {
           window.refreshAdminNotifications()
         }
+        window.dispatchEvent(new CustomEvent('adminNotificationUpdated'))
       }
     } catch (err) {
       console.error('Failed to mark read:', err)
@@ -232,6 +233,7 @@ export default function MessagesPage() {
         if (typeof window.refreshAdminNotifications === 'function') {
           window.refreshAdminNotifications()
         }
+        window.dispatchEvent(new CustomEvent('adminNotificationUpdated'))
         showToast('All Read', 'All notifications marked as read.')
       }
     } catch (err) {
@@ -413,40 +415,42 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* Category Tabs Row */}
-      <div className="category-tabs-bar">
-        {CATEGORY_TABS.map(tab => {
-          const IconComp = tab.icon
-          const isActive = categoryFilter === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`cat-tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => setCategoryFilter(tab.id)}
-            >
-              <AppIcon icon={IconComp} size={16} color={isActive ? '#ffffff' : 'currentColor'} />
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Search & Read Filter Controls */}
-      <div className="messages-toolbar">
+      {/* Top Bar Row: Search Box First (Left) + Category Tabs */}
+      <div className="messages-top-bar">
         <div className="messages-search-box">
-          <span className="messages-search-icon">
+          <div className="messages-search-icon">
             <AppIcon icon={SearchIcon} size={16} />
-          </span>
+          </div>
           <input
             type="text"
             className="messages-search-input"
-            placeholder="Search messages by title, customer, body..."
+            placeholder="Search messages..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
 
+        <div className="category-tabs-bar">
+          {CATEGORY_TABS.map(tab => {
+            const IconComp = tab.icon
+            const isActive = categoryFilter === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`cat-tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setCategoryFilter(tab.id)}
+              >
+                <AppIcon icon={IconComp} size={15} color={isActive ? '#ffffff' : 'currentColor'} />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Row 2: Status Filter Tabs (All, Unread, Read) */}
+      <div className="messages-toolbar-row">
         <div className="filter-tabs-container">
           <button
             type="button"

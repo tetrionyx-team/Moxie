@@ -500,86 +500,95 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
         </div>
       </div>
     </div>
-    <div
+    <nav
+      aria-label="Product Categories Navigation"
       class="bottom-items"
     >
       <ul
         class="bottom-menu"
       >
         <li
-          class="active"
+          class="bottom-menu-item active"
         >
           <a
+            class="bottom-menu-link active"
             href="/"
           >
             Home
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/watches"
           >
             Watches
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/shoes"
           >
             Shoes
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/air-buds"
           >
             Air Buds
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/sliders"
           >
             Sliders
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/caps"
           >
             Caps
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/accessories"
           >
             Accessories
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/deals"
           >
             Deals
           </a>
         </li>
       </ul>
-    </div>
+    </nav>
     <div
       aria-hidden="true"
       class="mobile-drawer-backdrop "
@@ -1935,6 +1944,236 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy S8/S9 (360px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Loading Featured Banner"
+    class="moxie-hero-banner-section"
+  >
+    <div
+      class="moxie-hero-banner-container moxie-hero-banner-skeleton"
+    >
+      <div
+        class="moxie-banner-skeleton-shimmer"
+      />
+    </div>
+  </section>
+  <section
+    aria-label="Shop by Watch Category"
+    class="watch-cat-section"
+  >
+    <div
+      class="watch-cat-container"
+    >
+      <div
+        class="watch-cat-header"
+      >
+        <h2
+          class="watch-cat-title"
+        >
+          SHOP BY 
+          <span
+            class="watch-cat-gradient-text"
+          >
+            CATEGORY
+          </span>
+        </h2>
+        <p
+          class="watch-cat-subtitle"
+        >
+          Explore timepieces by collection and find your perfect style
+        </p>
+      </div>
+      <div
+        class="watch-cat-grid"
+      >
+        <a
+          aria-label="Shop Luxury Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=luxury"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 245, 238);"
+            >
+              <img
+                alt="Luxury Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="luxury.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Luxury
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Automatic Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=automatic"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(253, 236, 239);"
+            >
+              <img
+                alt="Automatic Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="automatic.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Automatic
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Chronograph Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=chronograph"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(254, 244, 219);"
+            >
+              <img
+                alt="Chronograph Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="chronograph.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Chronograph
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Vintage Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=vintage"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(227, 242, 253);"
+            >
+              <img
+                alt="Vintage Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="vintage.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Vintage
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Women Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=women"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(245, 237, 253);"
+            >
+              <img
+                alt="Women Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="women.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Women
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Combo Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=combo"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 248, 248);"
+            >
+              <img
+                alt="Combo Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="combo.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Combo
+              </h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -1967,7 +2206,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
             class="recommended-view-all"
             href="/products?category=watches"
           >
-            View All →
+            <span
+              class="recommended-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="recommended-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </div>
         <div
@@ -1983,6 +2251,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  38% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -2032,6 +2305,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                     class="product-original-price premium-old-price"
                   >
                     ₹7,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    38% OFF
                   </span>
                 </div>
               </div>
@@ -2334,30 +2612,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
       </div>
     </section>
   </div>
-  <div
-    style="contain: none;"
+  <section
+    aria-label="Special Offers"
+    class="offers-section"
   >
     <div
-      class="container offers-section"
+      class="offers-container"
     >
       <div
         class="offers-grid"
       >
         <div
-          class="offer-card"
+          class="offer-card offer-card-watch"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-gold"
             >
               DEAL OF THE DAY
             </span>
             <h3
               class="offer-title"
             >
-              Up to 40% OFF
+              Up to 
+              <span
+                class="offer-highlight-gold"
+              >
+                40% OFF
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -2365,58 +2649,134 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               On Selected Items
             </p>
             <a
-              class="offer-btn"
-              href="/products/watches"
+              class="offer-btn btn-dark"
+              href="/products?category=watches"
             >
-              Shop Now
+              Shop Now 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-gold"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-gold"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"
+                />
+              </svg>
+            </div>
             <img
-              alt="Watches Deal"
-              class="offer-img"
+              alt="Watches Deal of the Day"
+              class="offer-img watch-stage-img"
               decoding="async"
               loading="lazy"
-              src="offer_watch.png"
+              src="offer_watch_stage.jpg"
             />
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-shoe"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-blue"
             >
               NEW COLLECTION
             </span>
             <h3
               class="offer-title"
             >
-              Setup Up Your
+              Setup Up Your 
+              <span
+                class="offer-highlight-blue"
+              >
+                Style Game
+              </span>
             </h3>
-            <p
-              class="offer-subtitle"
-            >
-              Style Game
-            </p>
+            <div
+              aria-hidden="true"
+              class="offer-title-underline-blue"
+            />
             <a
-              class="offer-btn"
-              href="/products/shoes"
+              class="offer-btn btn-blue"
+              href="/products?category=shoes"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-blue"
           >
+            <div
+              class="offer-podium-3d podium-blue-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Shoes New Collection"
-              class="offer-img shoe-offer-img"
+              class="offer-img shoe-stage-img"
               decoding="async"
               loading="lazy"
               src="shoe.svg"
@@ -2424,20 +2784,25 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-buds"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-purple"
             >
               PREMIUM QUALITY
             </span>
             <h3
               class="offer-title"
             >
-              Built For Comfort,
+              Built For 
+              <span
+                class="offer-highlight-purple"
+              >
+                Comfort,
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -2445,18 +2810,81 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               Designed for You
             </p>
             <a
-              class="offer-btn"
-              href="/products/air-buds"
+              class="offer-btn btn-purple"
+              href="/products?category=air-buds"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-purple"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-purple"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2"
+                />
+                <path
+                  d="M14 11V2h1v9zM6 3v10H5V3z"
+                  fill-rule="evenodd"
+                />
+                <path
+                  d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class="offer-floating-sparkle"
+            >
+              ✦
+            </div>
+            <div
+              class="offer-podium-3d podium-purple-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Air Buds Premium Quality"
-              class="offer-img"
+              class="offer-img buds-stage-img"
               decoding="async"
               loading="lazy"
               src="Buds.png"
@@ -2465,7 +2893,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
         </div>
       </div>
     </div>
-  </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -2999,7 +3427,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
             class="style-essentials-view-all"
             href="/products?collection=style-essentials"
           >
-            View All →
+            <span
+              class="style-essentials-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="style-essentials-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </header>
         <div
@@ -3015,6 +3472,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  40% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -3064,6 +3526,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                     class="product-original-price premium-old-price"
                   >
                     ₹4,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    40% OFF
                   </span>
                 </div>
               </div>
@@ -6888,6 +7355,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                 <div
                   class="premium-card-media"
                 >
+                  <span
+                    class="premium-card-discount-badge"
+                  >
+                    38% OFF
+                  </span>
                   <button
                     aria-label="Add to wishlist"
                     class="premium-heart-btn "
@@ -6937,6 +7409,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Galaxy 
                       class="product-original-price premium-old-price"
                     >
                       ₹7,999
+                    </span>
+                    <span
+                      class="premium-card-discount-tag"
+                    >
+                      38% OFF
                     </span>
                   </div>
                 </div>
@@ -8815,86 +9292,95 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
         </div>
       </div>
     </div>
-    <div
+    <nav
+      aria-label="Product Categories Navigation"
       class="bottom-items"
     >
       <ul
         class="bottom-menu"
       >
         <li
-          class="active"
+          class="bottom-menu-item active"
         >
           <a
+            class="bottom-menu-link active"
             href="/"
           >
             Home
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/watches"
           >
             Watches
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/shoes"
           >
             Shoes
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/air-buds"
           >
             Air Buds
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/sliders"
           >
             Sliders
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/caps"
           >
             Caps
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/accessories"
           >
             Accessories
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/deals"
           >
             Deals
           </a>
         </li>
       </ul>
-    </div>
+    </nav>
     <div
       aria-hidden="true"
       class="mobile-drawer-backdrop "
@@ -10250,6 +10736,236 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7 / S20 (412px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Loading Featured Banner"
+    class="moxie-hero-banner-section"
+  >
+    <div
+      class="moxie-hero-banner-container moxie-hero-banner-skeleton"
+    >
+      <div
+        class="moxie-banner-skeleton-shimmer"
+      />
+    </div>
+  </section>
+  <section
+    aria-label="Shop by Watch Category"
+    class="watch-cat-section"
+  >
+    <div
+      class="watch-cat-container"
+    >
+      <div
+        class="watch-cat-header"
+      >
+        <h2
+          class="watch-cat-title"
+        >
+          SHOP BY 
+          <span
+            class="watch-cat-gradient-text"
+          >
+            CATEGORY
+          </span>
+        </h2>
+        <p
+          class="watch-cat-subtitle"
+        >
+          Explore timepieces by collection and find your perfect style
+        </p>
+      </div>
+      <div
+        class="watch-cat-grid"
+      >
+        <a
+          aria-label="Shop Luxury Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=luxury"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 245, 238);"
+            >
+              <img
+                alt="Luxury Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="luxury.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Luxury
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Automatic Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=automatic"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(253, 236, 239);"
+            >
+              <img
+                alt="Automatic Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="automatic.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Automatic
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Chronograph Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=chronograph"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(254, 244, 219);"
+            >
+              <img
+                alt="Chronograph Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="chronograph.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Chronograph
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Vintage Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=vintage"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(227, 242, 253);"
+            >
+              <img
+                alt="Vintage Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="vintage.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Vintage
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Women Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=women"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(245, 237, 253);"
+            >
+              <img
+                alt="Women Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="women.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Women
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Combo Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=combo"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 248, 248);"
+            >
+              <img
+                alt="Combo Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="combo.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Combo
+              </h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -10282,7 +10998,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
             class="recommended-view-all"
             href="/products?category=watches"
           >
-            View All →
+            <span
+              class="recommended-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="recommended-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </div>
         <div
@@ -10298,6 +11043,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  38% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -10347,6 +11097,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                     class="product-original-price premium-old-price"
                   >
                     ₹7,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    38% OFF
                   </span>
                 </div>
               </div>
@@ -10649,30 +11404,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
       </div>
     </section>
   </div>
-  <div
-    style="contain: none;"
+  <section
+    aria-label="Special Offers"
+    class="offers-section"
   >
     <div
-      class="container offers-section"
+      class="offers-container"
     >
       <div
         class="offers-grid"
       >
         <div
-          class="offer-card"
+          class="offer-card offer-card-watch"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-gold"
             >
               DEAL OF THE DAY
             </span>
             <h3
               class="offer-title"
             >
-              Up to 40% OFF
+              Up to 
+              <span
+                class="offer-highlight-gold"
+              >
+                40% OFF
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -10680,58 +11441,134 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               On Selected Items
             </p>
             <a
-              class="offer-btn"
-              href="/products/watches"
+              class="offer-btn btn-dark"
+              href="/products?category=watches"
             >
-              Shop Now
+              Shop Now 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-gold"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-gold"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"
+                />
+              </svg>
+            </div>
             <img
-              alt="Watches Deal"
-              class="offer-img"
+              alt="Watches Deal of the Day"
+              class="offer-img watch-stage-img"
               decoding="async"
               loading="lazy"
-              src="offer_watch.png"
+              src="offer_watch_stage.jpg"
             />
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-shoe"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-blue"
             >
               NEW COLLECTION
             </span>
             <h3
               class="offer-title"
             >
-              Setup Up Your
+              Setup Up Your 
+              <span
+                class="offer-highlight-blue"
+              >
+                Style Game
+              </span>
             </h3>
-            <p
-              class="offer-subtitle"
-            >
-              Style Game
-            </p>
+            <div
+              aria-hidden="true"
+              class="offer-title-underline-blue"
+            />
             <a
-              class="offer-btn"
-              href="/products/shoes"
+              class="offer-btn btn-blue"
+              href="/products?category=shoes"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-blue"
           >
+            <div
+              class="offer-podium-3d podium-blue-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Shoes New Collection"
-              class="offer-img shoe-offer-img"
+              class="offer-img shoe-stage-img"
               decoding="async"
               loading="lazy"
               src="shoe.svg"
@@ -10739,20 +11576,25 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-buds"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-purple"
             >
               PREMIUM QUALITY
             </span>
             <h3
               class="offer-title"
             >
-              Built For Comfort,
+              Built For 
+              <span
+                class="offer-highlight-purple"
+              >
+                Comfort,
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -10760,18 +11602,81 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               Designed for You
             </p>
             <a
-              class="offer-btn"
-              href="/products/air-buds"
+              class="offer-btn btn-purple"
+              href="/products?category=air-buds"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-purple"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-purple"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2"
+                />
+                <path
+                  d="M14 11V2h1v9zM6 3v10H5V3z"
+                  fill-rule="evenodd"
+                />
+                <path
+                  d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class="offer-floating-sparkle"
+            >
+              ✦
+            </div>
+            <div
+              class="offer-podium-3d podium-purple-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Air Buds Premium Quality"
-              class="offer-img"
+              class="offer-img buds-stage-img"
               decoding="async"
               loading="lazy"
               src="Buds.png"
@@ -10780,7 +11685,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
         </div>
       </div>
     </div>
-  </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -11314,7 +12219,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
             class="style-essentials-view-all"
             href="/products?collection=style-essentials"
           >
-            View All →
+            <span
+              class="style-essentials-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="style-essentials-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </header>
         <div
@@ -11330,6 +12264,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  40% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -11379,6 +12318,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                     class="product-original-price premium-old-price"
                   >
                     ₹4,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    40% OFF
                   </span>
                 </div>
               </div>
@@ -15203,6 +16147,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                 <div
                   class="premium-card-media"
                 >
+                  <span
+                    class="premium-card-discount-badge"
+                  >
+                    38% OFF
+                  </span>
                   <button
                     aria-label="Add to wishlist"
                     class="premium-heart-btn "
@@ -15252,6 +16201,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: Pixel 7
                       class="product-original-price premium-old-price"
                     >
                       ₹7,999
+                    </span>
+                    <span
+                      class="premium-card-discount-tag"
+                    >
+                      38% OFF
                     </span>
                   </div>
                 </div>
@@ -17130,86 +18084,95 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-    <div
+    <nav
+      aria-label="Product Categories Navigation"
       class="bottom-items"
     >
       <ul
         class="bottom-menu"
       >
         <li
-          class="active"
+          class="bottom-menu-item active"
         >
           <a
+            class="bottom-menu-link active"
             href="/"
           >
             Home
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/watches"
           >
             Watches
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/shoes"
           >
             Shoes
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/air-buds"
           >
             Air Buds
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/sliders"
           >
             Sliders
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/caps"
           >
             Caps
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/accessories"
           >
             Accessories
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/deals"
           >
             Deals
           </a>
         </li>
       </ul>
-    </div>
+    </nav>
     <div
       aria-hidden="true"
       class="mobile-drawer-backdrop "
@@ -18565,6 +19528,236 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 12/13/14 (390px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Loading Featured Banner"
+    class="moxie-hero-banner-section"
+  >
+    <div
+      class="moxie-hero-banner-container moxie-hero-banner-skeleton"
+    >
+      <div
+        class="moxie-banner-skeleton-shimmer"
+      />
+    </div>
+  </section>
+  <section
+    aria-label="Shop by Watch Category"
+    class="watch-cat-section"
+  >
+    <div
+      class="watch-cat-container"
+    >
+      <div
+        class="watch-cat-header"
+      >
+        <h2
+          class="watch-cat-title"
+        >
+          SHOP BY 
+          <span
+            class="watch-cat-gradient-text"
+          >
+            CATEGORY
+          </span>
+        </h2>
+        <p
+          class="watch-cat-subtitle"
+        >
+          Explore timepieces by collection and find your perfect style
+        </p>
+      </div>
+      <div
+        class="watch-cat-grid"
+      >
+        <a
+          aria-label="Shop Luxury Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=luxury"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 245, 238);"
+            >
+              <img
+                alt="Luxury Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="luxury.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Luxury
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Automatic Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=automatic"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(253, 236, 239);"
+            >
+              <img
+                alt="Automatic Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="automatic.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Automatic
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Chronograph Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=chronograph"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(254, 244, 219);"
+            >
+              <img
+                alt="Chronograph Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="chronograph.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Chronograph
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Vintage Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=vintage"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(227, 242, 253);"
+            >
+              <img
+                alt="Vintage Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="vintage.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Vintage
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Women Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=women"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(245, 237, 253);"
+            >
+              <img
+                alt="Women Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="women.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Women
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Combo Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=combo"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 248, 248);"
+            >
+              <img
+                alt="Combo Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="combo.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Combo
+              </h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -18597,7 +19790,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="recommended-view-all"
             href="/products?category=watches"
           >
-            View All →
+            <span
+              class="recommended-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="recommended-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </div>
         <div
@@ -18613,6 +19835,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  38% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -18662,6 +19889,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹7,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    38% OFF
                   </span>
                 </div>
               </div>
@@ -18964,30 +20196,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       </div>
     </section>
   </div>
-  <div
-    style="contain: none;"
+  <section
+    aria-label="Special Offers"
+    class="offers-section"
   >
     <div
-      class="container offers-section"
+      class="offers-container"
     >
       <div
         class="offers-grid"
       >
         <div
-          class="offer-card"
+          class="offer-card offer-card-watch"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-gold"
             >
               DEAL OF THE DAY
             </span>
             <h3
               class="offer-title"
             >
-              Up to 40% OFF
+              Up to 
+              <span
+                class="offer-highlight-gold"
+              >
+                40% OFF
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -18995,58 +20233,134 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               On Selected Items
             </p>
             <a
-              class="offer-btn"
-              href="/products/watches"
+              class="offer-btn btn-dark"
+              href="/products?category=watches"
             >
-              Shop Now
+              Shop Now 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-gold"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-gold"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"
+                />
+              </svg>
+            </div>
             <img
-              alt="Watches Deal"
-              class="offer-img"
+              alt="Watches Deal of the Day"
+              class="offer-img watch-stage-img"
               decoding="async"
               loading="lazy"
-              src="offer_watch.png"
+              src="offer_watch_stage.jpg"
             />
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-shoe"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-blue"
             >
               NEW COLLECTION
             </span>
             <h3
               class="offer-title"
             >
-              Setup Up Your
+              Setup Up Your 
+              <span
+                class="offer-highlight-blue"
+              >
+                Style Game
+              </span>
             </h3>
-            <p
-              class="offer-subtitle"
-            >
-              Style Game
-            </p>
+            <div
+              aria-hidden="true"
+              class="offer-title-underline-blue"
+            />
             <a
-              class="offer-btn"
-              href="/products/shoes"
+              class="offer-btn btn-blue"
+              href="/products?category=shoes"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-blue"
           >
+            <div
+              class="offer-podium-3d podium-blue-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Shoes New Collection"
-              class="offer-img shoe-offer-img"
+              class="offer-img shoe-stage-img"
               decoding="async"
               loading="lazy"
               src="shoe.svg"
@@ -19054,20 +20368,25 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-buds"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-purple"
             >
               PREMIUM QUALITY
             </span>
             <h3
               class="offer-title"
             >
-              Built For Comfort,
+              Built For 
+              <span
+                class="offer-highlight-purple"
+              >
+                Comfort,
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -19075,18 +20394,81 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               Designed for You
             </p>
             <a
-              class="offer-btn"
-              href="/products/air-buds"
+              class="offer-btn btn-purple"
+              href="/products?category=air-buds"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-purple"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-purple"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2"
+                />
+                <path
+                  d="M14 11V2h1v9zM6 3v10H5V3z"
+                  fill-rule="evenodd"
+                />
+                <path
+                  d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class="offer-floating-sparkle"
+            >
+              ✦
+            </div>
+            <div
+              class="offer-podium-3d podium-purple-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Air Buds Premium Quality"
-              class="offer-img"
+              class="offer-img buds-stage-img"
               decoding="async"
               loading="lazy"
               src="Buds.png"
@@ -19095,7 +20477,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-  </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -19629,7 +21011,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="style-essentials-view-all"
             href="/products?collection=style-essentials"
           >
-            View All →
+            <span
+              class="style-essentials-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="style-essentials-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </header>
         <div
@@ -19645,6 +21056,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  40% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -19694,6 +21110,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹4,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    40% OFF
                   </span>
                 </div>
               </div>
@@ -23518,6 +24939,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 <div
                   class="premium-card-media"
                 >
+                  <span
+                    class="premium-card-discount-badge"
+                  >
+                    38% OFF
+                  </span>
                   <button
                     aria-label="Add to wishlist"
                     class="premium-heart-btn "
@@ -23567,6 +24993,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                       class="product-original-price premium-old-price"
                     >
                       ₹7,999
+                    </span>
+                    <span
+                      class="premium-card-discount-tag"
+                    >
+                      38% OFF
                     </span>
                   </div>
                 </div>
@@ -25445,86 +26876,95 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-    <div
+    <nav
+      aria-label="Product Categories Navigation"
       class="bottom-items"
     >
       <ul
         class="bottom-menu"
       >
         <li
-          class="active"
+          class="bottom-menu-item active"
         >
           <a
+            class="bottom-menu-link active"
             href="/"
           >
             Home
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/watches"
           >
             Watches
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/shoes"
           >
             Shoes
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/air-buds"
           >
             Air Buds
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/sliders"
           >
             Sliders
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/caps"
           >
             Caps
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/accessories"
           >
             Accessories
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/deals"
           >
             Deals
           </a>
         </li>
       </ul>
-    </div>
+    </nav>
     <div
       aria-hidden="true"
       class="mobile-drawer-backdrop "
@@ -26880,6 +28320,236 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 14/15 Pro Max (430px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Loading Featured Banner"
+    class="moxie-hero-banner-section"
+  >
+    <div
+      class="moxie-hero-banner-container moxie-hero-banner-skeleton"
+    >
+      <div
+        class="moxie-banner-skeleton-shimmer"
+      />
+    </div>
+  </section>
+  <section
+    aria-label="Shop by Watch Category"
+    class="watch-cat-section"
+  >
+    <div
+      class="watch-cat-container"
+    >
+      <div
+        class="watch-cat-header"
+      >
+        <h2
+          class="watch-cat-title"
+        >
+          SHOP BY 
+          <span
+            class="watch-cat-gradient-text"
+          >
+            CATEGORY
+          </span>
+        </h2>
+        <p
+          class="watch-cat-subtitle"
+        >
+          Explore timepieces by collection and find your perfect style
+        </p>
+      </div>
+      <div
+        class="watch-cat-grid"
+      >
+        <a
+          aria-label="Shop Luxury Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=luxury"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 245, 238);"
+            >
+              <img
+                alt="Luxury Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="luxury.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Luxury
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Automatic Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=automatic"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(253, 236, 239);"
+            >
+              <img
+                alt="Automatic Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="automatic.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Automatic
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Chronograph Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=chronograph"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(254, 244, 219);"
+            >
+              <img
+                alt="Chronograph Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="chronograph.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Chronograph
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Vintage Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=vintage"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(227, 242, 253);"
+            >
+              <img
+                alt="Vintage Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="vintage.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Vintage
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Women Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=women"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(245, 237, 253);"
+            >
+              <img
+                alt="Women Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="women.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Women
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Combo Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=combo"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 248, 248);"
+            >
+              <img
+                alt="Combo Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="combo.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Combo
+              </h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -26912,7 +28582,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="recommended-view-all"
             href="/products?category=watches"
           >
-            View All →
+            <span
+              class="recommended-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="recommended-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </div>
         <div
@@ -26928,6 +28627,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  38% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -26977,6 +28681,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹7,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    38% OFF
                   </span>
                 </div>
               </div>
@@ -27279,30 +28988,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       </div>
     </section>
   </div>
-  <div
-    style="contain: none;"
+  <section
+    aria-label="Special Offers"
+    class="offers-section"
   >
     <div
-      class="container offers-section"
+      class="offers-container"
     >
       <div
         class="offers-grid"
       >
         <div
-          class="offer-card"
+          class="offer-card offer-card-watch"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-gold"
             >
               DEAL OF THE DAY
             </span>
             <h3
               class="offer-title"
             >
-              Up to 40% OFF
+              Up to 
+              <span
+                class="offer-highlight-gold"
+              >
+                40% OFF
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -27310,58 +29025,134 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               On Selected Items
             </p>
             <a
-              class="offer-btn"
-              href="/products/watches"
+              class="offer-btn btn-dark"
+              href="/products?category=watches"
             >
-              Shop Now
+              Shop Now 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-gold"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-gold"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"
+                />
+              </svg>
+            </div>
             <img
-              alt="Watches Deal"
-              class="offer-img"
+              alt="Watches Deal of the Day"
+              class="offer-img watch-stage-img"
               decoding="async"
               loading="lazy"
-              src="offer_watch.png"
+              src="offer_watch_stage.jpg"
             />
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-shoe"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-blue"
             >
               NEW COLLECTION
             </span>
             <h3
               class="offer-title"
             >
-              Setup Up Your
+              Setup Up Your 
+              <span
+                class="offer-highlight-blue"
+              >
+                Style Game
+              </span>
             </h3>
-            <p
-              class="offer-subtitle"
-            >
-              Style Game
-            </p>
+            <div
+              aria-hidden="true"
+              class="offer-title-underline-blue"
+            />
             <a
-              class="offer-btn"
-              href="/products/shoes"
+              class="offer-btn btn-blue"
+              href="/products?category=shoes"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-blue"
           >
+            <div
+              class="offer-podium-3d podium-blue-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Shoes New Collection"
-              class="offer-img shoe-offer-img"
+              class="offer-img shoe-stage-img"
               decoding="async"
               loading="lazy"
               src="shoe.svg"
@@ -27369,20 +29160,25 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-buds"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-purple"
             >
               PREMIUM QUALITY
             </span>
             <h3
               class="offer-title"
             >
-              Built For Comfort,
+              Built For 
+              <span
+                class="offer-highlight-purple"
+              >
+                Comfort,
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -27390,18 +29186,81 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               Designed for You
             </p>
             <a
-              class="offer-btn"
-              href="/products/air-buds"
+              class="offer-btn btn-purple"
+              href="/products?category=air-buds"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-purple"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-purple"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2"
+                />
+                <path
+                  d="M14 11V2h1v9zM6 3v10H5V3z"
+                  fill-rule="evenodd"
+                />
+                <path
+                  d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class="offer-floating-sparkle"
+            >
+              ✦
+            </div>
+            <div
+              class="offer-podium-3d podium-purple-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Air Buds Premium Quality"
-              class="offer-img"
+              class="offer-img buds-stage-img"
               decoding="async"
               loading="lazy"
               src="Buds.png"
@@ -27410,7 +29269,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-  </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -27944,7 +29803,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="style-essentials-view-all"
             href="/products?collection=style-essentials"
           >
-            View All →
+            <span
+              class="style-essentials-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="style-essentials-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </header>
         <div
@@ -27960,6 +29848,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  40% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -28009,6 +29902,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹4,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    40% OFF
                   </span>
                 </div>
               </div>
@@ -31833,6 +33731,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 <div
                   class="premium-card-media"
                 >
+                  <span
+                    class="premium-card-discount-badge"
+                  >
+                    38% OFF
+                  </span>
                   <button
                     aria-label="Add to wishlist"
                     class="premium-heart-btn "
@@ -31882,6 +33785,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                       class="product-original-price premium-old-price"
                     >
                       ₹7,999
+                    </span>
+                    <span
+                      class="premium-card-discount-tag"
+                    >
+                      38% OFF
                     </span>
                   </div>
                 </div>
@@ -33760,86 +35668,95 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-    <div
+    <nav
+      aria-label="Product Categories Navigation"
       class="bottom-items"
     >
       <ul
         class="bottom-menu"
       >
         <li
-          class="active"
+          class="bottom-menu-item active"
         >
           <a
+            class="bottom-menu-link active"
             href="/"
           >
             Home
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/watches"
           >
             Watches
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/shoes"
           >
             Shoes
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/air-buds"
           >
             Air Buds
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/sliders"
           >
             Sliders
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/caps"
           >
             Caps
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/accessories"
           >
             Accessories
           </a>
         </li>
         <li
-          class=""
+          class="bottom-menu-item "
         >
           <a
+            class="bottom-menu-link "
             href="/products/deals"
           >
             Deals
           </a>
         </li>
       </ul>
-    </div>
+    </nav>
     <div
       aria-hidden="true"
       class="mobile-drawer-backdrop "
@@ -35195,6 +37112,236 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
 
 exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone SE (320px) renders Home page cleanly on mobile without crash 1`] = `
 <DocumentFragment>
+  <section
+    aria-label="Loading Featured Banner"
+    class="moxie-hero-banner-section"
+  >
+    <div
+      class="moxie-hero-banner-container moxie-hero-banner-skeleton"
+    >
+      <div
+        class="moxie-banner-skeleton-shimmer"
+      />
+    </div>
+  </section>
+  <section
+    aria-label="Shop by Watch Category"
+    class="watch-cat-section"
+  >
+    <div
+      class="watch-cat-container"
+    >
+      <div
+        class="watch-cat-header"
+      >
+        <h2
+          class="watch-cat-title"
+        >
+          SHOP BY 
+          <span
+            class="watch-cat-gradient-text"
+          >
+            CATEGORY
+          </span>
+        </h2>
+        <p
+          class="watch-cat-subtitle"
+        >
+          Explore timepieces by collection and find your perfect style
+        </p>
+      </div>
+      <div
+        class="watch-cat-grid"
+      >
+        <a
+          aria-label="Shop Luxury Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=luxury"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 245, 238);"
+            >
+              <img
+                alt="Luxury Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="luxury.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Luxury
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Automatic Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=automatic"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(253, 236, 239);"
+            >
+              <img
+                alt="Automatic Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="automatic.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Automatic
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Chronograph Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=chronograph"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(254, 244, 219);"
+            >
+              <img
+                alt="Chronograph Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="chronograph.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Chronograph
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Vintage Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=vintage"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(227, 242, 253);"
+            >
+              <img
+                alt="Vintage Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="vintage.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Vintage
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Women Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=women"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(245, 237, 253);"
+            >
+              <img
+                alt="Women Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="women.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Women
+              </h3>
+            </div>
+          </div>
+        </a>
+        <a
+          aria-label="Shop Combo Watches"
+          class="watch-cat-card"
+          href="/products?category=watches&subcategory=combo"
+        >
+          <div
+            class="watch-cat-card-inner"
+          >
+            <div
+              class="watch-cat-thumb-box"
+              style="background-color: rgb(230, 248, 248);"
+            >
+              <img
+                alt="Combo Watch Collection"
+                class="watch-cat-img"
+                decoding="async"
+                loading="lazy"
+                src="combo.jpg"
+              />
+            </div>
+            <div
+              class="watch-cat-info-row"
+            >
+              <h3
+                class="watch-cat-name"
+              >
+                Combo
+              </h3>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -35227,7 +37374,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="recommended-view-all"
             href="/products?category=watches"
           >
-            View All →
+            <span
+              class="recommended-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="recommended-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </div>
         <div
@@ -35243,6 +37419,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  38% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -35292,6 +37473,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹7,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    38% OFF
                   </span>
                 </div>
               </div>
@@ -35594,30 +37780,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
       </div>
     </section>
   </div>
-  <div
-    style="contain: none;"
+  <section
+    aria-label="Special Offers"
+    class="offers-section"
   >
     <div
-      class="container offers-section"
+      class="offers-container"
     >
       <div
         class="offers-grid"
       >
         <div
-          class="offer-card"
+          class="offer-card offer-card-watch"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-gold"
             >
               DEAL OF THE DAY
             </span>
             <h3
               class="offer-title"
             >
-              Up to 40% OFF
+              Up to 
+              <span
+                class="offer-highlight-gold"
+              >
+                40% OFF
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -35625,58 +37817,134 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               On Selected Items
             </p>
             <a
-              class="offer-btn"
-              href="/products/watches"
+              class="offer-btn btn-dark"
+              href="/products?category=watches"
             >
-              Shop Now
+              Shop Now 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-gold"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-gold"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"
+                />
+              </svg>
+            </div>
             <img
-              alt="Watches Deal"
-              class="offer-img"
+              alt="Watches Deal of the Day"
+              class="offer-img watch-stage-img"
               decoding="async"
               loading="lazy"
-              src="offer_watch.png"
+              src="offer_watch_stage.jpg"
             />
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-shoe"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-blue"
             >
               NEW COLLECTION
             </span>
             <h3
               class="offer-title"
             >
-              Setup Up Your
+              Setup Up Your 
+              <span
+                class="offer-highlight-blue"
+              >
+                Style Game
+              </span>
             </h3>
-            <p
-              class="offer-subtitle"
-            >
-              Style Game
-            </p>
+            <div
+              aria-hidden="true"
+              class="offer-title-underline-blue"
+            />
             <a
-              class="offer-btn"
-              href="/products/shoes"
+              class="offer-btn btn-blue"
+              href="/products?category=shoes"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-blue"
           >
+            <div
+              class="offer-podium-3d podium-blue-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Shoes New Collection"
-              class="offer-img shoe-offer-img"
+              class="offer-img shoe-stage-img"
               decoding="async"
               loading="lazy"
               src="shoe.svg"
@@ -35684,20 +37952,25 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
           </div>
         </div>
         <div
-          class="offer-card"
+          class="offer-card offer-card-buds"
         >
           <div
             class="offer-info"
           >
             <span
-              class="offer-tag"
+              class="offer-tag tag-purple"
             >
               PREMIUM QUALITY
             </span>
             <h3
               class="offer-title"
             >
-              Built For Comfort,
+              Built For 
+              <span
+                class="offer-highlight-purple"
+              >
+                Comfort,
+              </span>
             </h3>
             <p
               class="offer-subtitle"
@@ -35705,18 +37978,81 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               Designed for You
             </p>
             <a
-              class="offer-btn"
-              href="/products/air-buds"
+              class="offer-btn btn-purple"
+              href="/products?category=air-buds"
             >
-              Explore Shop
+              Explore Shop 
+              <svg
+                class="offer-btn-arrow"
+                fill="none"
+                height="1em"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
             </a>
           </div>
           <div
-            class="offer-img-container"
+            class="offer-stage-container stage-purple"
           >
+            <div
+              aria-hidden="true"
+              class="offer-floating-badge badge-purple"
+            >
+              <svg
+                fill="currentColor"
+                height="1em"
+                stroke="currentColor"
+                stroke-width="0"
+                viewBox="0 0 16 16"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13s1.12-2 2.5-2 2.5.896 2.5 2m9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2"
+                />
+                <path
+                  d="M14 11V2h1v9zM6 3v10H5V3z"
+                  fill-rule="evenodd"
+                />
+                <path
+                  d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class="offer-floating-sparkle"
+            >
+              ✦
+            </div>
+            <div
+              class="offer-podium-3d podium-purple-3d"
+            >
+              <div
+                class="podium-top"
+              />
+              <div
+                class="podium-base"
+              />
+            </div>
             <img
               alt="Air Buds Premium Quality"
-              class="offer-img"
+              class="offer-img buds-stage-img"
               decoding="async"
               loading="lazy"
               src="Buds.png"
@@ -35725,7 +38061,7 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
         </div>
       </div>
     </div>
-  </div>
+  </section>
   <div
     style="contain: none;"
   >
@@ -36259,7 +38595,36 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
             class="style-essentials-view-all"
             href="/products?collection=style-essentials"
           >
-            View All →
+            <span
+              class="style-essentials-view-all-text"
+            >
+              View All
+            </span>
+            <span
+              aria-hidden="true"
+              class="style-essentials-view-all-icon"
+            >
+              <svg
+                fill="none"
+                height="12"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+                width="12"
+              >
+                <line
+                  x1="5"
+                  x2="19"
+                  y1="12"
+                  y2="12"
+                />
+                <polyline
+                  points="12 5 19 12 12 19"
+                />
+              </svg>
+            </span>
           </a>
         </header>
         <div
@@ -36275,6 +38640,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
               <div
                 class="premium-card-media"
               >
+                <span
+                  class="premium-card-discount-badge"
+                >
+                  40% OFF
+                </span>
                 <button
                   aria-label="Add to wishlist"
                   class="premium-heart-btn "
@@ -36324,6 +38694,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                     class="product-original-price premium-old-price"
                   >
                     ₹4,999
+                  </span>
+                  <span
+                    class="premium-card-discount-tag"
+                  >
+                    40% OFF
                   </span>
                 </div>
               </div>
@@ -40148,6 +42523,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                 <div
                   class="premium-card-media"
                 >
+                  <span
+                    class="premium-card-discount-badge"
+                  >
+                    38% OFF
+                  </span>
                   <button
                     aria-label="Add to wishlist"
                     class="premium-heart-btn "
@@ -40197,6 +42577,11 @@ exports[`Mobile Responsive Page Snapshot & Layout Verification Viewport: iPhone 
                       class="product-original-price premium-old-price"
                     >
                       ₹7,999
+                    </span>
+                    <span
+                      class="premium-card-discount-tag"
+                    >
+                      38% OFF
                     </span>
                   </div>
                 </div>

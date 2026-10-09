@@ -420,6 +420,13 @@
             margin: 0 !important;
             background: #ffffff !important;
             width: 100% !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        .notification-popover-body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
         .notification-popover-item {
             display: flex !important;
@@ -1274,6 +1281,8 @@
 
             window.updateGlobalNotificationBadges = updateBadges;
             window.refreshAdminNotifications = fetchNotifications;
+            window.addEventListener('adminNotificationUpdated', fetchNotifications);
+            window.addEventListener('adminNotificationRequestRefresh', fetchNotifications);
 
             function escapeHtml(str) {
                 return (str || '').replace(/[&<>"']/g, function (m) {

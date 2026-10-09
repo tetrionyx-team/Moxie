@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { LuCheck, LuTruck, LuPackage, LuClock, LuCircleCheck, LuBan, LuCopy, LuRefreshCw } from "react-icons/lu";
+import { LuCheck, LuTruck, LuPackage, LuClock, LuCircleCheck, LuBan, LuCopy, LuRefreshCw, LuArrowLeft } from "react-icons/lu";
 import { apiFetch } from "../../api/apiConfig";
 
 export default function TrackOrder({ order: initialOrder, onBack }) {
@@ -133,7 +133,18 @@ export default function TrackOrder({ order: initialOrder, onBack }) {
 
   if (!order) return null;
 
-  const displayOrderId = order.orderId || order.order_number || (order.id ? `MOX-${String(order.id).padStart(4, "0")}` : "MOX-0001");
+  const getCleanOrderId = (ord) => {
+    if (!ord) return "MOX-0001";
+    let raw = ord.order_number || ord.orderId || (ord.id ? String(ord.id) : "0001");
+    raw = String(raw).trim();
+    raw = raw.replace(/^(MOX-?)+/i, "");
+    if (!isNaN(Number(raw))) {
+      return `MOX-${raw.padStart(4, "0")}`;
+    }
+    return `MOX-${raw}`;
+  };
+
+  const displayOrderId = getCleanOrderId(order);
   const trackingId = order.trackingId || order.tracking_id || order.trackingNumber || order.tracking_number || "";
   const rawCourier = order.courier || order.courier_name || order.deliveryPartner || "";
   const courierName = rawCourier === "ST_COURIER" ? "ST Courier" : rawCourier === "INDIA_POST" ? "India Post" : rawCourier;
@@ -267,22 +278,30 @@ export default function TrackOrder({ order: initialOrder, onBack }) {
 
   return (
     <div className="track-order-wrapper">
-      <div className="panel-header d-flex justify-content-between align-items-center mb-3">
-        <div className="d-flex align-items-center gap-3">
-          <button className="secondary-btn btn-sm py-1 px-2" onClick={onBack}>
-            ← Back
+      <div className="order-details-top-header">
+        <div className="order-details-header-left">
+          <button
+            type="button"
+            className="profile-back-btn"
+            onClick={onBack}
+            aria-label="Go back to My Orders"
+          >
+            <LuArrowLeft className="back-arrow-icon" />
+            <span>Back</span>
           </button>
-          <h2 style={{ fontSize: "20px", margin: 0 }}>Track Order #{displayOrderId}</h2>
+          <h2 className="order-details-main-heading">
+            Track Order #{displayOrderId}
+          </h2>
         </div>
         <button
           type="button"
-          className="secondary-btn btn-sm py-1 px-3 d-flex align-items-center gap-2"
+          className="profile-back-btn track-refresh-btn"
           onClick={() => refreshTracking(false)}
           disabled={refreshing}
           title="Fetch latest tracking status from backend"
         >
           <LuRefreshCw className={refreshing ? "spin-icon" : ""} size={14} />
-          <span>{refreshing ? "Refreshing..." : "Refresh Tracking"}</span>
+          <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
         </button>
       </div>
 
