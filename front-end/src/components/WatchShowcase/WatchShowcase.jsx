@@ -522,37 +522,8 @@ export default function WatchShowcase() {
     }
   };
 
-  // Loading skeleton state
-  if (loading && (!featuredProducts || featuredProducts.length === 0)) {
-    return (
-      <section className="moxie-featured-picks-section" aria-label="Limited Time Picks Loading">
-        <div className="moxie-featured-picks-container">
-          <header className="moxie-picks-header">
-            <span className="moxie-picks-pill">
-              <span className="emoji moxie-picks-crown">👑</span> LIMITED MOXIE EDIT
-            </span>
-            <h2 className="moxie-picks-title">Limited Time Picks</h2>
-            <p className="moxie-picks-subtitle">
-              Few pieces. Exclusive prices. Available for a limited time.
-            </p>
-          </header>
-          <div className="moxie-picks-grid">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="moxie-promo-card skeleton-card" aria-hidden="true">
-                <div className="skeleton-img" />
-                <div className="skeleton-line skeleton-title" />
-                <div className="skeleton-line skeleton-price" />
-                <div className="skeleton-line skeleton-timer" />
-                <div className="skeleton-line skeleton-btn" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // If no active featured products, hide the entire section
+  // If no active featured products exist, hide the entire section cleanly
+  // Prevents flashing empty skeleton cards on page load when no featured items exist
   if (!activeItems || activeItems.length === 0) {
     return null;
   }

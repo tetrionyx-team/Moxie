@@ -35,13 +35,12 @@ describe("WatchShowcase (Limited-Time Picks) Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  test("renders skeleton loading state when loading is true and featuredProducts is empty", () => {
+  test("hides entire section (returns null) when loading is true and featuredProducts is empty", () => {
     useData.mockReturnValue({ featuredProducts: [], loading: true });
 
-    render(<WatchShowcase />);
-    expect(screen.getByText("LIMITED MOXIE EDIT")).toBeInTheDocument();
-    expect(screen.getByText("Limited Time Picks")).toBeInTheDocument();
-    expect(screen.getByLabelText("Limited Time Picks Loading")).toBeInTheDocument();
+    const { container } = render(<WatchShowcase />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText("Limited Time Picks")).not.toBeInTheDocument();
   });
 
   test("renders dynamic featured products from backend with badges, prices, and direct links", () => {
